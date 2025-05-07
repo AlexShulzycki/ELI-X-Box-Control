@@ -1,6 +1,8 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 import WebSocketAPI
+import SettingsAPI
 app = FastAPI()
+app.include_router(SettingsAPI.router)
 
 @app.get("/")
 async def root():
@@ -22,9 +24,6 @@ class ConnectionManager:
     def disconnect(self, websocket: WebSocket):
         self.active_connections.remove(websocket)
 
-    async def send_msg_to(self, message: str, websocket: WebSocket):
-        await websocket.send_text(message)
-
     async def broadcast(self, message: str):
         for connection in self.active_connections:
             await connection.send_text(message)
@@ -37,14 +36,23 @@ wsAPI = WebSocketAPI.WebSocketAPI(wsmanager)
 #StageManager = StageControl.Controller.StageManager(wsmanager, AxisManager)
 
 
-@app.websocket("/ws/{client_id}")
-async def websocket_endpoint(websocket: WebSocket, client_id: int):
+@app.websocket("/ws/")
+async def websocket_endpoint(websocket: WebSocket):
+    # Add to WS manager
     await wsmanager.connect(websocket)
     try:
+        # Wait for new data
         while True:
+            # Try parsing the data and sending it to the wsAPI handler
             data = await websocket.receive_json()
-            wsAPI.receive(data, websocket)
+            await wsAPI.receive(data, websocket)
     except WebSocketDisconnect:
+        # handle the disconnect through the ws manager.
         wsmanager.disconnect(websocket)
-        await wsmanager.broadcast(f"Client #{client_id} left the chat")
+    except Exception as e:
+        res = {
+            "response": "error",
+            "error": str(e)
+        }
+        await websocket.send_json(res)
 

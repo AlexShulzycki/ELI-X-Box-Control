@@ -5,30 +5,8 @@ import {ref} from "vue";
 import SMC5 from "./components/smc5.vue"
 import C884 from "./components/c884.vue"
 
-const ws = new WebSocket('/ws/');
-
 let smc5objects = ref(new Array<Object>())
 let c884objects = ref(new Array<Object>())
-
-ws.onopen = () => {
-  console.log('Connected to server');
-  // Send the ping!
-  ws.send("{'ping':'ping!'}")
-};
-
-ws.onmessage = (event) => {
-  console.log(`Message from server: ${event.data}`);
-  try{
-    const parsed = JSON.parse(event.data)
-    console.log(parsed)
-  }catch(e){
-    console.log("Error parsing to JSON" + e)
-  }
-};
-
-ws.onclose = () => {
-  console.log('Connection closed');
-};
 
 </script>
 

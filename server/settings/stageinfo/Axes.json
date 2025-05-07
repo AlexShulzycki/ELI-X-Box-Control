@@ -1,0 +1,52 @@
+{
+  "XES": {
+    "Detector": {
+      "x": {
+        "type": "Linear"
+      },
+      "y": {
+        "type": "Linear"
+      }
+    },
+    "Crystal": {
+      "x": {
+        "type": "Linear"
+      },
+      "y": {
+        "type": "Linear"
+      },
+      "theta": {
+        "type": "Rotation"
+      }
+    },
+    "Sample": {
+      "x": {
+        "type": "Linear"
+      },
+      "y": {
+        "type": "Linear"
+      }
+    }
+  },
+  "XAS": {
+    "Detector": {
+      "x": {
+        "type": "Linear"
+      },
+      "y": {
+        "type": "Linear"
+      },
+      "omega": {
+        "type": "Rotation"
+      }
+    },
+    "Crystal": {
+      "y": {
+        "type": "Linear"
+      },
+      "theta": {
+        "type": "Rotation"
+      }
+    }
+  }
+}

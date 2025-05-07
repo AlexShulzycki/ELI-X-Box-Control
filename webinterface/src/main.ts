@@ -12,3 +12,27 @@ app.use(router)
 app.use(pinia)
 app.mount('#app')
 
+
+
+const devserverurl = "ws://127.0.0.1:8000"
+const ws = new WebSocket(devserverurl+'/ws/');
+
+ws.onopen = () => {
+  console.log('Connected to server');
+  // Send the ping!
+  ws.send(JSON.stringify({"request":"ping"}))
+};
+
+ws.onmessage = (event) => {
+  console.log(`Message from server: ${event.data}`);
+  try{
+    const parsed = JSON.parse(event.data)
+    console.log(parsed)
+  }catch(e){
+    console.log("Error parsing to JSON" + e)
+  }
+};
+
+ws.onclose = () => {
+  console.log('Connection closed');
+};
