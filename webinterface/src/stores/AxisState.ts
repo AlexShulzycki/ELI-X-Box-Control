@@ -1,12 +1,13 @@
 import {defineStore} from 'pinia'
 import axios from "axios";
 
-const api = import.meta.env.VITE_APP_API_URL;
-
 export const useAxisStore = defineStore('AxisState', {
     state: () => {
         return {
             assemblies: [] as Assembly[],
+            points: [] as Point[],
+            controllers: [] as Controller[],
+            axes: [] as Axis[]
         }
     },
     actions: {
@@ -14,7 +15,7 @@ export const useAxisStore = defineStore('AxisState', {
             //this.axes = updated
         },
         async overwriteFromSettings() {
-            const res = await axios.get(api + "SavedStagesAxes")
+            const res = await axios.get("get/SavedStageConfig")
             console.log("SavedStagesAxes received: ")
             console.log(res)
         }
@@ -23,6 +24,33 @@ export const useAxisStore = defineStore('AxisState', {
         // return the axes from the store
         getAssemblies: (state) => {
             return state.assemblies
+        },
+        getControllers: (state) => {
+            // Gather all controllers
+            let controllers: Controller[] = []
+            state.assemblies.forEach((assembly: Assembly) => {
+                assembly.points.forEach((point: Point) => {
+                    point.axes.forEach((axis: Axis) => {
+                        if(controllers.indexOf(axis.controller) != -1){
+                            controllers.push(axis.controller)
+                        }
+                    })
+                })
+            })
+
+            // Sort all controllers
+            let smc5: SMC5Controller[] = []
+            let c884: C884Controller[] = []
+
+            controllers.forEach((controller: Controller) => {
+                if(controller instanceof SMC5Controller){
+                    smc5.push(controller)
+                }else if(controller instanceof C884Controller){
+                    c884.push(controller)
+                }
+            })
+
+            return {"C884": c884, "SMC5": smc5}
         },
         // Get the positions after factoring in reversal
         /*getRealPosition: (state) => {

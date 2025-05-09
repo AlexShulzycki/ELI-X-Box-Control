@@ -4,12 +4,12 @@ import json
 
 router = APIRouter()
 
-@router.get("/comports")
+@router.get("/get/comports")
 def getComPorts():
     comports = []
     return comports
 
-@router.get("/SavedStagesAxes")
+@router.get("/get/SavedStagesAxes")
 def getSavedStageAxisTypes():
 
     try:
@@ -30,7 +30,7 @@ def getSavedStageAxisTypes():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/SavedStageConfig")
+@router.get("/get/SavedStageConfig")
 def getStageSettings():
     """
     Loads previous motor and controller setup settings from assets/SavedMotorSettings.py
@@ -38,7 +38,7 @@ def getStageSettings():
     """
     # Load from file
     try:
-        with open("data/StageInformation/SavedMotorSettings.json") as f:
+        with open("settings/StageConfig.json") as f:
             settings = json.load(f)
             f.close()
 

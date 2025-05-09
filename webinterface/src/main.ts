@@ -11,14 +11,11 @@ const app = createApp(App)
 app.use(router)
 app.use(pinia)
 
-const api = import.meta.env.VITE_APP_API_URL;
-
 app.mount('#app')
 
 
 
-const devserverurl = "ws://"+api
-const ws = new WebSocket(devserverurl+'/ws/');
+const ws = new WebSocket('/ws/');
 
 ws.onopen = () => {
   console.log('Connected to server');

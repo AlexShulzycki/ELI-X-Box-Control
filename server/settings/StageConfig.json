@@ -1,0 +1,9 @@
+{
+  "C884": [
+    {
+      "comport": 3,
+      "baudrate": 115200,
+      "stages": ["L-406.20DD10", "NOSTAGE", "NOSTAGE", "NOSTAGE"]
+    }
+  ]
+}

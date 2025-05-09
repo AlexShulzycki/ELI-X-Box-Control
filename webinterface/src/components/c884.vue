@@ -1,10 +1,17 @@
 <script setup lang="ts">
-defineProps(["model"])
+
+import {C884Axis, C884Controller} from "@/stores/AxisState.ts";
+
+defineProps({controller: {
+  type: C884Controller,
+  required: true}
+})
 
 </script>
 
 <template>
-<h1>COM port: {{model.com}}</h1>
+  <h1>COM port: {{controller.comport}}</h1>
+  <h1> Baudrate: {{controller.baudrate}}</h1>
 </template>
 
 <style scoped>
