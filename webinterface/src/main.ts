@@ -10,11 +10,14 @@ const pinia = createPinia()
 const app = createApp(App)
 app.use(router)
 app.use(pinia)
+
+const api = import.meta.env.VITE_APP_API_URL;
+
 app.mount('#app')
 
 
 
-const devserverurl = "ws://127.0.0.1:8000"
+const devserverurl = "ws://"+api
 const ws = new WebSocket(devserverurl+'/ws/');
 
 ws.onopen = () => {

@@ -1,9 +1,10 @@
 <script setup lang="ts">
-defineProps(["name"])
+defineProps(["model"])
+
 </script>
 
 <template>
-<h1>This is a C884 controller: {{name}}</h1>
+<h1>COM port: {{model.com}}</h1>
 </template>
 
 <style scoped>

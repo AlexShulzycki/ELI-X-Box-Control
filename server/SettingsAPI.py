@@ -9,8 +9,8 @@ def getComPorts():
     comports = []
     return comports
 
-@router.get("/StagesAxes")
-def getStageAxisTypes():
+@router.get("/SavedStagesAxes")
+def getSavedStageAxisTypes():
 
     try:
         with open('settings/stageinfo/PIStages.json') as f:

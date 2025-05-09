@@ -1,2 +1,9 @@
-import { defineStore, acceptHMRUpdate } from 'pinia'
+import { defineStore} from 'pinia'
 
+export const useSettingsStore = defineStore("Settings", {
+    state: () => {
+        return {
+
+        }
+    }
+})
