@@ -13,8 +13,6 @@ app.use(pinia)
 
 app.mount('#app')
 
-
-
 const ws = new WebSocket('/ws/');
 
 ws.onopen = () => {

@@ -5,7 +5,6 @@ export const useAxisStore = defineStore('AxisState', {
     state: () => {
         return {
             assemblies: [] as Assembly[],
-            points: [] as Point[],
             controllers: [] as Controller[],
             axes: [] as Axis[]
         }
@@ -14,10 +13,17 @@ export const useAxisStore = defineStore('AxisState', {
         updateAxes(updated: Map<string, Axis>) {
             //this.axes = updated
         },
-        async overwriteFromSettings() {
-            const res = await axios.get("get/SavedStageConfig")
-            console.log("SavedStagesAxes received: ")
-            console.log(res)
+        addController(controller: Controller){
+            this.controllers.push(controller)
+        },
+        removeController(controller: Controller){
+            //Remove a controller and its associated axes
+            let index = this.controllers.indexOf(controller)
+            if(index == -1){
+                console.error("Controller not found", controller)
+            }else{
+                this.controllers.de
+            }
         }
     },
     getters: {
@@ -26,8 +32,8 @@ export const useAxisStore = defineStore('AxisState', {
             return state.assemblies
         },
         getControllers: (state) => {
-            // Gather all controllers
-            let controllers: Controller[] = []
+            /*// Gather all controllers from the assemblies objects, use somewhere else later probably
+
             state.assemblies.forEach((assembly: Assembly) => {
                 assembly.points.forEach((point: Point) => {
                     point.axes.forEach((axis: Axis) => {
@@ -37,12 +43,13 @@ export const useAxisStore = defineStore('AxisState', {
                     })
                 })
             })
+            */
 
             // Sort all controllers
             let smc5: SMC5Controller[] = []
             let c884: C884Controller[] = []
 
-            controllers.forEach((controller: Controller) => {
+            state.controllers.forEach((controller: Controller) => {
                 if(controller instanceof SMC5Controller){
                     smc5.push(controller)
                 }else if(controller instanceof C884Controller){
@@ -52,17 +59,6 @@ export const useAxisStore = defineStore('AxisState', {
 
             return {"C884": c884, "SMC5": smc5}
         },
-        // Get the positions after factoring in reversal
-        /*getRealPosition: (state) => {
-            let res = new Map<string, number>()
-            state.axes.forEach((value, key) => {
-                let position = value.position
-                if(value.reversed){
-                    position = value.length - value.position
-                }
-                res.set(key, position)
-            })
-        }*/
     }
 })
 
@@ -85,6 +81,7 @@ abstract class Axis {
     min: number;
     max: number;
     controller: Controller;
+    ready: boolean
 
     protected constructor(model: string, reversed: boolean, direction: string, offset: number, min: number, max: number, controller: Controller) {
         this.model = model
@@ -94,6 +91,7 @@ abstract class Axis {
         this.min = min
         this.max = max
         this.controller = controller
+        this.ready = false
     }
 }
 
@@ -106,7 +104,13 @@ export class C884Axis extends Axis {
     }
 }
 
-abstract class Controller {}
+abstract class Controller {
+    ready: boolean
+
+    constructor() {
+        this.ready = false
+    }
+}
 
 export class C884Controller extends Controller{
     comport: number;

@@ -6,6 +6,7 @@ import SMC5 from "./components/smc5.vue"
 import C884 from "./components/c884.vue"
 
 import {useAxisStore, C884Controller, SMC5Controller} from "@/stores/AxisState.ts";
+import axios from "axios";
 const AxesStore = useAxisStore()
 
 let controllers = AxesStore.getControllers
@@ -13,10 +14,20 @@ let controllers = AxesStore.getControllers
 let smc5objects = ref(controllers["SMC5"])
 let c884objects = ref(controllers["C884"])
 
+async function overwriteFromSettings() {
+            const res = await axios.get("get/SavedStageConfig")
+            if(res.status == 200){
+                console.log("settings received: ", res.data)
+
+            }else {
+                console.log("Error fetching settings: ", res)
+            }
+        }
+
 </script>
 
 <template>
-  <button @click="AxesStore.overwriteFromSettings()"> Fetch settings</button>
+  <button @click="overwriteFromSettings"> Fetch and overwrite settings</button>
 
   <h1>Standa SMC5:</h1>
   <SMC5 v-for="x in smc5objects" :model="x"/>
