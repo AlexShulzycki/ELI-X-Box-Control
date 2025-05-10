@@ -11,7 +11,7 @@ defineProps({controller: {
 
 <template>
   <h1>COM port: {{controller.comport}}</h1>
-  <h1> Baudrate: {{controller.baudrate}}</h1>
+  <h1> Baud rate: {{controller.baudrate}}</h1>
 </template>
 
 <style scoped>

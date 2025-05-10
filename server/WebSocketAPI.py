@@ -1,5 +1,5 @@
 import fastapi.websockets
-
+from Interface import C884interface as C884interface
 
 class WebSocketAPI:
     """

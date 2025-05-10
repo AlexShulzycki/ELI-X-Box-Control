@@ -10,7 +10,7 @@ class C884:
 
     """
 
-    def __init__(self, comport, baudrate, stages):
+    def __init__(self, comport, baudrate):
         """
         Initialize the controller and reference all axes, communication is over RS232. Throws an exception if it fails.
         @param comport: COM port to which the device is connected
@@ -20,8 +20,6 @@ class C884:
          'NOSTAGE']
         A device which is not powered or improperly connected will raise an error!
         """
-        # Run the super for the heck of it, it doesn't do anything anyway
-        super().__init__()
 
         # Dict of axes connected to the controller
         self.axes = {}  # {axis name: Axis}
@@ -31,26 +29,24 @@ class C884:
         self.device: GCSDevice = GCSDevice("C-884")
         self.comport = comport
         self.baudrate = baudrate
-        self.stages = stages
-        self.device.ConnectRS232(comport, baudrate)
+        self.stages = ["NOSTAGE", "NOSTAGE", "NOSTAGE", "NOSTAGE"]
 
+        # Everything worked, the controller is configured and valid
+        return
+
+    def startReferencing(self):
+        # References axis, i.e. calibration
         # Create array of refmodes
         refmode = []
-        for i in stages:
+        for i in self.stages:
             refmode.append("FRF")
 
         # Attempt to reference the given axes
         try:
-            print("Startup and Referencing - this can take a while")
-            pitools.startup(self.device, stages=stages, refmodes=refmode)
-            print("Finished referencing")
+            pitools.startup(self.device, stages=self.stages, refmodes=refmode)
         except Exception as e:
-            # close connection and raise exception
-            self.closeConnection()
+            # Raise Exception
             raise e
-
-        # Everything worked, the controller is configured and valid
-        return
 
     def getPos(self) -> dict:
         """

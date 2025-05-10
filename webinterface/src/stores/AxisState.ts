@@ -6,7 +6,6 @@ export const useAxisStore = defineStore('AxisState', {
         return {
             assemblies: [] as Assembly[],
             controllers: [] as Controller[],
-            axes: [] as Axis[]
         }
     },
     actions: {
@@ -22,8 +21,11 @@ export const useAxisStore = defineStore('AxisState', {
             if(index == -1){
                 console.error("Controller not found", controller)
             }else{
-                this.controllers.de
+                this.controllers.splice(index, 1);
             }
+        },
+        syncFromServer(){
+            // Synchronizes controller state from the server
         }
     },
     getters: {

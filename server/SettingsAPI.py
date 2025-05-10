@@ -1,6 +1,7 @@
 # This file will take care of communicating via api to select and configure the controllers
 from fastapi import APIRouter, HTTPException
 import json
+import Interface
 
 router = APIRouter()
 
@@ -10,17 +11,17 @@ def getComPorts():
     return comports
 
 @router.get("/get/SavedStagesAxes")
-def getSavedStageAxisTypes():
+async def getSavedStageAxisTypes():
 
     try:
         with open('settings/stageinfo/PIStages.json') as f:
-            PIStages = json.load(f)
+            PIStages = await json.load(f)
             f.close()
         with open('settings/stageinfo/Axes.json') as f:
-            Axes = json.load(f)
+            Axes = await json.load(f)
             f.close()
         with open("settings/stageinfo/StandaStages.json") as f:
-            StandaStages = json.load(f)
+            StandaStages = await json.load(f)
             f.close()
 
         return {
@@ -31,7 +32,7 @@ def getSavedStageAxisTypes():
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/get/SavedStageConfig")
-def getStageSettings():
+async def getStageSettings():
     """
     Loads previous motor and controller setup settings from assets/SavedMotorSettings.py
     @return: JSON object saved in SavedMotorSettings.py
@@ -39,10 +40,19 @@ def getStageSettings():
     # Load from file
     try:
         with open("settings/StageConfig.json") as f:
-            settings = json.load(f)
+            settings = await json.load(f)
             f.close()
 
         return settings
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/get/ControllerStatus")
+async def getControllerStatus():
+    """
+    Gets the status of the controllers connected
+    """
+
+    return await Interface.C884interface.getUpdatedC884()
+
 
