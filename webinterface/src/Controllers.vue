@@ -9,32 +9,19 @@ import {useAxisStore, C884Controller, SMC5Controller} from "@/stores/AxisState.t
 import axios from "axios";
 const AxesStore = useAxisStore()
 
-let controllers = AxesStore.getControllers
-
-let smc5objects = ref(controllers["SMC5"])
-let c884objects = ref(controllers["C884"])
-
-async function overwriteFromSettings() {
-            const res = await axios.get("get/SavedStageConfig")
-            if(res.status == 200){
-                console.log("settings received: ", res.data)
-
-            }else {
-                console.log("Error fetching settings: ", res)
-            }
-        }
+let smc5objects = ref([])
 
 </script>
 
 <template>
-  <button @click="overwriteFromSettings"> Fetch and overwrite settings</button>
+  <button @click="AxesStore.syncFromServer"> Fetch and overwrite settings</button>
 
   <h1>Standa SMC5:</h1>
   <SMC5 v-for="x in smc5objects" :model="x"/>
 
   <h1> PI C884: </h1>
   <button @click="">Add a C884 Controller</button>
-  <C884 v-for="x in c884objects" :controller="x" :key="x.comport"/>
+  <C884 v-for="x in AxesStore.getC884list" :controller="x" :key="x.comport"/>
 
 
 

@@ -1,31 +1,56 @@
 import {defineStore} from 'pinia'
+import {useSettingsStore, NOSTAGE} from '@/stores/SettingsStore'
+import type {Stage} from "@/stores/SettingsStore"
 import axios from "axios";
+import C884 from "@/components/c884.vue";
+
+//const settingsStore = useSettingsStore()
 
 export const useAxisStore = defineStore('AxisState', {
     state: () => {
         return {
             assemblies: [] as Assembly[],
-            controllers: [] as Controller[],
+            c884s: new Map<number, C884Controller>()
         }
     },
     actions: {
         updateAxes(updated: Map<string, Axis>) {
             //this.axes = updated
         },
-        addController(controller: Controller){
-            this.controllers.push(controller)
+        addC884(controller: C884Controller){
+            this.c884s.set(controller.comport, controller)
         },
         removeController(controller: Controller){
             //Remove a controller and its associated axes
-            let index = this.controllers.indexOf(controller)
-            if(index == -1){
-                console.error("Controller not found", controller)
-            }else{
-                this.controllers.splice(index, 1);
+            if(controller instanceof C884Controller){
+                // TODO send request to server
+                this.c884s.delete(controller.comport)
+            }
+            // TODO implement for standa
+        },
+        async syncFromServer() {
+            // grab controller settings from the server
+            const res = await axios.get("get/SavedStageConfig")
+            if(res.status == 200){
+                console.log("settings received: ", res.data)
+
+                let serverC884s = new Map<number, C884Controller>()
+                // turn the c884 portion into a dict with comports as the keys
+                res.data.C884.forEach((c884: C884Controller) => {serverC884s.set(c884.comport, c884)})
+
+                // go through each c884 received, if exists, update, else, add
+                serverC884s.forEach((servercontroller) =>{
+                    this.c884s.set(servercontroller.comport, servercontroller)
+                })
+
+                // If we have extras, we ignore for now
+
+            }else {
+                console.log("Error fetching settings: ", res)
             }
         },
-        syncFromServer(){
-            // Synchronizes controller state from the server
+        async syncToServer(){
+            await axios.post("/post/updateStageConfig", {"C884": this.c884s})
         }
     },
     getters: {
@@ -33,33 +58,11 @@ export const useAxisStore = defineStore('AxisState', {
         getAssemblies: (state) => {
             return state.assemblies
         },
-        getControllers: (state) => {
-            /*// Gather all controllers from the assemblies objects, use somewhere else later probably
-
-            state.assemblies.forEach((assembly: Assembly) => {
-                assembly.points.forEach((point: Point) => {
-                    point.axes.forEach((axis: Axis) => {
-                        if(controllers.indexOf(axis.controller) != -1){
-                            controllers.push(axis.controller)
-                        }
-                    })
-                })
-            })
-            */
-
-            // Sort all controllers
-            let smc5: SMC5Controller[] = []
-            let c884: C884Controller[] = []
-
-            state.controllers.forEach((controller: Controller) => {
-                if(controller instanceof SMC5Controller){
-                    smc5.push(controller)
-                }else if(controller instanceof C884Controller){
-                    c884.push(controller)
-                }
-            })
-
-            return {"C884": c884, "SMC5": smc5}
+        getC884list: (state) => {
+            let res: C884Controller[] = []
+            state.c884s.forEach((value) => {res.push(value)})
+            console.log(res)
+            return res
         },
     }
 })
@@ -117,11 +120,13 @@ abstract class Controller {
 export class C884Controller extends Controller{
     comport: number;
     baudrate: number;
+    stages: Stage[];
 
-    constructor(comport: number, baudrate: number = 115200) {
+    constructor(comport: number, baudrate: number = 115200, stages = [NOSTAGE]) {
         super()
         this.comport = comport
         this.baudrate = baudrate
+        this.stages = stages
     }
 }
 

@@ -11,17 +11,17 @@ def getComPorts():
     return comports
 
 @router.get("/get/SavedStagesAxes")
-async def getSavedStageAxisTypes():
+def getSavedStageAxisTypes():
 
     try:
         with open('settings/stageinfo/PIStages.json') as f:
-            PIStages = await json.load(f)
+            PIStages = json.load(f)
             f.close()
         with open('settings/stageinfo/Axes.json') as f:
-            Axes = await json.load(f)
+            Axes = json.load(f)
             f.close()
         with open("settings/stageinfo/StandaStages.json") as f:
-            StandaStages = await json.load(f)
+            StandaStages = json.load(f)
             f.close()
 
         return {
@@ -32,7 +32,7 @@ async def getSavedStageAxisTypes():
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/get/SavedStageConfig")
-async def getStageSettings():
+def getStageSettings():
     """
     Loads previous motor and controller setup settings from assets/SavedMotorSettings.py
     @return: JSON object saved in SavedMotorSettings.py
@@ -40,7 +40,7 @@ async def getStageSettings():
     # Load from file
     try:
         with open("settings/StageConfig.json") as f:
-            settings = await json.load(f)
+            settings = json.load(f)
             f.close()
 
         return settings
@@ -54,5 +54,17 @@ async def getControllerStatus():
     """
 
     return await Interface.C884interface.getUpdatedC884()
+
+@router.post("/post/updateStageConfig")
+async def updateStageConfig(data):
+    """
+    Update received stage configurations
+    """
+    print("Received updated stage config: ", data)
+    try:
+        data = json.load(data)
+        return True
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
