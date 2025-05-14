@@ -1,31 +1,29 @@
 import {defineStore} from 'pinia'
-import {useSettingsStore, NOSTAGE} from '@/stores/SettingsStore'
+import {useSettingsStore, NOSTAGE, type PIStage} from '@/stores/SettingsStore'
 import type {Stage} from "@/stores/SettingsStore"
 import axios from "axios";
-import C884 from "@/components/c884.vue";
 
-//const settingsStore = useSettingsStore()
+
 
 export const useAxisStore = defineStore('AxisState', {
     state: () => {
         return {
-            assemblies: [] as Assembly[],
-            c884s: new Map<number, C884Controller>()
+            c884config: new Map<number, C884Config>()
+
         }
     },
     actions: {
         updateAxes(updated: Map<string, Axis>) {
             //this.axes = updated
         },
-        addC884(controller: C884Controller){
-            this.c884s.set(controller.comport, controller)
+        addC884(controller: C884Config){
+            this.c884config.set(controller.comport, controller)
         },
-        removeController(controller: Controller){
+        removeController(comport: number){
             //Remove a controller and its associated axes
-            if(controller instanceof C884Controller){
-                // TODO send request to server
-                this.c884s.delete(controller.comport)
-            }
+            // TODO send request to server
+            this.c884config.delete(comport)
+
             // TODO implement for standa
         },
         async syncFromServer() {
@@ -34,13 +32,13 @@ export const useAxisStore = defineStore('AxisState', {
             if(res.status == 200){
                 console.log("settings received: ", res.data)
 
-                let serverC884s = new Map<number, C884Controller>()
-                // turn the c884 portion into a dict with comports as the keys
-                res.data.C884.forEach((c884: C884Controller) => {serverC884s.set(c884.comport, c884)})
+                let serverconfig = new Map<number, C884Config>()
+                // Put the c884 portion of the response into a dict with comports as the keys
+                res.data.C884.forEach((c884: C884Config) => {serverconfig.set(c884.comport, c884)})
 
                 // go through each c884 received, if exists, update, else, add
-                serverC884s.forEach((servercontroller) =>{
-                    this.c884s.set(servercontroller.comport, servercontroller)
+                serverconfig.forEach((servercontroller) =>{
+                    this.c884config.set(servercontroller.comport, servercontroller)
                 })
 
                 // If we have extras, we ignore for now
@@ -50,20 +48,30 @@ export const useAxisStore = defineStore('AxisState', {
             }
         },
         async syncToServer(){
-            await axios.post("/post/updateStageConfig", {"C884": this.c884s})
+            await axios.post("/post/updateStageConfig", {"C884": this.c884config})
         }
     },
     getters: {
-        // return the axes from the store
-        getAssemblies: (state) => {
-            return state.assemblies
-        },
-        getC884list: (state) => {
-            let res: C884Controller[] = []
-            state.c884s.forEach((value) => {res.push(value)})
-            console.log(res)
+        getC884configs: (state) => {
+            let res: C884Config[] = []
+            state.c884config.forEach((value) => {
+                res.push(value)
+            })
             return res
         },
+        getC884objects: (state) => {
+            let res: C884Controller[] = []
+            const set = useSettingsStore()
+            state.c884config.forEach((config) => {
+                let stages:Stage[] = []
+                config.stages.forEach((stagename) => {
+                    stages.push(set.PIStageMap.get(stagename) as Stage)
+                })
+                res.push(new C884Controller(config, stages))
+            })
+            return res
+        }
+
     }
 })
 
@@ -117,15 +125,19 @@ abstract class Controller {
     }
 }
 
-export class C884Controller extends Controller{
+export interface C884Config {
     comport: number;
     baudrate: number;
+    stages: string[];
+}
+
+export class C884Controller extends Controller{
+    config: C884Config;
     stages: Stage[];
 
-    constructor(comport: number, baudrate: number = 115200, stages = [NOSTAGE]) {
+    constructor(config: C884Config, stages = [NOSTAGE, NOSTAGE, NOSTAGE, NOSTAGE]) {
         super()
-        this.comport = comport
-        this.baudrate = baudrate
+        this.config = config
         this.stages = stages
     }
 }

@@ -10,7 +10,7 @@ def getComPorts():
     comports = []
     return comports
 
-@router.get("/get/SavedStagesAxes")
+@router.get("/get/StageAxisInfo")
 def getSavedStageAxisTypes():
 
     try:

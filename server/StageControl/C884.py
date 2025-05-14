@@ -10,7 +10,7 @@ class C884:
 
     """
 
-    def __init__(self, comport, baudrate):
+    def __init__(self, comport, baudrate, stages=None):
         """
         Initialize the controller and reference all axes, communication is over RS232. Throws an exception if it fails.
         @param comport: COM port to which the device is connected
@@ -22,19 +22,19 @@ class C884:
         """
 
         # Dict of axes connected to the controller
-        self.axes = {}  # {axis name: Axis}
+        if stages is None:
+            stages = ["NOSTAGE", "NOSTAGE", "NOSTAGE", "NOSTAGE"]
 
         # Connect to the device
 
         self.device: GCSDevice = GCSDevice("C-884")
         self.comport = comport
         self.baudrate = baudrate
-        self.stages = ["NOSTAGE", "NOSTAGE", "NOSTAGE", "NOSTAGE"]
+        self.stages = stages
 
-        # Everything worked, the controller is configured and valid
         return
 
-    def startReferencing(self):
+    async def startReferencing(self):
         # References axis, i.e. calibration
         # Create array of refmodes
         refmode = []
@@ -43,50 +43,22 @@ class C884:
 
         # Attempt to reference the given axes
         try:
-            pitools.startup(self.device, stages=self.stages, refmodes=refmode)
+            await pitools.startup(self.device, stages=self.stages, refmodes=refmode)
         except Exception as e:
             # Raise Exception
             raise e
 
-    def getPos(self) -> dict:
+    async def getPos(self) -> dict:
         """
         Gets position(s) of devices connected to the channel(s)
-        @return: {cryy: 25, cryx: 12, etc.}
+        @return: [1: val, 2: val, etc.]
         """
-        response = []
         try:
-            # Open connection and grab data on positions
-            self.openConnection()
-            response = self.device.qPOS(self.getChannels())  # [1: val, 2: val, etc.]
+            return await self.device.qPOS()  # [1: val, 2: val, etc.]
         except Exception as e:
             raise Exception("Motor Error", "Error getting position: " + str(e))
 
-        #  Otherwise, lets create the result dict
-        result = {}
-        for axis in list(self.axes.values()):
-            # Correlate channel with axis
-            channel = axis.channel
-            # Get the proper pos, i.e. check if its reversed and do necessary calculations
-            result[axis.axis] = axis.getProperPos(response[channel])
-
-        return result
-
-    def getPosChannel(self, channel: int) -> float:
-        """
-        Get position of a device from the given channel
-        @param channel: Integer 1 through 4
-        @return: Raw position value (i.e. not checked if corresponding axis is reversed) read from the controller
-        """
-        try:
-            # Open connection and grab data on positions
-            self.openConnection()
-            response = self.device.qPOS(self.getChannels())  # [1: val, 2: val, etc.]
-            # If we got a channel passed into the function, only return that response
-            return response[channel]
-        except Exception as e:
-            raise Exception("Error getting position: " + str(e))
-
-    def move(self, channel: int, target):
+    async def moveTo(self, channel: int, target):
         """
         Moves channel(s) to target(s)
         @param channel: Integer of channel to which device(s) is/are connected
@@ -94,88 +66,47 @@ class C884:
         """
 
         try:
-            self.openConnection()
-            self.device.MOV(channel, target)
+            await self.device.MOV(channel, target)
 
         except Exception as e:
             raise Exception("Error Moving Motor: " + str(e))
 
-    def onTargetChannel(self, channel: int) -> bool:
-        """
-        Get onTarget status of a channel
-        @param channel: Integer 1 through 4
-        @return: Whether the stage connected to the channel is on target
-        """
-        try:
-            # Open connection and get onTarget
-            self.openConnection()
-            res = self.device.qONT(self.getChannels())
-
-            # If we got a channel passed into the function, only return that
-            if channel is not None:
-                return res[channel]
-        except Exception as e:
-            raise Exception("Error getting target: " + str(e))
-
-    def onTarget(self) -> dict:
+    async def onTarget(self) -> dict:
         """
         Returns boolean of whether the axis/axes are on target.
-        @param channel: Integer channel or array of channels. If not give, all axes will be queried
         @return: Boolean or array of booleans of whether the axes are on target.
         """
 
         try:
-            # Open connection and get onTarget
-            self.openConnection()
-            res = self.device.qONT(self.getChannels())
-
-            # Correlate channels with axes and put into dict
-            result = {}
-            for axis in list(self.axes.values()):
-                # Create format {axis name: true/false}
-                result[axis.axis] = res[axis.channel]
-
-            return result
+            return await self.device.qONT()
 
         except Exception as e:
             raise Exception("Unable to get target status: " + str(e))
 
-    def openConnection(self):
+    async def openConnection(self):
         """
         Opens connection to controller device if not already connected
         """
         if self.device.IsConnected:
             return
         else:
-            self.device.ConnectRS232(self.comport, self.baudrate)
+            await self.device.ConnectRS232(self.comport, self.baudrate)
 
     def closeConnection(self):
         """
         Closes connection to the controller device
         """
         self.device.CloseConnection()
-        print("Disconnected")
 
-    def range(self, channel):
+    async def range(self, channel):
         """
         Returns the [min,max] for the selected channel
         @param channel: A single channel to check the min max on
         @return: [min,max]
         """
-        self.openConnection()
-        return [self.device.qTMN(channel)[channel], self.device.qTMX(channel)[channel]]
+        return [await self.device.qTMN(channel)[channel], await self.device.qTMX(channel)[channel]]
 
-    def getChannels(self):
-        """
-        Returns list of channels (integers) from the list of axes connected to the controller
-        @return: [int]
-        """
-        channels = []
-        for axis in list(self.axes.items()):
-            channels.append(axis[1].channel)  # Items() returns tuple, grab the value only
-        return channels
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self):
         self.closeConnection()
 
     def __eq__(self, other):

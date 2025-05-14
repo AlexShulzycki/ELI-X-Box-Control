@@ -1,5 +1,13 @@
-<script setup lang="ts">
+<script async setup lang="ts">
+// sync settings from server first
+import {useSettingsStore} from "@/stores/SettingsStore.ts";
 
+const settings = useSettingsStore()
+try{
+  settings.syncFromServer()
+}catch(e){
+  window.alert("cant get settings from server :(")
+}
 </script>
 
 <template>

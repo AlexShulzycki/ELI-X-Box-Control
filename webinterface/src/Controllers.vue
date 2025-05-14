@@ -21,7 +21,7 @@ let smc5objects = ref([])
 
   <h1> PI C884: </h1>
   <button @click="">Add a C884 Controller</button>
-  <C884 v-for="x in AxesStore.getC884list" :controller="x" :key="x.comport"/>
+  <C884 v-for="x in AxesStore.getC884objects" :controller="x" :key="x.config.comport"/>
 
 
 
