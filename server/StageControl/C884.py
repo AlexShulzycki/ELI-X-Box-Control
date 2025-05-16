@@ -2,6 +2,17 @@ from pipython import GCSDevice
 from pipython.pitools import pitools
 
 
+class C884Config:
+    comport: int
+    """Comport to connect to"""
+    baudrate: int
+    """Baudrate, default is 115200"""
+    stages: [str]
+    """Array of 4 devices connected on the controller, in order from channel 1 to 4. If no stage is
+        present, "NOSTAGE" is required. Example: Channel 1 and 3 are connected: ['L-406.20DD10','NOSTAGE', 'L-611.90AD',
+         'NOSTAGE']"""
+
+
 class C884:
     """
     Class used to interact with a single PI C-884 controller.
@@ -10,40 +21,51 @@ class C884:
 
     """
 
-    def __init__(self, comport, baudrate, stages=None):
+    def __init__(self, config: C884Config):
         """
         Initialize the controller and reference all axes, communication is over RS232. Throws an exception if it fails.
-        @param comport: COM port to which the device is connected
-        @param baudrate: Baudrate with which to communicate over RS232. Default for the C-884 is 115200.
-        @param stages: Array of 4 devices connected on the controller, in order from channel 1 to 4. If no stage is
-        present, "NOSTAGE" is required. Example: Channel 1 and 3 are connected: ['L-406.20DD10','NOSTAGE', 'L-611.90AD',
-         'NOSTAGE']
+
         A device which is not powered or improperly connected will raise an error!
         """
-
-        # Dict of axes connected to the controller
-        if stages is None:
-            stages = ["NOSTAGE", "NOSTAGE", "NOSTAGE", "NOSTAGE"]
-
-        # Connect to the device
-
+        # Start up GCS device
         self.device: GCSDevice = GCSDevice("C-884")
-        self.comport = comport
-        self.baudrate = baudrate
-        self.stages = stages
+
+        # Set up configs
+        self.comport: int = config.comport
+        self.baudrate: int = config.baudrate
+        self.stages: [str] = config.stages
 
         return
 
-    async def startReferencing(self):
+    async def updateConfig(self, config: C884Config):
+        if config.comport != self.comport:
+            raise Exception(f"Comport {config.comport} differes from current one {self.comport}")
+
+        if config.baudrate != self.baudrate:
+            self.closeConnection()
+            self.baudrate = config.baudrate
+            await self.openConnection()
+
+        if not config.stages == self.stages:
+            self.stages = config.stages
+            await pitools.startup(self.device, stages=config.stages, refmodes=None)
+
+    def getConfig(self) -> C884Config:
+        config = C884Config()
+        config.comport = self.comport
+        config.baudrate = self.baudrate
+        config.stages = self.stages
+        return config
+
+    async def startReferencing(self, refmodes=None):
         # References axis, i.e. calibration
         # Create array of refmodes
-        refmode = []
-        for i in self.stages:
-            refmode.append("FRF")
 
         # Attempt to reference the given axes
+        if refmodes is None:
+            refmodes = ["FRF, FRF, FRF, FRF"]
         try:
-            await pitools.startup(self.device, stages=self.stages, refmodes=refmode)
+            await pitools.startup(self.device, refmodes=refmodes)
         except Exception as e:
             # Raise Exception
             raise e

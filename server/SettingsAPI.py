@@ -2,6 +2,7 @@
 from fastapi import APIRouter, HTTPException
 import json
 import Interface
+from server.StageControl.C884 import C884Config
 
 router = APIRouter()
 
@@ -55,6 +56,15 @@ async def getControllerStatus():
 
     return await Interface.C884interface.getUpdatedC884()
 
+@router.get("/get/StageConfig")
+async def getStageConfig():
+    """
+    Get current stage config
+    """
+    return {
+        "C884": Interface.C884interface.getC884Configs()
+    }
+
 @router.post("/post/updateStageConfig")
 async def updateStageConfig(data):
     """
@@ -62,9 +72,11 @@ async def updateStageConfig(data):
     """
     print("Received updated stage config: ", data)
     try:
-        data = json.load(data)
-        return True
+        config: C884Config = json.load(data)
+        Interface.C884interface.updateC884Configs(config)
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 
