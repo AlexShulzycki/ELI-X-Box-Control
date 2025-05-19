@@ -8,6 +8,8 @@ import Interface
 app = FastAPI()
 app.include_router(SettingsAPI.router)
 
+wsmanager = WebSocketAPI.websocketapi
+
 @app.get("/")
 async def root():
     """
@@ -15,8 +17,6 @@ async def root():
     :return: The UI
     """
     return {"message": "Hello"}
-
-wsmanager = WebSocketAPI.WebSocketAPI()
 
 def custom_openapi():
     if app.openapi_schema:

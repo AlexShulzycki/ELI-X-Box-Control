@@ -39,10 +39,10 @@ class C884Interface:
                 self.c884.update({config.comport: C884(config)})
         await asyncio.gather(*awaiters)
 
-    def getC884Configs(self):
+    def getC884Configs(self) -> list[C884Config]:
         # Collect configs from each c884
         res: list[C884Config] = []
-        for com, c884 in self.c884:
+        for com, c884 in self.c884.items():
             res.append(c884.getConfig())
         return res
 
@@ -52,11 +52,3 @@ class C884Interface:
 
 C884interface = C884Interface()
 
-class EventTracker:
-    """We'll yet see if we go this route..."""
-    def __init__(self):
-        self.subscribers = []
-
-    def event(self, event):
-        for subscriber in self.subscribers:
-            subscriber(event)

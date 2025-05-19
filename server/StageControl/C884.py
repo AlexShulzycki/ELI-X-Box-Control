@@ -65,10 +65,7 @@ class C884:
             await pitools.startup(self.device, stages=config.stages, refmodes=None)
 
     def getConfig(self) -> C884Config:
-        config = C884Config()
-        config.comport = self.comport
-        config.baudrate = self.baudrate
-        config.stages = self.stages
+        config = C884Config(comport = self.comport, baudrate = self.baudrate, stages = self.stages)
         return config
 
     async def startReferencing(self, refmodes=None):

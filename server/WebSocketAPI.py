@@ -7,9 +7,11 @@ from pydantic import BaseModel, Field
 
 from Interface import C884interface
 
+
 class ReqTypes(Enum):
     """Enumerates request types for websocket connections"""
     ping = "ping"
+
 
 class ErrTypes(Enum):
     """Enumeration of errors sent over WS"""
@@ -17,14 +19,17 @@ class ErrTypes(Enum):
     unknown_request = "unknown_request"
     other_error = "other_error"
 
+
 class Req(BaseModel):
     """Websocket request from client"""
     request: ReqTypes
+
 
 class WsResponse(BaseModel):
     """Websocket response to client"""
     response: str
     data: Dict[str, Any]
+
 
 class WsErrResponse(WsResponse):
     """Websocket error response to client"""
@@ -37,11 +42,13 @@ class WsErrResponse(WsResponse):
         self.errortype = errortype
         self.errormsg = errormsg
 
+
 class WebSocketAPI:
     """
     Handles websocket communication.
     This class will push updates to the client, i.e. position updates from the controllers.
     """
+
     def __init__(self):
         self.active_connections: list[WebSocket] = []
 
@@ -57,7 +64,7 @@ class WebSocketAPI:
         try:
             match msg.request:
                 case ReqTypes.ping:
-                    response = WsResponse(response = "pong", data = {})
+                    response = WsResponse(response="pong", data={})
         except Exception as e:
             # We ran into something weird, send the error message and return
             await websocket.send_json(WsErrResponse(ErrTypes.unknown_request, str(e)))
@@ -78,3 +85,6 @@ class WebSocketAPI:
         for connection in self.active_connections:
             awaiters.append(connection.send_json(message))
         await asyncio.gather(*awaiters)
+
+
+websocketapi = WebSocketAPI()

@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException
 import json
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, TypeAdapter
 
 import Interface
 from server.StageControl.C884 import C884Config
@@ -60,7 +60,12 @@ async def getStageConfig() -> StageConfig:
     """
     Get current stage configuration running on the server
     """
-    return  StageConfig(C884 = Interface.C884interface.getC884Configs())
+    # Dump each C884 BaseModel into dict to avoid passing in a BaseModel into StageConfig, which is also BaseModel
+    c884configs = []
+    for c884 in Interface.C884interface.getC884Configs():
+        c884configs.append(c884.model_dump())
+
+    return StageConfig(C884 = c884configs)
 
 @router.post("/post/updateStageConfig")
 async def updateStageConfig(data: StageConfig):
@@ -69,7 +74,8 @@ async def updateStageConfig(data: StageConfig):
     """
     print("Received updated stage config: ", data)
     try:
-        Interface.C884interface.updateC884Configs(data)
+        await Interface.C884interface.updateC884Configs(data.C884)
+        return await getStageConfig()
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -80,7 +86,7 @@ async def getSaveCurrentStageConfig():
     Saves current stage configuration on the server to settings/StageConfig.json
     """
     # Grab configuration data from the interfaces
-    config = StageConfig(C884=Interface.C884interface.getC884Configs())
+    config = getStageConfig()
 
     with open("settings/StageConfig.json", "w") as f:
         f.write(json.dumps(config))
