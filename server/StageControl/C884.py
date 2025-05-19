@@ -1,13 +1,15 @@
 from pipython import GCSDevice
 from pipython.pitools import pitools
+from pydantic import Field, BaseModel
 
 
-class C884Config:
-    comport: int
+class C884Config(BaseModel):
+    comport: int = Field(examples=[20, 4, 21])
     """Comport to connect to"""
-    baudrate: int
+    baudrate: int = Field(default = 115200, examples=[115200])
     """Baudrate, default is 115200"""
-    stages: [str]
+    stages: list[str] = Field(default = ["NOSTAGE", "NOSTAGE", "NOSTAGE", "NOSTAGE"], min_length=4, max_length=4,
+                          examples=[['L-406.20DD10', 'NOSTAGE', 'L-611.90AD', 'NOSTAGE']])
     """Array of 4 devices connected on the controller, in order from channel 1 to 4. If no stage is
         present, "NOSTAGE" is required. Example: Channel 1 and 3 are connected: ['L-406.20DD10','NOSTAGE', 'L-611.90AD',
          'NOSTAGE']"""

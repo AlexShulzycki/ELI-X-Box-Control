@@ -1,6 +1,11 @@
 # This file will take care of communicating via api to select and configure the controllers
+from typing import Annotated
+
 from fastapi import APIRouter, HTTPException
 import json
+
+from pydantic import BaseModel, Field
+
 import Interface
 from server.StageControl.C884 import C884Config
 
@@ -56,24 +61,26 @@ async def getControllerStatus():
 
     return await Interface.C884interface.getUpdatedC884()
 
+
+class StageConfig(BaseModel):
+    C884: list[C884Config] = Field(default=[], examples=[[C884Config(comport=15)]])
+
+
 @router.get("/get/StageConfig")
-async def getStageConfig():
+async def getStageConfig() -> StageConfig:
     """
     Get current stage config
     """
-    return {
-        "C884": Interface.C884interface.getC884Configs()
-    }
+    return  StageConfig(C884 = Interface.C884interface.getC884Configs())
 
 @router.post("/post/updateStageConfig")
-async def updateStageConfig(data):
+async def updateStageConfig(data: StageConfig):
     """
     Update received stage configurations
     """
     print("Received updated stage config: ", data)
     try:
-        config: C884Config = json.load(data)
-        Interface.C884interface.updateC884Configs(config)
+        Interface.C884interface.updateC884Configs(data)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

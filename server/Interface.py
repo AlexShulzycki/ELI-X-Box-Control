@@ -41,7 +41,7 @@ class C884Interface:
 
     def getC884Configs(self):
         # Collect configs from each c884
-        res = [C884Config]
+        res: list[C884Config] = []
         for com, c884 in self.c884:
             res.append(c884.getConfig())
         return res
