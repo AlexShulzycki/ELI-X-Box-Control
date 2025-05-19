@@ -1,3 +1,5 @@
+from enum import Enum
+
 from pipython import GCSDevice
 from pipython.pitools import pitools
 from pydantic import Field, BaseModel
@@ -14,13 +16,19 @@ class C884Config(BaseModel):
         present, "NOSTAGE" is required. Example: Channel 1 and 3 are connected: ['L-406.20DD10','NOSTAGE', 'L-611.90AD',
          'NOSTAGE']"""
 
+class C884Status(Enum):
+    disconnected = "disconnected"
+    connected = "connected"
+    connecting = "connecting"
+    error = "error"
+    connection_error = "connection_error"
+    referencing = "referencing"
 
 class C884:
     """
     Class used to interact with a single PI C-884 controller.
     Remember to close the connection once you are done with the controller to avoid blocking the com port - especially
     during setup.
-
     """
 
     def __init__(self, config: C884Config):
@@ -36,6 +44,10 @@ class C884:
         self.comport: int = config.comport
         self.baudrate: int = config.baudrate
         self.stages: [str] = config.stages
+
+        # Set up flags
+        self.status: C884Status = C884Status.disconnected
+        self.error: str = ""
 
         return
 
@@ -114,7 +126,15 @@ class C884:
         if self.device.IsConnected:
             return
         else:
-            await self.device.ConnectRS232(self.comport, self.baudrate)
+            # try to connect, set the appropriate status flags
+            try:
+                self.status = C884Status.connecting
+                await self.device.ConnectRS232(self.comport, self.baudrate)
+                self.status = C884Status.connected
+            except Exception as e:
+                self.status = C884Status.connection_error
+                self.error = str(e)
+                self.closeConnection()
 
     def closeConnection(self):
         """

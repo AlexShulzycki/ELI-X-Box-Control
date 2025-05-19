@@ -13,7 +13,6 @@ async def getControllerStatus():
 
 
 
-
 # FOR REFERENCE, FOLD THIS INTO THE REST API
 # case ReqTypes.connectC884:
 #                     res = {"response": "updateC884", "data": C884interface.getUpdatedC884(msg["comport"])}

@@ -1,3 +1,4 @@
+import asyncio
 from enum import Enum
 from typing import Dict, Any
 
@@ -73,5 +74,7 @@ class WebSocketAPI:
         self.active_connections.remove(websocket)
 
     async def broadcast(self, message: dict):
+        awaiters = []
         for connection in self.active_connections:
-            await connection.send_json(message)
+            awaiters.append(connection.send_json(message))
+        await asyncio.gather(*awaiters)

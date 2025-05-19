@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import Coroutine
 
 from StageControl.C884 import C884
@@ -36,8 +37,7 @@ class C884Interface:
                 awaiters.append(self.c884[config.comport].updateConfig(config))
             else:
                 self.c884.update({config.comport: C884(config)})
-        for awaiter in awaiters:
-            await awaiter
+        await asyncio.gather(*awaiters)
 
     def getC884Configs(self):
         # Collect configs from each c884
