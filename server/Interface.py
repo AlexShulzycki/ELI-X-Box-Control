@@ -47,6 +47,11 @@ class C884Interface:
         return res
 
     async def connect(self, comport: int):
+        """
+        Attempt to connect to a C884 on the given com port
+        :param comport: comport to try
+        :return:
+        """
         await self.c884[comport].openConnection()
 
 

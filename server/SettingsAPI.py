@@ -80,15 +80,35 @@ async def updateStageConfig(data: StageConfig):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/pi/RemoveConfigOnPort/{comport}")
+def piRemoveConfigOnPort(comport: int):
+    """
+    Removes c884 controller from config as well as shutting it down/disconnecting etc.
+    :param comport:
+    :return:
+    """
+    if not Interface.C884interface.c884.__contains__(comport):
+        raise HTTPException(status_code=404, detail="No such comport configured")
+    else:
+        Interface.C884interface.removeC884(comport)
+
 @router.get("/get/SaveCurrentStageConfig")
 async def getSaveCurrentStageConfig():
     """
     Saves current stage configuration on the server to settings/StageConfig.json
     """
-    # Grab configuration data from the interfaces
-    config = getStageConfig()
+    # Grab configuration data from the interfaces TODO FIX
+    config = await getStageConfig()
+    config = config.model_dump_json()
 
     with open("settings/StageConfig.json", "w") as f:
-        f.write(json.dumps(config))
+        f.write(config)
         f.close()
+
+@router.get("/pi/ConnectC884/{comport}")
+async def piConnectC884(comport: int):
+    if not Interface.C884interface.c884.__contains__(comport):
+        raise HTTPException(status_code=404, detail="No such comport configured")
+    else:
+        await Interface.C884interface.connect(comport)
 

@@ -3,13 +3,14 @@ import Interface
 
 router = APIRouter()
 
-@router.get("/get/ControllerStatus")
-async def getControllerStatus():
+@router.get("/get/C884Status")
+def getControllerStatus():
     """
-    Gets the status of the controllers connected
+    Gets the status of configured C884 controllers
     """
+    c884s = Interface.C884interface.c884
 
-    return await Interface.C884interface.getUpdatedC884()
+    return c884s
 
 
 

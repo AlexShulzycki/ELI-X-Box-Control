@@ -1,0 +1,21 @@
+device.CST({1: "NOSTAGE"}) set an axis to a stage
+device.qCST() configured stages
+WPA save config to nonvolatile memory
+device.qVST() stage configs saved in memory
+RTO get ready to turn off
+NLM, PLM (lower, higher limit), SSL soft limit enable/disable query
+qLIM indicate limit switches
+TRS reference switch
+STP stop all motion
+RBT reboot
+qFRF check if referenced
+FRF fast reference
+FNL, FPL reference to negative, positive limit
+ATZ auto zero
+ATC auto calibration
+ACC, DEC acceleration/deceleration
+TMN, TMX min/max assignable position
+
+SVO open loop operation, query and set
+qFRF if an axis is referenced
+qRON get reference mode, true means it must be referenced first
