@@ -29,6 +29,7 @@ class C884:
 
     AXIS SETUP PROCESS:
     1 Connect the controller, run openConnection(), make sure its plugged in and you have the right com port etc etc
+    2 Tell the controller what stages are connected with CST
     2 Check if the axes are turned on with qSVO, otherwise turn on with SVO
     3 Check if axes are referenced with qFRF()
     4 Reference axis with FRF(), this thing will move so be careful
@@ -49,20 +50,6 @@ class C884:
             except KeyError:
                 # not present, thus not connected, i.e. it's a NOSTAGE
                 continue
-
-        return res
-
-
-    def getAllAxesNumberList(self) -> list[int]:
-        """
-        Helper function. Returns a list of all axes configured, ready to pass into a GCSdevice command.
-        I.e. if you have 2 axes connected to 1 and 3, and the rest configured as NOSTAGE, it will return [1, 3]
-        :return:
-        """
-        res = []
-        for i, stage in self.stages:
-            if not stage == "NOSTAGE":
-                res.append(i)
 
         return res
 
@@ -165,7 +152,7 @@ class C884:
         :return:
         """
         self.checkReady()
-        return self.dict2list(self.device.qRON(self.getAllAxesNumberList()))
+        return self.dict2list(self.device.qRON(self.device.axes))
 
     @property
     async def isReferenced(self):
@@ -174,7 +161,7 @@ class C884:
         :return:
         """
         self.checkReady()
-        return self.dict2list(self.device.qFRF(self.getAllAxesNumberList()))
+        return self.dict2list(self.device.qFRF(self.device.axes))
 
     @property
     async def servoCLO(self)-> list[bool| None]:
@@ -183,7 +170,7 @@ class C884:
         :return:
         """
         self.checkReady()
-        return self.dict2list(self.device.qSVO(self.getAllAxesNumberList()))
+        return self.dict2list(self.device.qSVO(self.device.axes))
 
 
     async def setServoCLOTrue(self, axes: list[int] = None):
@@ -194,7 +181,7 @@ class C884:
         :return:
         """
         if axes is None:
-            axes = self.getAllAxesNumberList()
+            axes = self.device.axes
         self.device.SVO(axes, [True] * len(axes))
 
     async def reference(self, axes: list[int] = None):
@@ -205,7 +192,7 @@ class C884:
         """
         self.checkReady()
         if axes is None:
-            axes = self.getAllAxesNumberList()
+            axes = self.device.axes
         self.device.SVO(axes)
 
     @property
