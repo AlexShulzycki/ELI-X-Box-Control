@@ -202,7 +202,7 @@ class C884:
             awaiters.append(self.device.MOV(index+1, p))
         await asyncio.gather(*awaiters)
 
-    async def moveChannelTo(self, channel: int, target):
+    async def moveChannelTo(self, channel: int, target: float):
         """
         Moves channel(s) to target(s)
         @param channel: Integer of channel to which device(s) is/are connected
@@ -254,9 +254,9 @@ class C884:
                 # if we make it here we made it without exceptions, return connection status
                 return self.device.connected
             except Exception as e:
-                print(e)
+                # close the connection for certain
                 self.closeConnection()
-                return False
+                raise e
 
     def closeConnection(self):
         """

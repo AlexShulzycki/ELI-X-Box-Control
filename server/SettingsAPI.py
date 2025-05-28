@@ -6,8 +6,8 @@ import json
 
 from pydantic import BaseModel, Field, TypeAdapter
 
-import Interface
-from server.StageControl.C884 import C884Config, C884RS232Config
+from . import Interface
+from .StageControl.C884 import C884Config, C884RS232Config
 
 class StageConfig(BaseModel):
     C884: list[C884Config] = Field(default=[], examples=[[C884RS232Config(comport=15)]])
@@ -83,17 +83,17 @@ async def updateStageConfig(data: StageConfig):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/pi/RemoveConfigOnPort/{comport}")
-def piRemoveConfigOnPort(comport: int):
+@router.get("/pi/RemoveC884BySerialNumber/{serial_number}")
+def piRemoveConfigOnPort(serial_number: int):
     """
-    Removes c884 controller from config as well as shutting it down/disconnecting etc.
-    :param comport:
+    Removes c884 controller as well as shutting it down/disconnecting etc.
+    :param serial_number:
     :return:
     """
-    if not Interface.C884interface.c884.__contains__(comport):
-        raise HTTPException(status_code=404, detail="No such comport configured")
+    if not Interface.C884interface.c884.__contains__(serial_number):
+        raise HTTPException(status_code=404, detail="No such serial_number configured")
     else:
-        Interface.C884interface.removeC884(comport)
+        Interface.C884interface.removeC884(serial_number)
 
 @router.get("/get/SaveCurrentStageConfig")
 async def getSaveCurrentStageConfig():
@@ -108,10 +108,10 @@ async def getSaveCurrentStageConfig():
         f.write(config)
         f.close()
 
-@router.get("/pi/ConnectC884/{comport}")
-async def piConnectC884(comport: int):
-    if not Interface.C884interface.c884.__contains__(comport):
-        raise HTTPException(status_code=404, detail="No such comport configured")
+@router.get("/pi/ConnectC884/{serial_number}")
+async def piConnectC884(serial_number: int)-> bool:
+    if not Interface.C884interface.c884.__contains__(serial_number):
+        raise HTTPException(status_code=404, detail="No such serial_number configured")
     else:
-        await Interface.C884interface.connect(comport)
+        return await Interface.C884interface.connect(serial_number)
 

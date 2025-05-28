@@ -1,9 +1,9 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.openapi.utils import get_openapi
 
-import WebSocketAPI
-import SettingsAPI
-import Interface
+from . import WebSocketAPI
+from . import SettingsAPI
+from . import Interface
 
 app = FastAPI()
 app.include_router(SettingsAPI.router)
