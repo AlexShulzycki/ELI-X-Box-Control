@@ -5,15 +5,19 @@ from pydantic import Field, BaseModel
 
 
 class C884Config(BaseModel):
-    comport: int = Field(examples=[20, 4, 21])
-    """Comport to connect to"""
-    baudrate: int = Field(default = 115200, examples=[115200])
-    """Baudrate, default is 115200"""
+    serial_number: int
     stages: list[str] = Field(default = ["NOSTAGE", "NOSTAGE", "NOSTAGE", "NOSTAGE"], min_length=4, max_length=4,
                           examples=[['L-406.20DD10', 'NOSTAGE', 'L-611.90AD', 'NOSTAGE']])
     """Array of 4 devices connected on the controller, in order from channel 1 to 4. If no stage is
         present, "NOSTAGE" is required. Example: Channel 1 and 3 are connected: ['L-406.20DD10','NOSTAGE', 'L-611.90AD',
          'NOSTAGE']"""
+
+class C884RS232Config(C884Config):
+    serial_number: int = None
+    comport: int = Field(examples=[20, 4, 21])
+    """Comport to connect to"""
+    baudrate: int = Field(default=115200, examples=[115200])
+    """Baudrate, default is 115200"""
 
 class ControllerNotReadyException(Exception):
     def __init__(self, message = ""):
@@ -36,20 +40,15 @@ class C884:
     5 Set soft limits??? working on that. You an also check if the type of axis has to be FRF'd by asking qRON()
     """
 
-    @staticmethod
-    def dict2list(fromController: dict) -> list[any] | list[None]:
+    def dict2list(self, fromController: dict) -> list[any] | list[None]:
         """
         Helper function.
         Converts dict received from the controller into a list, putting a None where no stage is connected
         """
         res = [None, None, None, None]
         # The returned dict will not contain keys of stages which are not connected
-        for i in range(1, 5):
-            try:
-                res[i] = fromController[f"{i}"]
-            except KeyError:
-                # not present, thus not connected, i.e. it's a NOSTAGE
-                continue
+        for i in self.device.axes:
+            res[int(i) - 1] = fromController[f"{i}"]
 
         return res
 
@@ -63,24 +62,15 @@ class C884:
         self.device: GCSDevice.gcsdevice = GCSDevice("C-884").gcsdevice
 
         # Set up configs
-        self.comport: int = config.comport
-        self.baudrate: int = config.baudrate
-        self.stages: [str] = config.stages
+        self.config: C884Config = config
+        self.serial_number = config.serial_number
 
         return
 
     async def updateConfig(self, config: C884Config):
-        if config.comport != self.comport:
-            raise Exception(f"Comport {config.comport} differes from current one {self.comport}")
 
-        if config.baudrate != self.baudrate:
-            self.closeConnection()
-            self.baudrate = config.baudrate
-            await self.openConnection()
-
-        if not config.stages == self.stages:
-            self.stages = config.stages
-            await self.loadStagesToC884()
+        if not config.serial_number == self.serial_number:
+            raise Exception("Serial number differs, instantiate a new C884 object with the new serial number")
 
     async def loadStagesFromC884(self):
         """
@@ -91,9 +81,9 @@ class C884:
 
         res =  self.device.qCST()
 
-        self.stages = self.dict2list(res)
+        self.config.stages = self.dict2list(res)
 
-        return self.stages
+        return self.config.stages
 
     async def loadStagesToC884(self):
         """
@@ -103,18 +93,17 @@ class C884:
         self.checkReady()
         try:
             self.device.CST({
-                1: self.stages[0],
-                2: self.stages[1],
-                3: self.stages[2],
-                4: self.stages[3]
+                1: self.config.stages[0],
+                2: self.config.stages[1],
+                3: self.config.stages[2],
+                4: self.config.stages[3]
             })
         except Exception as e:
             print(e)
             raise e
 
     def getConfig(self) -> C884Config:
-        config = C884Config(comport = self.comport, baudrate = self.baudrate, stages = self.stages)
-        return config
+        return self.config
 
 
     @property
@@ -193,7 +182,7 @@ class C884:
         self.checkReady()
         if axes is None:
             axes = self.device.axes
-        self.device.SVO(axes)
+        self.device.FRF(axes) #, [True] * len(axes))
 
     @property
     async def position(self)-> list[float] | list[None]:
@@ -221,7 +210,7 @@ class C884:
         """
         self.checkReady("Cannot move axis.")
 
-        await self.device.MOV(str(channel), target)
+        await self.device.MOV(channel, target)
 
     @property
     async def onTarget(self) -> list[bool] | list[None]:
@@ -235,15 +224,35 @@ class C884:
     async def openConnection(self) -> bool:
         """
         Opens connection to controller device if not already connected
-        :return: true if successful, false otherwise
+        :return: true if successful or already connected, false otherwise
         """
         if self.device.connected:
             return True
         else:
-            # try to connect, set the appropriate status flags
+            # try to connect
             try:
-                await self.device.ConnectRS232(self.comport, self.baudrate)
-                return True
+                if isinstance(self.config, C884RS232Config):
+                    # connect with rs232
+                    self.device.ConnectRS232(self.config.comport, self.config.baudrate)
+
+                    # Grab serial number
+                    SN = self.device.qIDN().split(", ")[-2]
+
+                    # If we already have an SN in the config, check if matches
+                    if self.config.serial_number is not None:
+                        if not SN == self.config.serial_number:
+                            raise Exception(f"Controller serial number does not match with config: {SN}")
+
+                    # Otherwise put the connected controller's SN into the config
+                    else:
+                        self.config.serial_number = SN
+
+                else:
+                    # connect with usb
+                    self.device.ConnectUSB(self.config.serial_number)
+
+                # if we make it here we made it without exceptions, return connection status
+                return self.device.connected
             except Exception as e:
                 print(e)
                 self.closeConnection()

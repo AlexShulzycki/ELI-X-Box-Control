@@ -9,7 +9,6 @@ from pydantic import BaseModel, Field, TypeAdapter
 import Interface
 from server.StageControl.C884 import C884Config
 
-
 class StageConfig(BaseModel):
     C884: list[C884Config] = Field(default=[], examples=[[C884Config(comport=15)]])
 
