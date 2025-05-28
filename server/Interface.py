@@ -1,9 +1,14 @@
 import asyncio
 from collections.abc import Coroutine
 
+from pipython import GCSDevice
+
 from StageControl.C884 import C884
 from server.StageControl.C884 import C884Config
 
+
+async def EnumC884USB():
+    return GCSDevice("C-884").EnumerateUSB()
 
 class C884Interface:
 
@@ -56,4 +61,3 @@ class C884Interface:
 
 
 C884interface = C884Interface()
-

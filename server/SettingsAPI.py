@@ -7,10 +7,10 @@ import json
 from pydantic import BaseModel, Field, TypeAdapter
 
 import Interface
-from server.StageControl.C884 import C884Config
+from server.StageControl.C884 import C884Config, C884RS232Config
 
 class StageConfig(BaseModel):
-    C884: list[C884Config] = Field(default=[], examples=[[C884Config(comport=15)]])
+    C884: list[C884Config] = Field(default=[], examples=[[C884RS232Config(comport=15)]])
 
 router = APIRouter()
 
@@ -18,6 +18,10 @@ router = APIRouter()
 def getComPorts():
     comports = []
     return comports
+
+@router.get("/get/enumerateUSB")
+async def getEnumUSB():
+    return await Interface.EnumC884USB()
 
 @router.get("/get/StageAxisInfo")
 def getSavedStageAxisTypes():
