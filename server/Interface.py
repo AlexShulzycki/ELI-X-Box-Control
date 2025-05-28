@@ -7,8 +7,8 @@ from .StageControl.C884 import C884
 from .StageControl.C884 import C884Config, C884RS232Config
 
 
-async def EnumC884USB():
-    return GCSDevice("C-884").EnumerateUSB()
+async def EnumPIUSB(model):
+    return GCSDevice(model).EnumerateUSB()
 
 class C884Interface:
 
@@ -28,14 +28,11 @@ class C884Interface:
         :return: the serial number from the connected controller, if successful
         """
         newC884 = C884(config)
-        try:
-            if await newC884.openConnection():
-                # we have established a connection, add to dict with serial number
-                self.c884[newC884.config.serial_number] = newC884
-                # return the serial number
-                return newC884.config.serial_number
-        except Exception as e:
-            return e
+        if await newC884.openConnection():
+            # we have established a connection, add to dict with serial number
+            self.c884[newC884.config.serial_number] = newC884
+            # return the serial number
+            return newC884.config.serial_number
 
     async def onTarget(self, serial_number) -> list[bool]|list[None]:
         return await self.c884[serial_number].onTarget
@@ -57,6 +54,16 @@ class C884Interface:
         """
         awaiters: [Coroutine] = []
         for config in configs:
+            # Serial numbers are the keys, we need them!
+            if config.serial_number is None:
+                raise Exception("No serial number provided")
+
+            # Check if we are dealing with a rs232 connection, and explicitly convert to subclass
+
+            if config.model_dump().keys().__contains__("comport"):
+                config = C884RS232Config(**config.model_dump())
+
+            # Otherwise the process is the same as with usb connections
             if self.c884.keys().__contains__(config.serial_number):
                 awaiters.append(self.c884[config.serial_number].updateConfig(config))
             else:
@@ -70,13 +77,13 @@ class C884Interface:
             res.append(c884.getConfig())
         return res
 
-    async def connect(self, serial_number: int):
+    async def connect(self, serial_number: int) -> bool:
         """
         Attempt to connect to a C884 on the given com port
         :param serial_number: serial_number to try
         :return:
         """
-        await self.c884[serial_number].openConnection()
+        return await self.c884[serial_number].openConnection()
 
 
 C884interface = C884Interface()

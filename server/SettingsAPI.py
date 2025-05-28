@@ -10,7 +10,7 @@ from . import Interface
 from .StageControl.C884 import C884Config, C884RS232Config
 
 class StageConfig(BaseModel):
-    C884: list[C884Config] = Field(default=[], examples=[[C884RS232Config(comport=15)]])
+    C884: list[C884Config|C884RS232Config] = Field(default=[], examples=[[C884RS232Config(comport=15)]])
 
 router = APIRouter()
 
@@ -19,9 +19,9 @@ def getComPorts():
     comports = []
     return comports
 
-@router.get("/get/enumerateUSB")
-async def getEnumUSB():
-    return await Interface.EnumC884USB()
+@router.get("/pi/enumerateUSB{model}")
+async def getEnumUSB(model = "C-884"):
+    return await Interface.EnumPIUSB(model)
 
 @router.get("/get/StageAxisInfo")
 def getSavedStageAxisTypes():
@@ -83,14 +83,27 @@ async def updateStageConfig(data: StageConfig):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/pi/RemoveC884BySerialNumber/{serial_number}")
-def piRemoveConfigOnPort(serial_number: int):
+@router.post("/pi/AddRS232")
+async def piAddRS232(config: C884RS232Config):
+    """
+    Adds and connects via RS232 - on successful connection, reads serial number, saves in config
+    :param config:
+    :return: serial number if connected successfully
+    """
+    try:
+        return await Interface.C884interface.addC884RS232(config)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/pi/RemoveBySerialNumber/{serial_number}")
+def piRemoveBySerialNumber(serial_number: int):
     """
     Removes c884 controller as well as shutting it down/disconnecting etc.
     :param serial_number:
     :return:
     """
-    if not Interface.C884interface.c884.__contains__(serial_number):
+    if not Interface.C884interface.c884.keys().__contains__(serial_number):
         raise HTTPException(status_code=404, detail="No such serial_number configured")
     else:
         Interface.C884interface.removeC884(serial_number)
@@ -108,10 +121,13 @@ async def getSaveCurrentStageConfig():
         f.write(config)
         f.close()
 
-@router.get("/pi/ConnectC884/{serial_number}")
+@router.get("/pi/Connect/{serial_number}")
 async def piConnectC884(serial_number: int)-> bool:
-    if not Interface.C884interface.c884.__contains__(serial_number):
+    if not Interface.C884interface.c884.keys().__contains__(serial_number):
         raise HTTPException(status_code=404, detail="No such serial_number configured")
     else:
-        return await Interface.C884interface.connect(serial_number)
+        try:
+            return await Interface.C884interface.connect(serial_number)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
 

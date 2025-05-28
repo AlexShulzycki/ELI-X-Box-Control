@@ -5,7 +5,7 @@ from pydantic import Field, BaseModel
 
 
 class C884Config(BaseModel):
-    serial_number: int
+    serial_number: int|None
     stages: list[str] = Field(default = ["NOSTAGE", "NOSTAGE", "NOSTAGE", "NOSTAGE"], min_length=4, max_length=4,
                           examples=[['L-406.20DD10', 'NOSTAGE', 'L-611.90AD', 'NOSTAGE']])
     """Array of 4 devices connected on the controller, in order from channel 1 to 4. If no stage is
@@ -13,7 +13,7 @@ class C884Config(BaseModel):
          'NOSTAGE']"""
 
 class C884RS232Config(C884Config):
-    serial_number: int = None
+    serial_number: int|None = None
     comport: int = Field(examples=[20, 4, 21])
     """Comport to connect to"""
     baudrate: int = Field(default=115200, examples=[115200])
@@ -23,6 +23,13 @@ class ControllerNotReadyException(Exception):
     def __init__(self, message = ""):
         self.message = f"Controller not ready! {message}"
         super().__init__(self.message)
+
+def sn_in_device_list(SN: int, enumerate_usb: [str]):
+    exists = False
+    for entry in enumerate_usb:
+        if int(entry.split(" ")[-1]) == SN:
+            exists = True
+    return exists
 
 
 class C884:
@@ -62,15 +69,17 @@ class C884:
         self.device: GCSDevice.gcsdevice = GCSDevice("C-884").gcsdevice
 
         # Set up configs
-        self.config: C884Config = config
+        self.config: C884Config|C884RS232Config = config
         self.serial_number = config.serial_number
 
         return
 
     async def updateConfig(self, config: C884Config):
 
-        if not config.serial_number == self.serial_number:
+        # Serial number sanity check
+        if not config.serial_number == self.config.serial_number:
             raise Exception("Serial number differs, instantiate a new C884 object with the new serial number")
+
 
     async def loadStagesFromC884(self):
         """
@@ -232,11 +241,12 @@ class C884:
             # try to connect
             try:
                 if isinstance(self.config, C884RS232Config):
+                    print("Connecting with rs232")
                     # connect with rs232
                     self.device.ConnectRS232(self.config.comport, self.config.baudrate)
 
                     # Grab serial number
-                    SN = self.device.qIDN().split(", ")[-2]
+                    SN = int(self.device.qIDN().split(", ")[-2])
 
                     # If we already have an SN in the config, check if matches
                     if self.config.serial_number is not None:
@@ -249,7 +259,13 @@ class C884:
 
                 else:
                     # connect with usb
-                    self.device.ConnectUSB(self.config.serial_number)
+                    # Check if we have this serial number connected via usb
+                    exists = sn_in_device_list(self.config.serial_number,  self.device.EnumerateUSB())
+
+                    if exists:
+                        self.device.ConnectUSB(self.config.serial_number)
+                    else:
+                        raise Exception(f"USB Controller with given serial number not connected: {self.config.serial_number}")
 
                 # if we make it here we made it without exceptions, return connection status
                 return self.device.connected
