@@ -4,11 +4,15 @@ from collections.abc import Coroutine
 from pipython import GCSDevice
 
 from .StageControl.C884 import C884
-from .StageControl.C884 import C884Config, C884RS232Config
+from .StageControl.C884 import C884Config, C884RS232Config, C884Status
 
 
-async def EnumPIUSB(model):
-    return GCSDevice(model).EnumerateUSB()
+async def EnumPIUSB():
+    """
+    Returns a list of connected PI usb devices you can connect to
+    :return: ["C-884 SN 425003044", "nuclear-bomb SN 123456"]
+    """
+    return GCSDevice().EnumerateUSB()
 
 class C884Interface:
 
@@ -73,9 +77,23 @@ class C884Interface:
     def getC884Configs(self) -> list[C884Config]:
         # Collect configs from each c884
         res: list[C884Config] = []
-        for com, c884 in self.c884.items():
+        for serial_number, c884 in self.c884.items():
             res.append(c884.getConfig())
         return res
+
+
+
+
+    async def getC884Status(self) -> list[C884Status]:
+        """
+        Gets the status of all the C884 controllers
+        :return:
+        """
+        res: list[Coroutine] = []
+        for serial_number, c884 in self.c884.items():
+            status = c884.status
+            res.append(status)
+        return await asyncio.gather(*res)
 
     async def connect(self, serial_number: int) -> bool:
         """

@@ -4,9 +4,19 @@ from pipython import GCSDevice
 from pydantic import Field, BaseModel
 
 
+class C884Status(BaseModel):
+    serial_number: int = Field(examples=[425003044])
+    connected: bool = Field(examples=[True, False], description="If the controller is connected")
+    ready: bool = Field(examples=[True, False], description="Whether the controller is ready")
+    # TODO Make sure that when the controller returns none, we treat is as false or something like that
+    referenced: list[bool] = Field(examples=[[True, False, False, False]], description="Whether each axis is referenced")
+    clo: list[bool] = Field(examples=[[True, False, True, False]],
+                        description="Whether each axis is in closed loop operation, i.e. if its turned on")
+    error: str = Field(description="Error message. If no error, its an empty string")
+
 class C884Config(BaseModel):
     serial_number: int|None
-    stages: list[str] = Field(default = ["NOSTAGE", "NOSTAGE", "NOSTAGE", "NOSTAGE"], min_length=4, max_length=4,
+    stages: list[str] = Field(default = ["NOSTAGE", "NOSTAGE", "NOSTAGE", "NOSTAGE"], min_length=4,
                           examples=[['L-406.20DD10', 'NOSTAGE', 'L-611.90AD', 'NOSTAGE']])
     """Array of 4 devices connected on the controller, in order from channel 1 to 4. If no stage is
         present, "NOSTAGE" is required. Example: Channel 1 and 3 are connected: ['L-406.20DD10','NOSTAGE', 'L-611.90AD',
@@ -37,6 +47,8 @@ class C884:
     Class used to interact with a single PI C-884 controller.
     Remember to close the connection once you are done with the controller to avoid blocking the com port - especially
     during setup.
+
+    # TODO RECOGNIZE HOW MANY CHANNELS A CONTROLLER HAS AND THUS MITIGATE USER IDIOCY
 
     AXIS SETUP PROCESS:
     1 Connect the controller, run openConnection(), make sure its plugged in and you have the right com port etc etc
@@ -70,7 +82,6 @@ class C884:
 
         # Set up configs
         self.config: C884Config|C884RS232Config = config
-        self.serial_number = config.serial_number
 
         return
 
@@ -116,26 +127,26 @@ class C884:
 
 
     @property
-    def error(self)-> str | None:
+    async def error(self)-> str | None:
         """
         Gets the error from controller
         :return: the error read from the controller
         """
         if self.ready:
-            return self.device.GetError()
+            return str(self.device.GetError())
         else:
-            return None
+            return "Controller not ready."
 
     @property
-    def isavailable(self):
+    def isavailable(self) -> bool:
         return self.device.isavailable
 
     @property
-    def isconnected(self):
+    def isconnected(self) -> bool:
         return self.device.IsConnected()
 
     @property
-    def ready(self):
+    def ready(self) -> bool:
         return self.isavailable # for now just isavailables
 
     def checkReady(self, message: str = ""):
@@ -192,6 +203,25 @@ class C884:
         if axes is None:
             axes = self.device.axes
         self.device.FRF(axes) #, [True] * len(axes))
+
+    @property
+    async def status(self) -> C884Status:
+        status = C884Status(
+            serial_number=self.config.serial_number,
+            connected = self.isconnected,
+            ready = self.ready,
+            # For now, we assume the stage is not ready, and we preemptively set everything to false
+            referenced = [False] * len(self.config.stages),
+            clo = [False] * len(self.config.stages),
+            error = "",
+        )
+        # If the controller is ready, then we query for the rest of the status information
+        if status.ready:
+            status.referenced = await self.isReferenced,
+            status.clo = await self.servoCLO,
+            status.error = await self.error
+
+        return status
 
     @property
     async def position(self)-> list[float] | list[None]:

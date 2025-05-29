@@ -7,25 +7,30 @@ import json
 from pydantic import BaseModel, Field, TypeAdapter
 
 from . import Interface
-from .StageControl.C884 import C884Config, C884RS232Config
+from .Interface import C884interface
+from .StageControl.C884 import C884Config, C884RS232Config, C884Status
+
 
 class StageConfig(BaseModel):
-    C884: list[C884Config|C884RS232Config] = Field(default=[], examples=[[C884RS232Config(comport=15)]])
+    C884: list[C884Config | C884RS232Config] = Field(default=[], examples=[[C884RS232Config(comport=15)]])
+
 
 router = APIRouter()
+
 
 @router.get("/get/comports")
 def getComPorts():
     comports = []
     return comports
 
-@router.get("/pi/enumerateUSB{model}")
-async def getEnumUSB(model = "C-884"):
-    return await Interface.EnumPIUSB(model)
+
+@router.get("/pi/enumerateUSB/")
+async def getEnumUSB():
+    return await Interface.EnumPIUSB()
+
 
 @router.get("/get/StageAxisInfo")
 def getSavedStageAxisTypes():
-
     try:
         with open('settings/stageinfo/PIStages.json') as f:
             PIStages = json.load(f)
@@ -38,11 +43,12 @@ def getSavedStageAxisTypes():
             f.close()
 
         return {
-                "Stages": {"PI": PIStages, "Standa": StandaStages},
-                "Axes": Axes,
+            "Stages": {"PI": PIStages, "Standa": StandaStages},
+            "Axes": Axes,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/get/SavedStageConfig")
 def getStageSettings() -> StageConfig:
@@ -68,7 +74,8 @@ async def getStageConfig() -> StageConfig:
     for c884 in Interface.C884interface.getC884Configs():
         c884configs.append(c884.model_dump())
 
-    return StageConfig(C884 = c884configs)
+    return StageConfig(C884=c884configs)
+
 
 @router.post("/post/updateStageConfig")
 async def updateStageConfig(data: StageConfig):
@@ -82,6 +89,7 @@ async def updateStageConfig(data: StageConfig):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.post("/pi/AddRS232")
 async def piAddRS232(config: C884RS232Config):
@@ -108,6 +116,7 @@ def piRemoveBySerialNumber(serial_number: int):
     else:
         Interface.C884interface.removeC884(serial_number)
 
+
 @router.get("/get/SaveCurrentStageConfig")
 async def getSaveCurrentStageConfig():
     """
@@ -121,8 +130,9 @@ async def getSaveCurrentStageConfig():
         f.write(config)
         f.close()
 
+
 @router.get("/pi/Connect/{serial_number}")
-async def piConnectC884(serial_number: int)-> bool:
+async def piConnectC884(serial_number: int) -> bool:
     if not Interface.C884interface.c884.keys().__contains__(serial_number):
         raise HTTPException(status_code=404, detail="No such serial_number configured")
     else:
@@ -131,3 +141,6 @@ async def piConnectC884(serial_number: int)-> bool:
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/pi/Status/")
+async def getPIStatus() -> list[C884Status]:
+    return await Interface.C884interface.getC884Status()
