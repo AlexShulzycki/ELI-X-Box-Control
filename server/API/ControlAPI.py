@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
-import Interface
+from server import Interface
 
-router = APIRouter()
+router = APIRouter(tags=["control"])
 
 @router.get("/get/C884Status")
 def getControllerStatus():

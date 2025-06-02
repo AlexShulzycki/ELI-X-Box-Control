@@ -1,9 +1,9 @@
 import fastapi.encoders
 from fastapi.testclient import TestClient
-from .main import app
-from .Interface import C884interface
-from .StageControl.C884 import C884Config, C884RS232Config
-from .SettingsAPI import StageConfig
+from server.main import app
+from server.Interface import C884interface
+from server.StageControl.C884 import C884Config, C884RS232Config
+from server.API.SettingsAPI import StageConfig
 
 
 client = TestClient(app)
@@ -14,7 +14,7 @@ def test_get_stage_config():
     Test if we have an empty list :)
     :return:
     """
-    response = client.get("/get/StageConfig")
+    response = client.get("/get/CurrentConfig")
     print(response.json())
     assert response.status_code == 200
     assert str(response.json()["C884"]) == str(C884interface.getC884Configs())
@@ -27,10 +27,10 @@ def test_add_sn_config():
     snconfig = C884Config(serial_number = 12345)
     stageconfig = StageConfig()
     stageconfig.C884.append(snconfig)
-    request = client.post("/post/updateStageConfig/", json = stageconfig.model_dump())
+    request = client.post("/post/UpdateConfig/", json = stageconfig.model_dump())
     assert request.status_code == 200
 
-    response =  client.get("/get/StageConfig")
+    response =  client.get("/get/CurrentConfig")
     assert response.status_code == 200
     print(C884interface.getC884Configs())
     serverstageconfig = fastapi.encoders.jsonable_encoder(response.json())
@@ -43,7 +43,7 @@ def test_add_RS232_config_badly():
     """
     snconfig = C884RS232Config(comport = 5)
     stageconfig = StageConfig(C884 = [snconfig])
-    request = client.post("/post/updateStageConfig/", json=stageconfig.model_dump())
+    request = client.post("/post/UpdateConfig/", json=stageconfig.model_dump())
     assert request.status_code == 500
 
 def test_add_connect_RS232():
@@ -55,3 +55,4 @@ def test_add_connect_RS232():
     request = client.post("/pi/AddRS232/", json=snconfig.model_dump())
     print(request.json())
     assert request.status_code == 500
+

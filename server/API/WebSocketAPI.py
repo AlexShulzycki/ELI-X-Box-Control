@@ -5,7 +5,7 @@ from typing import Dict, Any
 from fastapi import WebSocket
 from pydantic import BaseModel, Field
 
-from .Interface import C884interface
+from server.Interface import C884interface
 
 
 class ReqTypes(Enum):

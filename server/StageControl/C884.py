@@ -35,6 +35,12 @@ class ControllerNotReadyException(Exception):
         super().__init__(self.message)
 
 def sn_in_device_list(SN: int, enumerate_usb: [str]):
+    """
+    Checks if serial number is in a list of enumerated USB devices
+    :param SN: serial number to check
+    :param enumerate_usb: enumerated usb devices from gcsdevice.EnumerateUSB()
+    :return: if it is in the enumeration list
+    """
     exists = False
     for entry in enumerate_usb:
         if int(entry.split(" ")[-1]) == SN:
@@ -317,6 +323,12 @@ class C884:
         @return: [min,max]
         """
         return [await self.device.qTMN(channel)[channel], await self.device.qTMX(channel)[channel]]
+
+    async def getSupportedStages(self)-> list[str]:
+        if not self.isconnected:
+            raise Exception("Not connected!")
+
+        return self.device.qVST()
 
     def __exit__(self):
         self.closeConnection()

@@ -1,12 +1,25 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.openapi.utils import get_openapi
 
-from . import WebSocketAPI
-from . import SettingsAPI
-from . import Interface
+from .API import SettingsAPI, ControlAPI, WebSocketAPI
 
-app = FastAPI()
+tags_metadata = [
+    {
+        "name": "settings",
+        "description": "Configuring controllers and their axes.",
+        "externalDocs": {
+            "description": "List of GCS commands",
+            "url": "https://www.le.infn.it/~chiodini/allow_listing/pi/Manuals/PIGCS_2_0_DLL_SM151E210.pdf",
+        },
+    },
+    {
+        "name": "control",
+        "description": "Control axes, i.e. moving them after they are configured with **settings**",
+    },
+]
+app = FastAPI(openapi_tags = tags_metadata)
 app.include_router(SettingsAPI.router)
+app.include_router(ControlAPI.router)
 
 wsmanager = WebSocketAPI.websocketapi
 

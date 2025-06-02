@@ -81,9 +81,6 @@ class C884Interface:
             res.append(c884.getConfig())
         return res
 
-
-
-
     async def getC884Status(self) -> list[C884Status]:
         """
         Gets the status of all the C884 controllers
