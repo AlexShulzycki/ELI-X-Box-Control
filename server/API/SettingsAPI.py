@@ -1,6 +1,7 @@
 # This file will take care of communicating via api to select and configure the controllers
 import glob
 import sys
+from email.policy import default
 from operator import truediv
 
 import serial
@@ -20,6 +21,7 @@ class StageConfig(BaseModel):
 
 router = APIRouter(tags=["settings"])
 
+
 def doesSerialNumberExist(serial_number: int):
     """
     Checks if serial number is a key in the configuration, if so, returns true, else raises an HTTPException.
@@ -33,7 +35,7 @@ def doesSerialNumberExist(serial_number: int):
 
 
 @router.get("/get/comports")
-def getComPorts()-> list[int]:
+def getComPorts() -> list[int]:
     """
     Lists serial port names. Stolen from https://stackoverflow.com/a/14224477
     :raises EnvironmentError:
@@ -56,10 +58,11 @@ def getComPorts()-> list[int]:
         try:
             s = serial.Serial(port)
             s.close()
-            result.append(int(port[3:])) # only return the com port number
+            result.append(int(port[3:]))  # only return the com port number
         except (OSError, serial.SerialException):
             pass
     return result
+
 
 @router.get("/pi/supportedStages/{serial_number}")
 async def getSupportedStages(serial_number: int):
@@ -69,6 +72,7 @@ async def getSupportedStages(serial_number: int):
         return await Interface.C884interface.c884[serial_number].getSupportedStages()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/pi/enumerateUSB/")
 async def getEnumUSB():
@@ -183,6 +187,13 @@ async def piConnectC884(serial_number: int) -> bool:
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/pi/Status/")
 async def getPIStatus() -> list[C884Status]:
     return await Interface.C884interface.getC884Status()
+
+
+@router.get("/pi/getRange/{serial_number}", response_model=list[list[float]])
+async def getPIRange(serial_number: int):
+    if doesSerialNumberExist(serial_number):
+        return await Interface.C884interface.c884[serial_number].range

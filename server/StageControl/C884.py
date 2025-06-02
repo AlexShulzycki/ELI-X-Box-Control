@@ -85,6 +85,7 @@ class C884:
         """
         # Start up GCS device
         self.device: GCSDevice.gcsdevice = GCSDevice("C-884").gcsdevice
+        """GCSDevice instance, DO NOT ACESS/MODIFY OUTSIDE OF THE C884 CLASS"""
 
         # Set up configs
         self.config: C884Config|C884RS232Config = config
@@ -316,13 +317,23 @@ class C884:
         """
         self.device.CloseConnection()
 
-    async def range(self, channel):
+    @property
+    async def range(self) -> list[list[float]]:
         """
-        Returns the [min,max] for the selected channel
-        @param channel: A single channel to check the min max on
+        Returns the [min,max] for each channel
         @return: [min,max]
         """
-        return [await self.device.qTMN(channel)[channel], await self.device.qTMX(channel)[channel]]
+        minrange = self.device.qTMN()
+        maxrange = self.device.qTMX()
+        minmax: list[list[float]] = []
+        for key in self.device.allaxes:
+            # If key in one of the range dicts, then put in the actual minmax, otherwise set ranges to [0,0]
+            if minrange.keys().__contains__(key):
+                minmax.append([minrange[key], maxrange[key]])
+            else:
+                minmax.append([0,0])
+
+        return minmax
 
     async def getSupportedStages(self)-> list[str]:
         if not self.isconnected:

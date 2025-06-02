@@ -39,6 +39,10 @@ class ManualC884Test(unittest.TestCase):
         assert request.status_code == 200
         print(f"Received {len(request.json())} stages")
 
+    def test_minmax(self):
+        request = client.get(f"/pi/getRange/{self.SN}")
+        assert request.status_code == 200
+        print(request.json())
 
 if __name__ == '__main__':
     unittest.main()
