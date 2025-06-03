@@ -1,7 +1,7 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.openapi.utils import get_openapi
 
-from .API import SettingsAPI, ControlAPI, WebSocketAPI
+from .API import SettingsAPI, ControlAPI, WebSocketAPI, GeometryAPI
 
 tags_metadata = [
     {
@@ -16,10 +16,15 @@ tags_metadata = [
         "name": "control",
         "description": "Control axes, i.e. moving them after they are configured with **settings**",
     },
+    {
+        "name": "calculation",
+        "description": "Calculate geometry, angles, offsets, etc..",
+    }
 ]
 app = FastAPI(openapi_tags = tags_metadata)
 app.include_router(SettingsAPI.router)
 app.include_router(ControlAPI.router)
+app.include_router(GeometryAPI.router)
 
 wsmanager = WebSocketAPI.websocketapi
 

@@ -1,8 +1,6 @@
 # This file will take care of communicating via api to select and configure the controllers
 import glob
 import sys
-from email.policy import default
-from operator import truediv
 
 import serial
 
