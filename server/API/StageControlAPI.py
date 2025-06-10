@@ -1,20 +1,26 @@
 from fastapi import APIRouter, HTTPException
-from server import Interface
+from server.Interface import Stageinterface
+from server.StageControl.DataTypes import StageInfo
 
 router = APIRouter(tags=["control"])
 
-@router.get("/get/C884Status")
-def getControllerStatus():
+@router.get("/stage/allstageinfo")
+def getAllStageInfo() -> list[StageInfo]:
     """
-    Gets the status of configured C884 controllers
+    Gets the status of connected stages
     """
-    c884s = Interface.C884interface.c884
 
-    return c884s
-
+    return Stageinterface.getAllStages()
 
 
-# FOR REFERENCE, FOLD THIS INTO THE REST API
+# TBD if we need a post request to do multiple
+@router.get("/stage/stageinfo/{identifier}")
+def getStageInfoByIdentifier(identifiers: list[int]) -> StageInfo:
+    return Stageinterface.stageInfo(identifiers)
+
+
+
+# FOR REFERENCE
 # case ReqTypes.connectC884:
 #                     res = {"response": "updateC884", "data": C884interface.getUpdatedC884(msg["serial_number"])}
 #                     await self.broadcast(res)

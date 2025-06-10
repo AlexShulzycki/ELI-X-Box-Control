@@ -7,7 +7,7 @@ import serial
 from fastapi import APIRouter, HTTPException
 import json
 
-from pydantic import BaseModel, Field, TypeAdapter
+from pydantic import BaseModel, Field
 
 from server import Interface
 from server.StageControl.C884 import C884Config, C884RS232Config, C884Status
@@ -140,7 +140,7 @@ async def updateConfig(data: StageConfig):
 
 
 @router.post("/pi/AddRS232")
-async def piAddRS232(config: C884RS232Config):
+async def piAddRS232(config: C884RS232Config) -> int:
     """
     Adds and connects via RS232 - on successful connection, reads serial number, saves in config
     :param config:

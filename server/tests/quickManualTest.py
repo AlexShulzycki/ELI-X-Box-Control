@@ -1,9 +1,9 @@
 import unittest
 import fastapi.encoders
 from fastapi.testclient import TestClient
+
+from server.StageControl.C884 import C884RS232Config, C884Config
 from server.main import app
-from server.Interface import C884interface
-from server.StageControl.C884 import C884Config, C884RS232Config
 from server.API.SettingsAPI import StageConfig
 
 
@@ -27,7 +27,11 @@ class ManualC884Test(unittest.TestCase):
         assert request.status_code == 200
 
         # connect
-        request = client.get(f"/pi/Connect/{self.SN}")
+        #request = client.get(f"/pi/Connect/{self.SN}") THIS IS FOR USB
+        config = C884RS232Config(
+            comport = 4
+        )
+        request = client.post("/pi/AddRS232", json = config.model_dump_json())
         assert request.text == "true"
         assert request.status_code == 200
     @classmethod

@@ -31,7 +31,7 @@ class WsResponse(BaseModel):
 
 class WsErrResponse(WsResponse):
     """Websocket error response to client"""
-    response = "error"
+    response: str = "error"
     errortype: ErrTypes
     errormsg: str
 
@@ -52,11 +52,11 @@ class StageMotionStatus(BaseModel):
     on_target: list[bool, None] = Field(description="On target status for the stages", examples=[True, False, None, False])
 
 class MotionUpdate(Update):
-    event = UpdateTypes.motion_update
+    event: UpdateTypes = UpdateTypes.motion_update
     stages: list[StageMotionStatus] = Field(default = [], description="List of StageMotionStatus objects")
 
 class ErrorUpdate(Update):
-    event = UpdateTypes.error_update
+    event: UpdateTypes = UpdateTypes.error_update
     errortype: ErrTypes = Field(description="Error type", examples=[ErrTypes.malformed_request], default=ErrTypes.other_error)
     errormsg: str = Field(default="Unknown error", description="Error message")
 

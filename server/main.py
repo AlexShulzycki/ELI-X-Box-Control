@@ -1,7 +1,7 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.openapi.utils import get_openapi
 
-from .API import SettingsAPI, ControlAPI, WebSocketAPI, GeometryAPI
+from .API import SettingsAPI, StageControlAPI, WebSocketAPI, GeometryAPI
 
 tags_metadata = [
     {
@@ -23,7 +23,7 @@ tags_metadata = [
 ]
 app = FastAPI(openapi_tags = tags_metadata)
 app.include_router(SettingsAPI.router)
-app.include_router(ControlAPI.router)
+app.include_router(StageControlAPI.router)
 app.include_router(GeometryAPI.router)
 
 wsmanager = WebSocketAPI.websocketapi
