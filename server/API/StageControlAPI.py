@@ -1,3 +1,5 @@
+from collections.abc import Awaitable
+
 from fastapi import APIRouter, HTTPException
 from server.Interface import Stageinterface
 from server.StageControl.DataTypes import StageInfo
@@ -5,18 +7,18 @@ from server.StageControl.DataTypes import StageInfo
 router = APIRouter(tags=["control"])
 
 @router.get("/stage/allstageinfo")
-def getAllStageInfo() -> list[StageInfo]:
+async def getAllStageInfo() -> list[StageInfo]:
     """
     Gets the status of connected stages
     """
-
-    return Stageinterface.getAllStages()
+    res: Awaitable[list[StageInfo]] = Stageinterface.getAllStages()
+    return await res
 
 
 # TBD if we need a post request to do multiple
 @router.get("/stage/stageinfo/{identifier}")
-def getStageInfoByIdentifier(identifiers: list[int]) -> StageInfo:
-    return Stageinterface.stageInfo(identifiers)
+async def getStageInfoByIdentifier(identifiers: list[int]) -> StageInfo:
+    return await Stageinterface.stageInfo(identifiers)
 
 
 

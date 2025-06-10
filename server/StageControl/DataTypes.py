@@ -1,4 +1,6 @@
 from enum import Enum
+from typing import Coroutine, Any
+
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -32,10 +34,10 @@ class ControllerInterface():
         """Move stage to position"""
         raise NotImplementedError
 
-    def onTarget(self, serial_numbers: [int]) -> [bool]:
+    def onTarget(self, serial_numbers: [int]) -> list[bool]:
         """Check if stages are on target"""
         raise NotImplementedError
 
-    def stageInfo(self, serial_numbers: [int]) -> [StageInfo]:
+    def stageInfo(self, serial_numbers: [int]) -> list[StageInfo]:
         """Return StageInfo objects for the given stages"""
         raise NotImplementedError

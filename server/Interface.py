@@ -1,3 +1,5 @@
+import asyncio
+
 from pipython import GCSDevice
 
 from .StageControl.C884 import C884Interface
@@ -19,17 +21,19 @@ class StageInterface:
         """Pass in all additional Controller Interfaces in the constructor"""
         self.interfaces: list[ControllerInterface] = list(controller_interfaces)
 
-    def getAllStages(self) -> list[StageInfo]:
+    async def getAllStages(self) -> list[StageInfo]:
         """
         Gets StageInfo for all configured stages.
         :return:
         """
         res: [StageInfo] = []
         for interface in self.interfaces:
-            res.append(interface.stageInfo(interface.stages))
+            connected_stages = interface.stages
+            stageinfo = await interface.stageInfo(connected_stages)
+            res += stageinfo
         return res
 
-    def stageInfo(self, identifiers: [int]) -> list[StageInfo]:
+    async def stageInfo(self, identifiers: [int]) -> list[StageInfo]:
         """
         Gets StageInfo for requested stages.
         :param identifiers: unique identifiers of the requested stages
@@ -39,7 +43,7 @@ class StageInterface:
         for identifier in identifiers:
             for interface in self.interfaces:
                 if interface.stages.__contains__(identifier):
-                    res.append(interface.stageInfo([identifier])[0]) # since this returns a list
+                    res.append(interface.stageInfo([identifier])[0])
                     break # found it, move on to the next identifier
 
         return res

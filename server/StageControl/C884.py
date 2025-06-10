@@ -1,5 +1,5 @@
 import asyncio
-from typing import Coroutine
+from typing import Coroutine, Awaitable
 
 from pipython import GCSDevice
 from pydantic import Field, BaseModel
@@ -86,12 +86,12 @@ class C884:
         return len(self.device.allaxes)
 
     @property
-    def connectedChannels(self) -> [int]:
+    def connectedChannels(self) -> list[int]:
         """Returns list of connected channels"""
         res = []
         for i in self.device.axes:
             res.append(int(i))
-        return len(res)
+        return res
 
     def __init__(self, config: C884Config):
         """
@@ -403,7 +403,7 @@ class C884Interface(ControllerInterface):
             # return the serial number
             return newC884.config.serial_number
 
-    async def onTarget(self, serial_number_channel:[int]) -> [bool]:
+    async def onTarget(self, serial_number_channel:list[int]) -> list[bool]:
         """
         On target method with unique serial number identifier
         :param serial_number_channel: serial number of controller, with channel number appended
@@ -511,10 +511,9 @@ class C884Interface(ControllerInterface):
         for cntr in self.c884.values():
             for ch in cntr.connectedChannels:
                 res.append(cntr.config.serial_number + 10 + ch) # math is still cheaper than string manipulation
-
         return res
 
-    async def stageInfo(self, serial_number_channel:[int]) -> [StageInfo]:
+    async def stageInfo(self, serial_number_channel:list[int]) -> Awaitable[list[StageInfo]]:
         # Avoid making redundant requests, extract as much info as possible
         # Round up the controller serial numbers, create empty dict
         controllers = {}
@@ -524,13 +523,13 @@ class C884Interface(ControllerInterface):
 
         # Iterate through each controller serial number in the dict
         for cntr_sn in controllers:
-            controllers[cntr_sn]: Coroutine = self.c884[cntr_sn].range  # this returns a coroutine!!!
+            controllers[cntr_sn]: Awaitable[list[list[float]]] = self.c884[cntr_sn].range  # this returns a coroutine!!!
 
         # Finally, iterate through the request array again
-        res: [StageInfo] = []
+        res: list[StageInfo] = []
         for sn_ch in serial_number_channel:
             sn, ch = self.deconstruct_Serial_Channel(sn_ch)
-            corores: [[int]] = await controllers[sn]
+            corores: list[list[float]] = await controllers[sn]
 
             info = StageInfo(
                     identifier = serial_number_channel,
@@ -540,4 +539,5 @@ class C884Interface(ControllerInterface):
                 )
             res.append(info)
 
+        res: Awaitable[list[StageInfo]]
         return res

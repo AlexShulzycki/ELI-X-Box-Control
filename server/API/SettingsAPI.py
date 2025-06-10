@@ -1,7 +1,6 @@
 # This file will take care of communicating via api to select and configure the controllers
 import glob
 import sys
-
 import serial
 
 from fastapi import APIRouter, HTTPException
