@@ -1,5 +1,6 @@
 import asyncio
 from collections.abc import Coroutine
+from abc import ABC, abstractmethod
 
 from pipython import GCSDevice
 
@@ -14,7 +15,32 @@ async def EnumPIUSB():
     """
     return GCSDevice().EnumerateUSB()
 
-class C884Interface:
+class StageInterface:
+    """Interface which moves stages. Does not configure them."""
+
+
+
+class ControllerInterface(ABC):
+    """Abstract Base class (ABC) of controller interfaces"""
+
+    @abstractmethod
+    @property
+    def stages(self) -> [int]:
+        """Returns unique identifiers for each stage"""
+        pass
+
+    @abstractmethod
+    def moveTo(self, serial_number:int, position:float):
+        """Move stage to position"""
+        pass
+    @abstractmethod
+    def onTarget(self, serial_number:int) -> bool:
+        """Check if stage is on target"""
+        pass
+
+class C884Interface(ControllerInterface):
+    """Implementation of ControllerInterface for the C884. Stages are identified by the last number appended to the
+    serial number of the controller"""
 
     def __init__(self):
         self.c884: dict[int, C884] = {}
@@ -38,11 +64,34 @@ class C884Interface:
             # return the serial number
             return newC884.config.serial_number
 
-    async def onTarget(self, serial_number) -> list[bool]|list[None]:
+    async def onTarget(self, serial_number_stage:int) -> bool:
+        """
+        On target method with unique serial number identifier
+        :param serial_number_stage: serial number of controller, with channel number appended
+        :return: if the channel of the given controller is on target
+        """
+        channel: int = serial_number_stage % 10 # modulo 10 gives last digit
+        sn: int = int(serial_number_stage - channel / 10) # minus channel, divide by 10 to get rid of 0
+        ontarget = await self.c884[sn].onTarget
+        return ontarget[channel -1] # -1 since we want index, so channel 1 is at index 0
+
+    async def onTargetController(self, serial_number:int) -> list[bool]|list[None]:
+        """
+        Ontarget method to get all channels on the controller. NOT IMPLEMENTATION OF ControllerInterface.
+        :param serial_number: serial number of controller
+        :return: on target status list for each channel. NONE if channel not active/used
+        """
         return await self.c884[serial_number].onTarget
 
-    async def moveTo(self, serial_number:int, axis: int, target: float):
-        return self.c884[serial_number].moveChannelTo(axis, target)
+    async def moveTo(self, serial_number_stage:int, target: float):
+        """
+        moveTo implementation of ControllerInterface.
+        :param serial_number_stage: serial number of controller, with channel number appended
+        :param target: Position to move to, in millimeters
+        """
+        channel: int = serial_number_stage % 10  # modulo 10 gives last digit
+        sn: int = int(serial_number_stage - channel / 10) # minus channel, divide by 10 to get rid of 0
+        return self.c884[sn].moveChannelTo(channel, target)
 
     def removeC884(self, serial_number:int):
         self.c884.pop(serial_number).__exit__()
@@ -100,7 +149,15 @@ class C884Interface:
         """
         return await self.c884[serial_number].openConnection()
 
+    @property
+    def stages(self):
+        """Returns identifiers of connected stages, in this case the C884 serial no. with the channel stuck the end"""
+        res = []
+        for cntr in self.c884.values():
+            for ch in cntr.connectedChannels:
+                res.append(cntr.config.serial_number + 10 + ch) # math is still cheaper than string manipulation
 
+        return res
 C884interface = C884Interface()
 
 # standa interface etc etc

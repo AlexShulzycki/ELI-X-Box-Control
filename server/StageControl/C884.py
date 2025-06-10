@@ -77,6 +77,19 @@ class C884:
 
         return res
 
+    @property
+    def numberOfChannels(self) -> int:
+        """Returns maximum number of channels available to this controller"""
+        return len(self.device.allaxes)
+
+    @property
+    def connectedChannels(self) -> [int]:
+        """Returns list of connected channels"""
+        res = []
+        for i in self.device.axes:
+            res.append(int(i))
+        return len(res)
+
     def __init__(self, config: C884Config):
         """
         Initialize the controller and reference all axes, communication is over RS232. Throws an exception if it fails.

@@ -13,10 +13,11 @@ class IsReflectionLegalRequest(BaseModel):
     element: Element
 
 @router.get("/post/isReflectionLegal")
-def isReflectionLegal()-> bool:
+def isReflectionLegal(req: IsReflectionLegalRequest)-> bool:
     """
-    Gets the status of configured C884 controllers
+    Check if reflection is legal
     """
-    c884s = Interface.C884interface.c884
+    print(req)
 
-    return c884s
+    raise NotImplemented
+    return False
