@@ -47,13 +47,13 @@ class ControllerInterface(ABC):
         """Move stage to position"""
         pass
     @abstractmethod
-    def onTarget(self, serial_number:int) -> bool:
-        """Check if stage is on target"""
+    def onTarget(self, serial_numbers: [int]) -> [bool]:
+        """Check if stages are on target"""
         pass
 
     @abstractmethod
-    def stageInfo(self, serial_number:int) -> StageInfo:
-        """Return StageInfo for the given stage"""
+    def stageInfo(self, serial_numbers: [int]) -> [StageInfo]:
+        """Return StageInfo objects for the given stages"""
 
 class C884Interface(ControllerInterface):
     """Implementation of ControllerInterface for the C884. Stages are identified by the last number appended to the
@@ -73,6 +73,7 @@ class C884Interface(ControllerInterface):
         sn: int = int(serial_channel - channel / 10)  # minus channel, divide by 10 to get rid of 0
         return sn, channel
 
+
     def addC884(self, config:C884Config):
         if config.serial_number is None:
             raise Exception("No serial number provided")
@@ -91,15 +92,33 @@ class C884Interface(ControllerInterface):
             # return the serial number
             return newC884.config.serial_number
 
-    async def onTarget(self, serial_number_channel:int) -> bool:
+    async def onTarget(self, serial_number_channel:[int]) -> [bool]:
         """
         On target method with unique serial number identifier
         :param serial_number_channel: serial number of controller, with channel number appended
         :return: if the channel of the given controller is on target
         """
-        sn, channel = self.deconstruct_Serial_Channel(serial_number_channel)
-        ontarget = await self.c884[sn].onTarget
-        return ontarget[channel -1] # -1 since we want index, so channel 1 is at index 0
+        # Avoid making redundant requests, extract as much info as possible
+        # Round up the controller serial numbers, create empty dict
+        controllers = {}
+        for sc in serial_number_channel:
+            sn, ch = self.deconstruct_Serial_Channel(sc)
+            controllers[sn] = []
+
+        # Iterate through each controller serial number in the dict
+        for cntr_sn in controllers:
+            controllers[cntr_sn]: Coroutine = self.c884[cntr_sn].onTarget # this returns a coroutine!!!
+
+        # Finally, iterate through the request array again
+        res = []
+        for sn_ch in serial_number_channel:
+            sn, ch = self.deconstruct_Serial_Channel(sn_ch)
+            corores: [bool] = await controllers[sn]
+            res.append(corores[ch-1]) # We want the index, not the channel
+
+        # all done
+        return res
+
 
     async def onTargetController(self, serial_number:int) -> list[bool]|list[None]:
         """
@@ -184,26 +203,41 @@ class C884Interface(ControllerInterface):
 
         return res
 
-    async def stageInfo(self, serial_number_channel:int) -> StageInfo:
-        serial_number, channel = self.deconstruct_Serial_Channel(serial_number_channel)
-        c884 = self.c884[serial_number]
-        minmax = await c884.range
-        minimum, maximum = minmax[channel-1] # we want the index, since in index world 1 actually equals 0
+    async def stageInfo(self, serial_number_channel:[int]) -> [StageInfo]:
+        # Avoid making redundant requests, extract as much info as possible
+        # Round up the controller serial numbers, create empty dict
+        controllers = {}
+        for sc in serial_number_channel:
+            sn, ch = self.deconstruct_Serial_Channel(sc)
+            controllers[sn] = []
 
-        # Construct the StageInfo object
-        res = StageInfo(
-            kind=StageKind.linear, # HARDCODED FOR NOW #TODO UN-HARDCODE
-            minimum = minimum,
-            maximum = maximum
-        )
+        # Iterate through each controller serial number in the dict
+        for cntr_sn in controllers:
+            controllers[cntr_sn]: Coroutine = self.c884[cntr_sn].range  # this returns a coroutine!!!
+
+        # Finally, iterate through the request array again
+        res: [StageInfo] = []
+        for sn_ch in serial_number_channel:
+            sn, ch = self.deconstruct_Serial_Channel(sn_ch)
+            corores: [[int]] = await controllers[sn]
+
+            info = StageInfo(
+                    kind=StageKind.linear, # HARDCODED FOR NOW #TODO UN-HARDCODE
+                    minimum = corores[ch - 1][0], # again, we want the index, not the channel
+                    maximum = corores[ch - 1][1]
+                )
+            res.append(info)
+
         return res
-
 
 class StageInterface:
     """Interface which moves stages. Does not configure them."""
 
-    def __init__(self, *args: [ControllerInterface]):
+    def __init__(self, *controllers: [ControllerInterface]):
         """Pass in all additional Controller Interfaces in the constructor"""
+        self.controllers: list[ControllerInterface] = list(controllers)
+
+
 
 
 # INIT ALL INTERFACES TOGETHER
