@@ -1,5 +1,5 @@
 import asyncio
-from typing import Coroutine, Awaitable
+from typing import Coroutine, Awaitable, Any
 
 from pipython import GCSDevice
 from pydantic import Field, BaseModel
@@ -21,7 +21,7 @@ class C884Config(BaseModel):
     serial_number: int|None
     stages: list[str] = Field(default = ["NOSTAGE", "NOSTAGE", "NOSTAGE", "NOSTAGE"], min_length=4,
                           examples=[['L-406.20DD10', 'NOSTAGE', 'L-611.90AD', 'NOSTAGE']])
-    """Array of 4 devices connected on the controller, in order from channel 1 to 4. If no stage is
+    """Array of 4 devices connected on the controller, in order from channel 1 to 4, or 6. If no stage is
         present, "NOSTAGE" is required. Example: Channel 1 and 3 are connected: ['L-406.20DD10','NOSTAGE', 'L-611.90AD',
          'NOSTAGE']"""
 
@@ -73,7 +73,7 @@ class C884:
         Helper function.
         Converts dict received from the controller into a list, putting a None where no stage is connected
         """
-        res = [None, None, None, None]
+        res = [None] * len(self.device.allaxes)
         # The returned dict will not contain keys of stages which are not connected
         for i in self.device.axes:
             res[int(i) - 1] = fromController[f"{i}"]
@@ -113,6 +113,8 @@ class C884:
         # Serial number sanity check
         if not config.serial_number == self.config.serial_number:
             raise Exception("Serial number differs, instantiate a new C884 object with the new serial number")
+        else:
+            self.config = config
 
 
     async def loadStagesFromC884(self):
@@ -134,13 +136,14 @@ class C884:
         :return:
         """
         self.checkReady()
+
+        request_dict = {}
+
         try:
-            self.device.CST({
-                1: self.config.stages[0],
-                2: self.config.stages[1],
-                3: self.config.stages[2],
-                4: self.config.stages[3]
-            })
+            for i, stages in enumerate(self.config.stages):
+                request_dict[i+1] = stages
+            print(request_dict)
+            self.device.CST(request_dict)
         except Exception as e:
             print(e)
             raise e
@@ -214,6 +217,7 @@ class C884:
         """
         if axes is None:
             axes = self.device.axes
+        print([True]* len(axes))
         self.device.SVO(axes, [True] * len(axes))
 
     async def reference(self, axes: list[int] = None):
@@ -351,6 +355,10 @@ class C884:
 
         return minmax
 
+    async def getRange(self):
+        """explicitly bypassing the property"""
+        return self.range
+
     async def getSupportedStages(self)-> list[str]:
         if not self.isconnected:
             raise Exception("Not connected!")
@@ -381,7 +389,7 @@ class C884Interface(ControllerInterface):
         :return: serial number and channel, separately!
         """
         channel: int = serial_channel % 10  # modulo 10 gives last digit
-        sn: int = int(serial_channel - channel / 10)  # minus channel, divide by 10 to get rid of 0
+        sn: int = int((serial_channel - channel) / 10)  # minus channel, divide by 10 to get rid of 0
         return sn, channel
 
 
@@ -409,25 +417,7 @@ class C884Interface(ControllerInterface):
         :param serial_number_channel: serial number of controller, with channel number appended
         :return: if the channel of the given controller is on target
         """
-        # Avoid making redundant requests, extract as much info as possible
-        # Round up the controller serial numbers, create empty dict
-        controllers = {}
-        for sc in serial_number_channel:
-            sn, ch = self.deconstruct_Serial_Channel(sc)
-            controllers[sn] = []
-
-        # Iterate through each controller serial number in the dict
-        for cntr_sn in controllers:
-            controllers[cntr_sn]: Coroutine = self.c884[cntr_sn].onTarget # this returns a coroutine!!!
-
-        # Finally, iterate through the request array again
-        res = []
-        for sn_ch in serial_number_channel:
-            sn, ch = self.deconstruct_Serial_Channel(sn_ch)
-            corores: [bool] = await controllers[sn]
-            res.append(corores[ch-1]) # We want the index, not the channel
-
-        # all done
+        res: list[bool] = await self.bulkCommand(serial_number_channel, C884.onTarget)
         return res
 
 
@@ -510,34 +500,63 @@ class C884Interface(ControllerInterface):
         res = []
         for cntr in self.c884.values():
             for ch in cntr.connectedChannels:
-                res.append(cntr.config.serial_number + 10 + ch) # math is still cheaper than string manipulation
+                res.append(cntr.config.serial_number* 10 + ch) # math is still cheaper than string manipulation
         return res
 
     async def stageInfo(self, serial_number_channel:list[int]) -> Awaitable[list[StageInfo]]:
+        # Avoid making redundant requests, extract as much info as possible
+        # Round up the controller serial numbers, create empty dict
+        bulkresult = await self.bulkCommand(serial_number_channel, C884.getRange)
+
+        res: list[StageInfo] = []
+        for i, result in enumerate(bulkresult):
+            info = StageInfo(
+                    identifier = serial_number_channel[i],
+                    kind=StageKind.linear, # HARDCODED FOR NOW #TODO UN-HARDCODE
+                    minimum = result[0], # again, we want the index, not the channel
+                    maximum = result[1]
+                )
+            res.append(info)
+
+        
+        res: Awaitable[list[StageInfo]]
+        return res
+
+    async def bulkCommand(self, serial_number_channel: list[int], command) -> Awaitable[list[Any]]:
+        """
+        Execute a getter command efficiently across available C884s
+        :param serial_number_channel: identifier of the axes we want to work with
+        :param command: command we want to issue, from the C884 object
+        :return: results in the same order as the axes identifiers were given
+        """
         # Avoid making redundant requests, extract as much info as possible
         # Round up the controller serial numbers, create empty dict
         controllers = {}
         for sc in serial_number_channel:
             sn, ch = self.deconstruct_Serial_Channel(sc)
             controllers[sn] = []
-
+        print(controllers)
         # Iterate through each controller serial number in the dict
         for cntr_sn in controllers:
-            controllers[cntr_sn]: Awaitable[list[list[float]]] = self.c884[cntr_sn].range  # this returns a coroutine!!!
+            controllers[cntr_sn]: Awaitable[list[Any]] = command(self.c884[cntr_sn])  # this returns a coroutine!!!
 
-        # Finally, iterate through the request array again
-        res: list[StageInfo] = []
+        # Finally, iterate through the request array again and create a parallel response array
+        res: list[Any] = []
         for sn_ch in serial_number_channel:
             sn, ch = self.deconstruct_Serial_Channel(sn_ch)
-            corores: list[list[float]] = await controllers[sn]
 
-            info = StageInfo(
-                    identifier = serial_number_channel,
-                    kind=StageKind.linear, # HARDCODED FOR NOW #TODO UN-HARDCODE
-                    minimum = corores[ch - 1][0], # again, we want the index, not the channel
-                    maximum = corores[ch - 1][1]
-                )
-            res.append(info)
+            # await if we have to
+            solution = controllers[sn]
+            print(type(solution))
+            if isinstance(solution, Coroutine):
+                controllers[sn] = await solution
 
-        res: Awaitable[list[StageInfo]]
+            # the relevant dict entry now contains the solution
+            res.append((controllers[sn])[ch -1]) # we only want the relevant channel, -1 to get the index.
+
+        res: Awaitable[list[Any]] # make sure to hint that it's an awaitable
         return res
+
+    async def enableCLO(self, serial_number_channel: int):
+        sn, ch = self.deconstruct_Serial_Channel(serial_number_channel)
+        await self.c884[sn].setServoCLOTrue([ch])

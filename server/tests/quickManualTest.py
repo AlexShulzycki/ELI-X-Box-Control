@@ -34,6 +34,17 @@ class ManualC884Test(unittest.TestCase):
         stageconfig.C884[0].stages[5] = "M-414.2DG"
         request = client.post("/post/UpdateConfig/", json=stageconfig.model_dump())
         assert request.status_code == 200
+
+        # load settings onto C884
+        request = client.get(f"/pi/LoadStagesToC884/{self.SN}/")
+        assert request.status_code == 200
+
+        # startup CLO
+        serial_number_axis = self.SN * 10 + 6
+        request = client.get(f"/pi/enableCLO/{serial_number_axis}/")
+        assert request.status_code == 200
+
+        print(client.get(f"/pi/Status/").json)
     @classmethod
     def tearDownClass(self):
         client.get(f"pi/RemoveBySerialNumber/{self.SN}")

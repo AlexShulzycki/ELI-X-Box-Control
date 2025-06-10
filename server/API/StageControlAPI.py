@@ -17,8 +17,8 @@ async def getAllStageInfo() -> list[StageInfo]:
 
 # TBD if we need a post request to do multiple
 @router.get("/stage/stageinfo/{identifier}")
-async def getStageInfoByIdentifier(identifiers: list[int]) -> StageInfo:
-    return await Stageinterface.stageInfo(identifiers)
+async def getStageInfoByIdentifier(identifier: int) -> StageInfo:
+    return await Stageinterface.stageInfo([identifier])
 
 
 

@@ -194,3 +194,13 @@ async def getPIStatus() -> list[C884Status]:
 async def getPIRange(serial_number: int):
     if doesSerialNumberExist(serial_number):
         return await Interface.C884interface.c884[serial_number].range
+
+@router.get("/pi/LoadStagesToC884/{serial_number}")
+async def loadStagesToC884(serial_number: int):
+    if doesSerialNumberExist(serial_number):
+        return await Interface.C884interface.c884[serial_number].loadStagesToC884()
+
+@router.get("/pi/enableCLO/{serial_number_channel}")
+async def enableCLO(serial_number_channel: int):
+    interface = Interface.C884interface
+    await interface.enableCLO(serial_number_channel)
