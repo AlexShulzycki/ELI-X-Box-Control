@@ -1,6 +1,8 @@
 import asyncio
 from collections.abc import Coroutine
 from abc import ABC, abstractmethod
+from pydantic import BaseModel, Field, field_validator
+from enum import Enum
 
 from pipython import GCSDevice
 
@@ -15,9 +17,20 @@ async def EnumPIUSB():
     """
     return GCSDevice().EnumerateUSB()
 
-class StageInterface:
-    """Interface which moves stages. Does not configure them."""
+class StageKind(Enum):
+    rotational = "rotational"
+    linear = "linear"
 
+class StageInfo(BaseModel):
+    kind: StageKind = Field(default=False, description="What kind of stage this is")
+    minimum: float = Field(default=0, description="Minimum position, in mm.", ge=0)
+    maximum: float = Field(description="Maximum position, in mm.", ge=0)
+
+    # Validate that linear stages must have minimums and maximums
+    @field_validator("minimum", "maximum")
+    def isMinMaxNeeded(cls, v, values):
+        if values["kind"] == StageKind.linear and v is None:
+            raise ValueError("Linear stage needs minimum and maximum")
 
 
 class ControllerInterface(ABC):
@@ -26,7 +39,7 @@ class ControllerInterface(ABC):
     @abstractmethod
     @property
     def stages(self) -> [int]:
-        """Returns unique identifiers for each stage"""
+        """Returns unique integer identifiers for each stage"""
         pass
 
     @abstractmethod
@@ -38,6 +51,10 @@ class ControllerInterface(ABC):
         """Check if stage is on target"""
         pass
 
+    @abstractmethod
+    def stageInfo(self, serial_number:int) -> StageInfo:
+        """Return StageInfo for the given stage"""
+
 class C884Interface(ControllerInterface):
     """Implementation of ControllerInterface for the C884. Stages are identified by the last number appended to the
     serial number of the controller"""
@@ -45,6 +62,16 @@ class C884Interface(ControllerInterface):
     def __init__(self):
         self.c884: dict[int, C884] = {}
         """Dict of serial number mapped to C884 object"""
+
+    def deconstruct_Serial_Channel(self, serial_channel):
+        """
+        Extracts the channel and serial number from a unique serial-number-channel identifier
+        :param serial_channel: serial number with the channel glued to the end
+        :return: serial number and channel, separately!
+        """
+        channel: int = serial_channel % 10  # modulo 10 gives last digit
+        sn: int = int(serial_channel - channel / 10)  # minus channel, divide by 10 to get rid of 0
+        return sn, channel
 
     def addC884(self, config:C884Config):
         if config.serial_number is None:
@@ -64,14 +91,13 @@ class C884Interface(ControllerInterface):
             # return the serial number
             return newC884.config.serial_number
 
-    async def onTarget(self, serial_number_stage:int) -> bool:
+    async def onTarget(self, serial_number_channel:int) -> bool:
         """
         On target method with unique serial number identifier
-        :param serial_number_stage: serial number of controller, with channel number appended
+        :param serial_number_channel: serial number of controller, with channel number appended
         :return: if the channel of the given controller is on target
         """
-        channel: int = serial_number_stage % 10 # modulo 10 gives last digit
-        sn: int = int(serial_number_stage - channel / 10) # minus channel, divide by 10 to get rid of 0
+        sn, channel = self.deconstruct_Serial_Channel(serial_number_channel)
         ontarget = await self.c884[sn].onTarget
         return ontarget[channel -1] # -1 since we want index, so channel 1 is at index 0
 
@@ -83,14 +109,13 @@ class C884Interface(ControllerInterface):
         """
         return await self.c884[serial_number].onTarget
 
-    async def moveTo(self, serial_number_stage:int, target: float):
+    async def moveTo(self, serial_number_channel:int, target: float):
         """
         moveTo implementation of ControllerInterface.
-        :param serial_number_stage: serial number of controller, with channel number appended
+        :param serial_number_channel: serial number of controller, with channel number appended
         :param target: Position to move to, in millimeters
         """
-        channel: int = serial_number_stage % 10  # modulo 10 gives last digit
-        sn: int = int(serial_number_stage - channel / 10) # minus channel, divide by 10 to get rid of 0
+        sn, channel = self.deconstruct_Serial_Channel(serial_number_channel)
         return self.c884[sn].moveChannelTo(channel, target)
 
     def removeC884(self, serial_number:int):
@@ -158,6 +183,32 @@ class C884Interface(ControllerInterface):
                 res.append(cntr.config.serial_number + 10 + ch) # math is still cheaper than string manipulation
 
         return res
+
+    async def stageInfo(self, serial_number_channel:int) -> StageInfo:
+        serial_number, channel = self.deconstruct_Serial_Channel(serial_number_channel)
+        c884 = self.c884[serial_number]
+        minmax = await c884.range
+        minimum, maximum = minmax[channel-1] # we want the index, since in index world 1 actually equals 0
+
+        # Construct the StageInfo object
+        res = StageInfo(
+            kind=StageKind.linear, # HARDCODED FOR NOW #TODO UN-HARDCODE
+            minimum = minimum,
+            maximum = maximum
+        )
+        return res
+
+
+class StageInterface:
+    """Interface which moves stages. Does not configure them."""
+
+    def __init__(self, *args: [ControllerInterface]):
+        """Pass in all additional Controller Interfaces in the constructor"""
+
+
+# INIT ALL INTERFACES TOGETHER
 C884interface = C884Interface()
+
+
 
 # standa interface etc etc
