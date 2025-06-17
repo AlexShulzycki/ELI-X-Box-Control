@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Coroutine, Any
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -22,7 +21,7 @@ class StageInfo(BaseModel):
             raise ValueError("Linear stage needs minimum and maximum")
 
 
-class ControllerInterface():
+class ControllerInterface:
     """Base class of controller interfaces"""
 
     @property

@@ -1,12 +1,20 @@
 from pydantic import BaseModel, Field
 from typing import Annotated
+from ..StageControl.DataTypes import StageKind, StageInfo
 
 
 class Axis(BaseModel):
+    # name and type of axis
     name: str
-    # enum type linear/rotation etc
+    kind: StageKind
+
+    # Physical dimensions and characteristics
+    # root
+    root: list[Annotated[float, Field(description="Where the root of the stage is located, i.e. stage zero position in xyz space",
+                                      examples=[[0,20, -4]], default=[0,0,0], validate_default=True)]]
+
     # collision box
-    collisionBox: list[Annotated[int, Field(description="dimension of a side of the box",
+    collisionBox: list[Annotated[int, Field(description="xyz dimensions for collision box",
                                             examples=[10, 0, 3],
                                             ge=0)]] = Field(
         description="Dimensions of the collision box, in XYZ lengths, centered on the moving axis position",
@@ -15,12 +23,11 @@ class Axis(BaseModel):
 
 class AssemblySchema(BaseModel):
     name: str
+    axes: list[Axis]
 
 
-# create a box around the moving part
-
-
-class Assembly():
-    def __init__(self):
+class Assembly:
+    def __init__(self, assemblyschema: AssemblySchema):
         # validate schema, validate axes
+        self.schema = assemblyschema
         raise NotImplemented
