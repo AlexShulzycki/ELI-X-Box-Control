@@ -2,3 +2,7 @@ fastapi
 uvicorn
 websockets
 PIPython
+pydantic
+pyserial
+pinocchio
+httpx
