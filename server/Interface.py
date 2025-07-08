@@ -17,7 +17,7 @@ async def EnumPIUSB():
 class StageInterface:
     """Interface which moves stages. Does not configure them."""
 
-    def __init__(self, *controller_interfaces: [ControllerInterface]):
+    def __init__(self, *controller_interfaces: ControllerInterface):
         """Pass in all additional Controller Interfaces in the constructor"""
         self.interfaces: list[ControllerInterface] = list(controller_interfaces)
 
@@ -33,7 +33,7 @@ class StageInterface:
             res += stageinfo
         return res
 
-    async def stageInfo(self, identifiers: [int]) -> list[StageInfo]:
+    async def stageInfo(self, identifiers: list[int]) -> list[StageInfo]:
         """
         Gets StageInfo for requested stages.
         :param identifiers: unique identifiers of the requested stages
@@ -41,9 +41,11 @@ class StageInterface:
         """
         res = []
         for identifier in identifiers:
+            # iterate through interfaces
             for interface in self.interfaces:
+                # find the stage by identifier
                 if interface.stages.__contains__(identifier):
-                    res.append(interface.stageInfo([identifier])[0])
+                    res.append(interface.stageInfo([identifier])[0]) # stageInfo function works with lists
                     break # found it, move on to the next identifier
 
         return res

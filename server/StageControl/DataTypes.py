@@ -25,7 +25,7 @@ class ControllerInterface:
     """Base class of controller interfaces"""
 
     @property
-    def stages(self) -> [int]:
+    def stages(self) -> list[int]:
         """Returns unique integer identifiers for each stage"""
         raise NotImplementedError
 
@@ -33,10 +33,10 @@ class ControllerInterface:
         """Move stage to position"""
         raise NotImplementedError
 
-    def onTarget(self, serial_numbers: [int]) -> list[bool]:
+    def onTarget(self, serial_numbers: list[int]) -> list[bool]:
         """Check if stages are on target"""
         raise NotImplementedError
 
-    def stageInfo(self, serial_numbers: [int]) -> list[StageInfo]:
+    def stageInfo(self, serial_numbers: list[int]) -> list[StageInfo]:
         """Return StageInfo objects for the given stages"""
         raise NotImplementedError

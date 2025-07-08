@@ -1,5 +1,4 @@
-from C884 import C884
-from libximc.highlevel import Axis as ximcAxis
+# COPYPASTED FROM THE PREVIOUS SOFTWARE, THUS NON-FUNCTIONAL:  USE THIS AS A GUIDE ONLY
 
 
 class Axis:
