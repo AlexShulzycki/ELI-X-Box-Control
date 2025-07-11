@@ -3,6 +3,7 @@ import asyncio
 from pipython import GCSDevice
 
 from .StageControl.C884 import C884Interface
+from .StageControl.Virtual import VirtualControllerInterface
 from .StageControl.DataTypes import StageInfo, ControllerInterface
 
 
@@ -26,7 +27,7 @@ class StageInterface:
         Gets StageInfo for all configured stages.
         :return:
         """
-        res: [StageInfo] = []
+        res: list[StageInfo] = []
         for interface in self.interfaces:
             connected_stages = interface.stages
             stageinfo = await interface.stageInfo(connected_stages)
@@ -53,5 +54,6 @@ class StageInterface:
 
 # INIT ALL INTERFACES TOGETHER
 C884interface = C884Interface()
+Virtualinterface = VirtualControllerInterface()
 
-Stageinterface = StageInterface(C884interface)
+Stageinterface = StageInterface(C884interface, Virtualinterface)

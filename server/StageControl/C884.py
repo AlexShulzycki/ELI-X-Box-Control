@@ -4,7 +4,7 @@ from typing import Coroutine, Awaitable, Any
 from pipython import GCSDevice
 from pydantic import Field, BaseModel
 
-from .DataTypes import StageKind, StageInfo, ControllerInterface
+from .DataTypes import StageKind, StageInfo, ControllerInterface, StageStatus
 
 
 class C884Status(BaseModel):
@@ -510,7 +510,11 @@ class C884Interface(ControllerInterface):
 
         res: list[StageInfo] = []
         for i, result in enumerate(bulkresult):
+            # Extract sn and channel from identifier
+            sn, channel = self.deconstruct_Serial_Channel(serial_number_channel[i])
             info = StageInfo(
+                    # index gymnastics to get the model name from the config
+                    model= self.c884.get(sn).config.stages[channel],
                     identifier = serial_number_channel[i],
                     kind=StageKind.linear, # HARDCODED FOR NOW #TODO UN-HARDCODE
                     minimum = result[0], # again, we want the index, not the channel
@@ -521,6 +525,29 @@ class C884Interface(ControllerInterface):
         
         res: Awaitable[list[StageInfo]]
         return res
+
+    async def stageStatus(self, serial_number_channel:list[int]) -> Awaitable[list[StageStatus]]:
+        awaiters: list[Coroutine] = []
+        for identifier in serial_number_channel:
+            sn, channel = self.deconstruct_Serial_Channel(identifier)
+
+            connected = self.c884[sn].isconnected
+            ready = False
+            position = 0.0
+            ontarget = False
+            if connected:
+                ready = self.c884[sn].ready
+                position = self.c884[sn].position[channel]
+                ontarget = self.c884[sn].onTarget[channel]
+
+            awaiters.append(await StageStatus(
+                connected= connected,
+                ready= ready,
+                position= position,
+                ontarget= ontarget
+            ))
+
+        return asyncio.gather(awaiters)
 
     async def bulkCommand(self, serial_number_channel: list[int], command) -> Awaitable[list[Any]]:
         """
