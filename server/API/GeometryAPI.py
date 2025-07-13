@@ -21,3 +21,5 @@ def isReflectionLegal(req: IsReflectionLegalRequest)-> bool:
 
     raise NotImplemented
     return False
+
+@router.post

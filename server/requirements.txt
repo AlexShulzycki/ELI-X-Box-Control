@@ -4,5 +4,5 @@ websockets
 PIPython
 pydantic
 pyserial
-pinocchio
+coal
 httpx
