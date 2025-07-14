@@ -1,12 +1,12 @@
 from pydantic import BaseModel, Field
 from typing import Annotated
-from ..StageControl.DataTypes import StageKind, StageInfo
+from server.StageControl.DataTypes import StageKind, StageInfo
 
 
 class Axis(BaseModel):
     # name and type of axis
     name: str
-    kind: StageKind
+    kind: StageKind | None
 
     # Physical dimensions and characteristics
     # root
@@ -27,7 +27,8 @@ class AssemblySchema(BaseModel):
 
 
 class Assembly:
-    def __init__(self, assemblyschema: AssemblySchema):
+    def __init__(self, assemblyschema: AssemblySchema, root = None):
         # validate schema, validate axes
         self.schema = assemblyschema
+        self.root:Assembly = root
         raise NotImplemented

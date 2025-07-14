@@ -12,7 +12,7 @@ class Element(Enum):
 class IsReflectionLegalRequest(BaseModel):
     element: Element
 
-@router.get("/post/isReflectionLegal")
+@router.post("/geometry/isReflectionLegal")
 def isReflectionLegal(req: IsReflectionLegalRequest)-> bool:
     """
     Check if reflection is legal
@@ -21,5 +21,3 @@ def isReflectionLegal(req: IsReflectionLegalRequest)-> bool:
 
     raise NotImplemented
     return False
-
-@router.post

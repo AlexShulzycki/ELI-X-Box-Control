@@ -19,18 +19,3 @@ async def getAllStageInfo() -> list[StageInfo]:
 @router.get("/stage/stageinfo/{identifier}")
 async def getStageInfoByIdentifier(identifier: int) -> StageInfo:
     return await Stageinterface.stageInfo([identifier])
-
-
-
-# FOR REFERENCE
-# case ReqTypes.connectC884:
-#                     res = {"response": "updateC884", "data": C884interface.getUpdatedC884(msg["serial_number"])}
-#                     await self.broadcast(res)
-#                 case ReqTypes.c884ontarget:
-#                     res = {"response": "ontargetPI", "ontarget": C884interface.onTarget(msg["serial_number"]), "serial_number": msg["serial_number"]}
-#                     await self.broadcast(res)
-#                 case ReqTypes.c884moveto:
-#                     C884interface.moveTo(msg["serial_number"], msg["axis"], msg["target"])
-#                     res = {"response": "movingPI", "serial_number": msg["serial_number"], "axis": msg["axis"], "target": msg["target"]}
-#                     await self.broadcast(res)
-
