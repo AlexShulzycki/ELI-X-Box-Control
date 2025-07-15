@@ -14,7 +14,7 @@ class StageInfo(BaseModel):
     identifier: int = Field(description='Unique identifier for the stage')
     kind: StageKind = Field(default=StageKind.linear, description="What kind of stage this is")
     minimum: float = Field(default=0, description="Minimum position, in mm.", ge=0)
-    maximum: float = Field(description="Maximum position, in mm.", ge=0)
+    maximum: float = Field(default=0, description="Maximum position, in mm.", ge=0)
 
     # Validate that linear stages must have minimums and maximums
     @field_validator("minimum", "maximum")

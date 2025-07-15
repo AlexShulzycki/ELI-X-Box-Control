@@ -1,7 +1,6 @@
 # COPYPASTED FROM THE PREVIOUS SOFTWARE, THUS NON-FUNCTIONAL:  USE THIS AS A GUIDE ONLY
 from server.Interface import Stageinterface as interface
-from server.StageControl.DataTypes import StageInfo, StageStatus
-
+from server.StageControl.DataTypes import StageInfo, StageStatus, StageKind
 
 
 class Axis:
@@ -15,6 +14,13 @@ class Axis:
         self.identifier = identifier
         self.reversed = reversed
         self.minmax = None
+
+        # create a blank stagestatus and stageinfo
+        self.status = StageStatus()
+        self.info = StageInfo(
+            model = "N/A",
+            identifier = self.identifier,
+        )
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
@@ -44,8 +50,27 @@ class Axis:
         """
         interface.getRelevantInterface(self.identifier).moveTo(target)
 
-    async def getStatus(self)-> StageStatus:
-        return interface.getRelevantInterface(self.identifier).stageInfo([self.identifier])[0]
+    async def getUpdatedStatus(self)-> StageStatus:
+        self.status = interface.getRelevantInterface(self.identifier).stageInfo([self.identifier])[0]
+        return self.status
+
+    def getStatus(self) -> StageStatus:
+        """
+        Gets the StageStatus that was last known. Does not query the axis for an update.
+        :return: Last known StageStatus, not necessarily up to date!
+        """
+        return self.status
+
+    async def getUpdatedStageInfo(self) -> StageInfo:
+        self.info = await interface.getRelevantInterface(self.identifier).stageInfo([self.identifier])[0]
+        return self.info
+
+    def getStageInfo(self) -> StageInfo:
+        """
+        Gets the StageInfo that was last known. Does not query the axis for an update.
+        :return: Last known StageInfo, not necessarily up to date!
+        """
+        return self.info
 
     async def getPos(self) -> float:
         """

@@ -31,8 +31,8 @@ class XYZvector:
 
 
 class CollisionBox(BaseModel):
-    BoxDimensions: XYZvector
-    BoxOffset: XYZvector
+    BoxDimensions: XYZvector = Field(default= XYZvector(), description="Box dimensions")
+    BoxOffset: XYZvector = Field(default= XYZvector(), description="location of center of box")
 
     class Config:
         arbitrary_types_allowed = True
@@ -102,6 +102,14 @@ class Component:
 
         return currentXYZ
 
+    # getter and setter for root
+    @property
+    def root(self):
+        return self._root
+    @root.setter
+    def root(self, root: AttachmentPoint):
+        self._root = root
+
     def __del__(self):
         self.unattach()
 
@@ -109,26 +117,48 @@ class Component:
         self.unattach()
 
 class Structure(Component):
-    def __init__(self, root=None):
+    def __init__(self, root=None, collisionbox: CollisionBox = None):
         """
-        Structure component, can attach stuff to it and be attached to stuff
+        Structure component, has a collision box. Doesn't do anything right now.
         :param root: what it's attached to
-        :param attached: what's attached to it
+        :param collisionbox: Collision box
         """
         super().__init__(root)
 
+        self.collision_box = collisionbox
+        if self.collision_box is None:
+            self.collision_box = CollisionBox()
 
-class AxisComponent(Component):
-    def __init__(self, axiszero: XYZvector, axisdirection: XYZvector, axis: Axis, root):
+
+class AxisComponent(Structure):
+    def __init__(self, axisdirection: XYZvector, axis: Axis, root, collisionbox = None):
         """
-        Axis component
-        :param axiszero: Where the axis zero position is relative to the attachment point
+        Axis component. Its position is the position of the axis in space.
         :param axis: Axis object that holds a reference to the physical stages
         :param axisdirection: Unit vector pointing to where the axis moves when you increase its position
-        :param root:
-        :param attached:
+        :param root: Attachment point -> This always points to the axis zero!
+        :param collisionbox: Collision box, this is on the moving axis!
         """
-        super().__init__(root, attached)
+        super().__init__(root, collisionbox)
         self.axis: Axis = axis
-        self.axiszero: XYZvector = axiszero
-        self.axisdirection: XYZvector = axisdirection
+        self.axis_vector: XYZvector = axisdirection
+
+        # For the axis component, we need to update the attachment positon as the real axis moves
+        @Component.root.getter
+        def root(self) -> AttachmentPoint:
+            print("GETTER")
+            value = super().root
+            zero_point = value.Point
+            ax_pos = self.axis.getStatus().position
+            displacement_vector = self.axis_vector.xyz * ax_pos
+            point = zero_point + displacement_vector
+
+            # make a copy of the current root to modify so we don't lose the zero point
+            result = value.__copy__()
+            result.Point = point
+            return result
+
+        @root.setter
+        def root(self, root: AttachmentPoint):
+            # Simple setter, replace the whole thing
+            self._root = root
