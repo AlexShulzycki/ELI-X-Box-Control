@@ -51,6 +51,12 @@ class StageInterface:
 
         return res
 
+    def getRelevantInterface(self, identifier: int) -> ControllerInterface:
+        for interface in self.interfaces:
+            if interface.stages.__contains__(identifier):
+                return interface
+        raise Exception("No interface holds the given identifier")
+
 
 # INIT ALL INTERFACES TOGETHER
 C884interface = C884Interface()

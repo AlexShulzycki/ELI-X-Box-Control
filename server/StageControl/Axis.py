@@ -1,14 +1,18 @@
 # COPYPASTED FROM THE PREVIOUS SOFTWARE, THUS NON-FUNCTIONAL:  USE THIS AS A GUIDE ONLY
+from server.Interface import Stageinterface as interface
+from server.StageControl.DataTypes import StageInfo, StageStatus
+
 
 
 class Axis:
-    def __init__(self, axis: str, reversed=False):
+    def __init__(self, identifier: int, reversed = False):
         """
         Creates an Axis object, which interfaces with the physical stage
-        @param axis: Name of the axis, i.e. cryy
+        @param identifier: Unique identifier for the stage this axis controls
         @param reversed: Whether the axis is reversed
         """
-        self.axis = axis
+
+        self.identifier = identifier
         self.reversed = reversed
         self.minmax = None
 
@@ -33,97 +37,45 @@ class Axis:
 
         return position
 
-    def move(self, target: float):
+    async def move(self, target: float):
         """
         Move axis to target position
         @param target: Position to move to
         """
-        raise NotImplementedError("You need to implement the move method")
+        interface.getRelevantInterface(self.identifier).moveTo(target)
 
-    def getPos(self) -> float:
+    async def getStatus(self)-> StageStatus:
+        return interface.getRelevantInterface(self.identifier).stageInfo([self.identifier])[0]
+
+    async def getPos(self) -> float:
         """
         Gets the position of the axis
         @return: Position
         """
-        raise NotImplementedError("You need to implement the getPos method")
+        status = await self.getStatus()
+        return status.position
 
-    def onTarget(self) -> bool:
+    async def onTarget(self) -> bool:
         """
         Checks if is on target (i.e. finished moving)
         @return: True or False, depending if it's on target
         @rtype: bool
         """
-        raise NotImplementedError("You need to implement the onTarget method")
+        status = await self.getStatus()
+        return status.ontarget
 
-    def range(self) -> list:
+    async def range(self) -> list:
         """
         Returns the [min,max] range of travel for this axis - must be calculated in the constructor
         """
-        raise NotImplementedError("You need to implement the range method. Do not interact with minmax directly")
+        info: StageInfo = await interface.getRelevantInterface(self.identifier).stageInfo([self.identifier])[0]
+        return [info.minimum, info.maximum]
 
 
-class PIAxis(Axis):
-    """
-    Class that represents a single connected motor/stage to the controller. Methods are passed through to the drumController
-    class.
-    """
-
-    def __init__(self, axis: str, controller: C884, channel: int, reversed=False):
-        """
-        Constructor to store information
-        @param controller: drumController that this axis is connected to (drumController class)
-        @param channel: Which channel on the controller this axis is connected to (Integer 1-4)
-        @param axis: The name of the axis this object represents, i.e. samx
-        @param reversed: Uses the axis in reverse mode
-        """
-        # define the axis
-        super().__init__(axis, reversed)
-        self.controller: C884 = controller
-        self.channel = channel
-
-        # Add this axis to the controller axes dict
-        self.controller.axes[self.axis] = self
-
-        # Check if we can use reversed mode - i.e. if the motor has limit switches
-        if reversed and self.isReversable():
-            self.reversed = True
-        pass
-
-    def move(self, target: float):
-        """
-        Move axis to target position.
-        @param target: Position to move to
-        """
-        target = self.getProperPos(target)
-        self.controller.move(self.channel, target)
-
-    def getPos(self) -> float:
-        """
-        Gets the position of the axis at this point in time
-        @return: Position of the axis, already adjusted if it is reversed
-        """
-        return self.getProperPos(self.controller.getPosChannel(self.channel))
-
-    def onTarget(self) -> bool:
-        return bool(self.controller.onTargetChannel(self.channel))
-
-    def range(self) -> list:
-        """
-        Returns the [min,max] range of travel for this axis - only calculates once, then stores it in the object.
-        """
-        # Check if min max has already been calculated, if not then calculate it
-        if self.minmax is None:
-            self.minmax = self.controller.range(self.channel)
-
-        return self.minmax
-
-    def isReversable(self) -> bool:
-        """
-        Check if this axis is reversable, i.e. if it has limit switches
-        @return:
-        """
-        # TODO low priority, we do not have stage where this is necessary yet
-        return True
+### EVERYTHING BELOW IS NON-FUNCTIONAL AND FOR REFERENCE ONLY ###
+###
+###
+###
 
 
 class StandaAxis(Axis):
@@ -251,27 +203,3 @@ class RotationAxis(Axis):
         # Angle is either already within limits, or has been corrected to be within limits
         return theta
 
-
-class PIRotationAxis(RotationAxis):
-
-    def __init__(self, axis: PIAxis, limit=185):
-        """
-        RotationAxis object for handling PI rotation stages.
-        @param axis: PIAxis object which handles this stage
-        @param limit: Max travel range in either direction, default is 185 degrees.
-        """
-        # Call the super class
-        super().__init__(axis, limit)
-        self.axisObject: PIAxis  # For the IDE to know we are dealing with a PIAxis
-
-        # Set acceleration
-        acceleration = 20
-        self.axisObject.controller.device.gcscommands.ACC(self.axisObject.channel, acceleration)
-        self.axisObject.controller.device.gcscommands.DEC(self.axisObject.channel, acceleration)
-
-
-
-    # dunno if this works or is necessary to avoid angle being referenced changing between startups and or tangling the
-    # wires up by rotating 360 degrees - todo this will only work if we delete all axes on program exit
-    # def __del__(self):
-    #    self.angle.move(5)  # Referencing always happens from one direction, move the stage before referencing

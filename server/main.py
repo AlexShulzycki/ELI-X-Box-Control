@@ -1,7 +1,7 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.openapi.utils import get_openapi
 
-from .API import StageControlAPI, WebSocketAPI, GeometryAPI
+from .API import StageControlAPI, WebSocketAPI, GeometryAPI, KinematicsAPI
 from .API.Settings import SettingsAPI, PISettingsAPI, VirtualStageSettingsAPI
 
 tags_metadata = [
@@ -32,6 +32,7 @@ app.include_router(VirtualStageSettingsAPI.router)
 # Geometry and stage control routers
 app.include_router(GeometryAPI.router)
 app.include_router(StageControlAPI.router)
+app.include_router(KinematicsAPI.router)
 
 wsmanager = WebSocketAPI.websocketapi
 
