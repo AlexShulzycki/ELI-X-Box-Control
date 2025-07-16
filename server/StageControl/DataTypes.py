@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from enum import Enum
+from typing import Any, Callable
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic_core.core_schema import FieldValidationInfo
@@ -34,6 +37,79 @@ class StageStatus(BaseModel):
     ready: bool = Field(default=False, description="Whether the stage is ready or not.")
     position: float = Field(default=0.0, description="Position of the stage in mm.")
     ontarget: bool = Field(default=False, description="Whether the stage is on target.")
+
+
+class EventAnnouncer:
+    def __init__(self, *availableDataTypes: object):
+        self.subs: list[Subscription] = []
+        self.availableDataTypes = availableDataTypes
+
+    def subscribe(self, *datatypes: object) -> Subscription:
+        """Subscribe to events, pass in the data type you want to get"""
+
+        # Check that we have the requested data types
+        for datatype in datatypes:
+            if not self.availableDataTypes.__contains__(datatype):
+                raise Exception(f"Data type {datatype} is not served here")
+
+        # All good, add the subscription
+        sub = Subscription(self, list(datatypes))
+        self.subs.append(sub)
+        return sub
+
+    def event(self, event: Any):
+        """Receive an event, send it to relevant subscribers"""
+        for sub in self.subs:
+            if sub.datatypes.__contains__(type(event)):
+                sub.event(event)
+
+
+class Subscription:
+
+    def __init__(self, ea: EventAnnouncer, datatypes: list[object]):
+        self.announcer = ea
+        """EventAnnouncer we are subscribed to"""
+        self.datatypes = datatypes
+        """Supported datatypes"""
+        self.deliveries: dict[object, list[Callable[[Any], None]]] = {}
+        """Dict of data type -> list of callables"""
+
+    def deliverTo(self, datatype:object, destination: Callable[[Any], None]):
+        """
+        Tell the subscription where to deliver received data
+        :param datatype: Which datatype we want to receive
+        :param destination: Function to call with the data
+        :return: None
+        """
+        # Check that we serve this datatype
+        if not self.datatypes.__contains__(datatype):
+            raise Exception(f"Data type {datatype} is not delivered here")
+
+        # Check if this key has been initialized, otherwise give it an empty list
+        if self.deliveries.get(datatype) is None:
+            self.deliveries[datatype] = []
+
+        # Check if already registered
+        if self.deliveries.get(datatype).__contains__(destination):
+            print(f"delivery of {datatype} to {destination} is already registered")
+            return
+
+        # Register for deliveries
+        self.deliveries[datatype].append(destination)
+
+    def event(self, event: Any):
+        """Calls relevant functions on receiving event"""
+
+        # Check if delivery array exists or is empty
+        if self.deliveries.get(type(event)) is None or len(self.deliveries.get(type(event))) == 0:
+            print(f"No function is currently receiving {type(event)}")
+            return
+
+        # Deliver the package
+        for func in self.deliveries.get(type(event)):
+            func(event)
+
+
 
 
 class ControllerInterface:

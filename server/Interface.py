@@ -1,6 +1,7 @@
 import asyncio
 
 from pipython import GCSDevice
+from pydantic import BaseModel
 
 from .StageControl.C884 import C884Interface
 from .StageControl.Virtual import VirtualControllerInterface
@@ -56,6 +57,8 @@ class StageInterface:
             if interface.stages.__contains__(identifier):
                 return interface
         raise Exception("No interface holds the given identifier")
+
+
 
 
 # INIT ALL INTERFACES TOGETHER
