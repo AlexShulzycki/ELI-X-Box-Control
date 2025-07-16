@@ -15,9 +15,10 @@ class TestAssembly(TestCase):
 class TestComponent(TestCase):
     @classmethod
     def setUpClass(self):
-        self.component1 = Component()
-        self.component2 = Component()
-        self.component3 = Component()
+        self.component1 = Component(name="comp1")
+        self.component2 = Component(name="comp2")
+        self.component3 = Component(name="comp3")
+        print("setupclass")
 
         self.component2.attach(AttachmentPoint(
             Point=XYZvector([0, 1, 0]),
@@ -29,12 +30,43 @@ class TestComponent(TestCase):
             Attached_To_Component=self.component2
         ))
 
+    def test_attach_unattach(self):
+        compA = Component(name="compA")
+        compB = Component(name="compB", root = AttachmentPoint(
+            Attached_To_Component=compA
+        ))
+        compC = Component(name="compC", root = AttachmentPoint(
+            Attached_To_Component=compB
+        ))
+        compD = Component(name="compD")
+        compD.attach(AttachmentPoint(Attached_To_Component=compC))
+
+        assert compA.attachments.__contains__(compB)
+        assert compB.root.Attached_To_Component == compA
+        assert compB.attachments.__contains__(compC)
+        assert compC.root.Attached_To_Component == compB
+        assert compC.attachments.__contains__(compD)
+        assert compD.root.Attached_To_Component == compC
+
+    def test_loop(self):
+
+        compA = Component(name="compA")
+        compB = Component(name="compB")
+        failed = False
+        try:
+            compA.attach(AttachmentPoint(Attached_To_Component=compB))
+            compB.attach(AttachmentPoint(Attached_To_Component=compA))
+        except Exception:
+            failed = True
+
+        assert failed
+
     def test_get_xyz(self):
         xyz = self.component3.getXYZ()
         assert xyz.xyz == [1, 1, 1]
 
     def test_rotate(self):
-        self.component4 = Component()
+        self.component4 = Component(name="comp4")
         self.component4.attach(AttachmentPoint(
             Point=XYZvector([0, 1, 0]),
             Attached_To_Component=self.component3
@@ -45,11 +77,8 @@ class TestComponent(TestCase):
         assert list(np.round(xyz.xyz)) == [1, 0, 1]
 
     def test_delete(self):
-        print(self.component2.attachments)
         self.component3.unattach()
-        print(self.component2.attachments)
-
-        assert self.component3.attachments == []
+        assert self.component3.attachments == [] and self.component3.root is None
 
 
 class TestAxisComponent(TestCase):
@@ -63,15 +92,15 @@ class TestAxisComponent(TestCase):
         vinterface.addStagesbyConfigs(axconfigs)
 
         # X and Y axes connected to each other
-        self.comp1 = Component()
+        self.comp1 = Component(name="comp1")
         self.ax1 = AxisComponent(axisdirection=XYZvector([1, 0, 0]), axis=Axis(1), root=AttachmentPoint(
             Point=XYZvector([0, 1, 0]),
             Attached_To_Component=self.comp1
-        ))
+        ),name = "ax1")
         self.ax2 = AxisComponent(axisdirection=XYZvector([0, 1, 0]), axis=Axis(2), root=AttachmentPoint(
             Point=XYZvector([0, 1, 0]),
             Attached_To_Component=self.ax1
-        ))
+        ),name = "ax1")
 
     def test_zeroXYZ(self):
         # zero out

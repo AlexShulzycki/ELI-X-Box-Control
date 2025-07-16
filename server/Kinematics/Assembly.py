@@ -44,7 +44,7 @@ class ComponentType(Enum):
     Payload = "Payload"
 
 class AttachmentPoint(BaseModel):
-    Point: XYZvector
+    Point: XYZvector = Field(default= XYZvector(), description="Position of the attached comp relative to the parent's root position")
     RotationVector: XYZvector = Field(description="Rotation vector. "
                                                   "[0,0,pi] is a clockwise 180 degree rotation about the z axis",
                                       default=XYZvector([0,0,0]))
@@ -54,13 +54,15 @@ class AttachmentPoint(BaseModel):
         arbitrary_types_allowed = True
 
 class Component:
-    def __init__(self, root: AttachmentPoint = None):
+    def __init__(self, root: AttachmentPoint = None, name: str = "unnamed component"):
         """
         Component base class
         :param root: What this component is attached to
         """
         self.attachments: list[Component] = []
+        self.name = name
         self.root = None
+        """A bit confusing, root refers to the AttachmentPoint object"""
         if root is not None:
             self.attach(root)
 
@@ -69,10 +71,22 @@ class Component:
         Attach this component via this attachment point
         :param attachment_point: Attachment point object
         """
+        #print(f"attaching {self.name} to {attachment_point.Attached_To_Component.name}")
         if self.root is not None:
             # Double check if we are already not attached to something
             self.unattach()
         else:
+            # Check that we are not creating a loop
+            comp = attachment_point.Attached_To_Component
+            for i in range(0,100):
+                if comp == self:
+                    raise Exception("Attachments loop into each other")
+                if comp is None or comp.root is None:
+                    # We reached the end
+                    break
+                comp = comp.root.Attached_To_Component
+
+            # All good, we can attach
             # Set root to the attachment point, and let the root component know
             self.root = attachment_point
             self.root.Attached_To_Component.attachments.append(self)
@@ -85,22 +99,27 @@ class Component:
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
 
-    def getXYZ(self) -> XYZvector:
+    def getXYZ(self, currentXYZ: XYZvector = XYZvector()) -> XYZvector:
         """
-        Travel up the tree until root is none, calculating its position at each step
+        Travel up the tree until root is none, calculating its position at each step. We receive an XYZvector
+        pointing towards our root location (0,0,0) and we transform this in accordance to our attachment point so that
+        it points towards our parent's root location (0,0,0)
+        :param currentXYZ: Child node XYZ attachment point relative to our root
         """
-        currentXYZ = XYZvector()
-        root = self.root
-        """A bit confusing, root refers to the AttachmentPoint object"""
-        while root is not None:
-            rotation = Rotation.from_rotvec(root.RotationVector.xyz)
-            currentXYZ = XYZvector(rotation.apply(currentXYZ.xyz))
-            currentXYZ += root.Point
-            # We now get the next attachment point object, via our attachment point, getting the
-            # parent component, and then the component's attachment point
-            root = root.Attached_To_Component.root
 
-        return currentXYZ
+        # Check if this is the final component
+        if self.root is None:
+            return currentXYZ
+
+        # Otherwise calculate
+
+        rotation = Rotation.from_rotvec(self.root.RotationVector.xyz)
+        currentXYZ = XYZvector(rotation.apply(currentXYZ.xyz))
+        currentXYZ += self.root.Point
+
+        # Call the root attachment's component to continue the calculation
+        return self.root.Attached_To_Component.getXYZ(currentXYZ)
+
 
     # getter and setter for root
     @property
@@ -117,13 +136,13 @@ class Component:
         self.unattach()
 
 class Structure(Component):
-    def __init__(self, root=None, collisionbox: CollisionBox = None):
+    def __init__(self, root=None, name:str="unnamed structure", collisionbox: CollisionBox = None):
         """
         Structure component, has a collision box. Doesn't do anything right now.
         :param root: what it's attached to
         :param collisionbox: Collision box
         """
-        super().__init__(root)
+        super().__init__(root, name)
 
         self.collision_box = collisionbox
         if self.collision_box is None:
@@ -131,7 +150,7 @@ class Structure(Component):
 
 
 class AxisComponent(Structure):
-    def __init__(self, axisdirection: XYZvector, axis: Axis, root, collisionbox = None):
+    def __init__(self, axisdirection: XYZvector, axis: Axis, root, name: str = "unnamed axis", collisionbox = None):
         """
         Axis component. Its position is the position of the axis in space.
         :param axis: Axis object that holds a reference to the physical stages
@@ -139,26 +158,21 @@ class AxisComponent(Structure):
         :param root: Attachment point -> This always points to the axis zero!
         :param collisionbox: Collision box, this is on the moving axis!
         """
-        super().__init__(root, collisionbox)
+        super().__init__(root, name, collisionbox)
         self.axis: Axis = axis
         self.axis_vector: XYZvector = axisdirection
+        """Vector pointing to where the axis moves when you increase its position by 1"""
 
-        # For the axis component, we need to update the attachment positon as the real axis moves
-        @Component.root.getter
-        def root(self) -> AttachmentPoint:
-            print("GETTER")
-            value = super().root
-            zero_point = value.Point
-            ax_pos = self.axis.getStatus().position
-            displacement_vector = self.axis_vector.xyz * ax_pos
-            point = zero_point + displacement_vector
+    def getXYZ(self, currentXYZ: XYZvector = XYZvector()) -> XYZvector:
+        """
+        Override parent method, update the attachment position as the real axis moves
+        :return:
+        """
+        # Move vector to where the axis is right now
+        ax_pos = self.axis.getStatus().position
+        displacement_vector = XYZvector(self.axis_vector.xyz * ax_pos)
+        currentXYZ += displacement_vector
 
-            # make a copy of the current root to modify so we don't lose the zero point
-            result = value.__copy__()
-            result.Point = point
-            return result
+        # Continue calculations
+        return super().getXYZ(currentXYZ)
 
-        @root.setter
-        def root(self, root: AttachmentPoint):
-            # Simple setter, replace the whole thing
-            self._root = root
