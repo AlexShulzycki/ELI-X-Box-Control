@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from .StageControl.C884 import C884Interface
 from .StageControl.Virtual import VirtualControllerInterface
-from .StageControl.DataTypes import StageInfo, ControllerInterface
+from .StageControl.DataTypes import StageInfo, ControllerInterface, EventAnnouncer, StageStatus
 
 
 async def EnumPIUSB():
@@ -16,12 +16,35 @@ async def EnumPIUSB():
     return GCSDevice().EnumerateUSB()
 
 
-class StageInterface:
-    """Interface which moves stages. Does not configure them."""
+class MainInterface:
+    """Interface that takes in identifier then communicates with relevant controller interface.
+    Does not configure them. Also provides an EventAnnouncer for StageInfo and StageStatus"""
+
+    #TODO Finish up the controller interfaces, reformat this into a way that receives events and interfaces
+    # with controller interface functions.
 
     def __init__(self, *controller_interfaces: ControllerInterface):
         """Pass in all additional Controller Interfaces in the constructor"""
-        self.interfaces: list[ControllerInterface] = list(controller_interfaces)
+        self._interfaces: list[ControllerInterface] = []
+        for intf in controller_interfaces:
+            self.addInterface(intf)
+        self.EventAnnouncer: EventAnnouncer = EventAnnouncer(StageInfo, StageStatus)
+
+    @property
+    def interfaces(self) -> list[ControllerInterface]:
+        return self._interfaces
+
+    def addInterface(self, intf: ControllerInterface):
+        if self.interfaces.__contains__(intf):
+            # Already exists here
+            return
+        # New interface, lets sub to their event announcer and feed it directly into ours
+        sub = intf.EventAnnouncer.subscribe(self.EventAnnouncer.availableDataTypes)
+        sub.deliverTo(StageInfo, self.EventAnnouncer.event)
+        sub.deliverTo(StageStatus, self.EventAnnouncer.event)
+
+        # All done, finally append to the list
+        self._interfaces.append(intf)
 
     async def getAllStages(self) -> list[StageInfo]:
         """
@@ -65,4 +88,4 @@ class StageInterface:
 C884interface = C884Interface()
 Virtualinterface = VirtualControllerInterface()
 
-Stageinterface = StageInterface(C884interface, Virtualinterface)
+toplevelinterface = MainInterface(C884interface, Virtualinterface)

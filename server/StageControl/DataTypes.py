@@ -33,6 +33,7 @@ class StageInfo(BaseModel):
         return self
 
 class StageStatus(BaseModel):
+    identifier: int = Field(description='Unique identifier for the stage')
     connected: bool = Field(default=False, description="Whether the stage is connected.")
     ready: bool = Field(default=False, description="Whether the stage is ready or not.")
     position: float = Field(default=0.0, description="Position of the stage in mm.")
@@ -113,25 +114,42 @@ class Subscription:
 
 
 class ControllerInterface:
-    """Base class of controller interfaces"""
+    """
+    Base class of controller interfaces. Make sure you pass on any updates to the event announcer.
+
+    """
+
+    def __init__(self):
+        self.EventAnnouncer = EventAnnouncer(StageStatus, StageInfo)
 
     @property
     def stages(self) -> list[int]:
         """Returns unique integer identifiers for each stage"""
         raise NotImplementedError
 
-    def moveTo(self, serial_number: int, position: float):
+    def moveTo(self, identifier: int, position: float):
         """Move stage to position"""
         raise NotImplementedError
 
-    def onTarget(self, serial_numbers: list[int]) -> list[bool]:
-        """Check if stages are on target"""
+    @property
+    def stageInfo(self) -> dict[int, StageInfo]:
+        """Returns StageInfo of connected stages"""
         raise NotImplementedError
 
-    def stageInfo(self, serial_numbers: list[int]) -> list[StageInfo]:
-        """Return StageInfo objects for the given stages"""
+    def updateStageInfo(self, identifiers: list[int] = None):
+        """Updates StageInfo for the given stages or all if identifier list is empty.
+        MUST UPDATE EVENTANNOUNCER"""
         raise NotImplementedError
 
-    def stageStatus(self, serial_numbers: list[int]) -> list[StageStatus]:
+    @property
+    def stageStatus(self) -> dict[int, StageStatus]:
         """Return StageStatus objects for the given stages"""
+        raise NotImplementedError
+
+    def updateStageStatus(self, identifiers: list[int] = None):
+        """Updates stageStatus for the given stages or all if identifier list is empty.
+        MUST UPDATE EVENTANNOUNCER"""
+        raise NotImplementedError
+
+    def addStagesByConfigs(self, configs: list[Any]):
         raise NotImplementedError

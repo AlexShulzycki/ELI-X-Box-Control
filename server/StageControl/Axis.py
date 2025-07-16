@@ -1,5 +1,5 @@
 # COPYPASTED FROM THE PREVIOUS SOFTWARE, THUS NON-FUNCTIONAL:  USE THIS AS A GUIDE ONLY
-from server.Interface import Stageinterface as interface
+from server.Interface import toplevelinterface as interface
 from server.StageControl.DataTypes import StageInfo, StageStatus, StageKind
 
 
@@ -10,13 +10,15 @@ class Axis:
         @param identifier: Unique identifier for the stage this axis controls
         @param reversed: Whether the axis is reversed
         """
-
+        # Set up identifier, this fails if there is no stage with the give identifier
+        self._identifier = None
         self.identifier = identifier
+
         self.reversed = reversed
         self.minmax = None
 
         # create a blank stagestatus and stageinfo
-        self.status = StageStatus()
+        self.status = StageStatus(identifier = identifier)
         self.info = StageInfo(
             model = "N/A",
             identifier = self.identifier,
@@ -28,6 +30,17 @@ class Axis:
     def __exit__(self, exc_type, exc_val, exc_tb):
         # Stop the motor, close the device
         raise NotImplementedError("Implement exit behavior for " + str(type(self)) + " please!")
+
+    @property
+    def identifier(self):
+        return self._identifier
+        pass
+
+    @identifier.setter
+    def identifier(self, value):
+        """Sets the identifier for the axis. Exception if this identifier is not present in any interface"""
+
+        if interface.getAllStages
 
     def getProperPos(self, position: float) -> float:
         # Check if in range
