@@ -18,6 +18,8 @@ class XYZvector:
 
     def __add__(self, other: XYZvector):
         return XYZvector([self.x + other.x, self.y + other.y, self.z + other.z])
+    def __mul__(self, other: float):
+        return XYZvector([self.x * other, self.y * other, self.z * other])
 
     @property
     def xyz(self):
@@ -170,7 +172,7 @@ class AxisComponent(Structure):
         """
         # Move vector to where the axis is right now
         ax_pos = self.axis.getStatus().position
-        displacement_vector = XYZvector(self.axis_vector.xyz * ax_pos)
+        displacement_vector = XYZvector((self.axis_vector * ax_pos).xyz)
         currentXYZ += displacement_vector
 
         # Continue calculations

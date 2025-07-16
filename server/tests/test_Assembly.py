@@ -14,7 +14,7 @@ class TestAssembly(TestCase):
 
 class TestComponent(TestCase):
     @classmethod
-    def setUpClass(self):
+    def setUp(self):
         self.component1 = Component(name="comp1")
         self.component2 = Component(name="comp2")
         self.component3 = Component(name="comp3")
@@ -83,7 +83,7 @@ class TestComponent(TestCase):
 
 class TestAxisComponent(TestCase):
     @classmethod
-    def setUpClass(self):
+    def setUp(self):
         # Create virtual axes
         axconfigs = [
             StageInfo(model="Virtual_1", identifier=1, minimum=0, maximum=10),
@@ -103,12 +103,24 @@ class TestAxisComponent(TestCase):
         ),name = "ax1")
 
     def test_zeroXYZ(self):
-        # zero out
-        vinterface.moveTo(1, 0)
-        vinterface.moveTo(2, 1)
         # assert position
         loc1 = self.ax1.getXYZ().xyz
         loc2 = self.ax2.getXYZ().xyz
         assert loc1 == [0,1,0]
         print(loc2)
-        assert loc2 == [0,3,0]
+        assert loc2 == [0,2,0]
+
+    async def test_moveAxis(self):
+        vinterface.moveTo(1, 3)
+        vinterface.moveTo(2, 1)
+
+        # update status for each axis, (remember async!)
+        await self.ax1.axis.getUpdatedStatus()
+        await self.ax2.axis.getUpdatedStatus()
+
+        # assert position
+        loc1 = self.ax1.getXYZ().xyz
+        loc2 = self.ax2.getXYZ().xyz
+        assert loc1 == [3, 1, 0]
+        print(loc2)
+        assert loc2 == [3, 3, 0]

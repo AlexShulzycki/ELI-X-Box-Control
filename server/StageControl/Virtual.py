@@ -27,6 +27,7 @@ class VirtualControllerInterface(ControllerInterface):
     def moveTo(self, serial_number: int, position: float):
         """Move stage to position"""
         self.virtualstages[serial_number].stageStatus.position = position
+        self.virtualstages[serial_number].stageStatus.ontarget = True
 
     def onTarget(self, serial_numbers: list[int]) -> list[bool]:
         """Check if stages are on target"""
