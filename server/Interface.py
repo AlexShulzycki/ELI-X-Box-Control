@@ -26,10 +26,10 @@ class MainInterface:
 
     def __init__(self, *controller_interfaces: ControllerInterface):
         """Pass in all additional Controller Interfaces in the constructor"""
+        self.EventAnnouncer: EventAnnouncer = EventAnnouncer(StageInfo, StageStatus)
         self._interfaces: list[ControllerInterface] = []
         for intf in controller_interfaces:
             self.addInterface(intf)
-        self.EventAnnouncer: EventAnnouncer = EventAnnouncer(StageInfo, StageStatus)
 
     @property
     def interfaces(self) -> list[ControllerInterface]:
@@ -46,7 +46,7 @@ class MainInterface:
             # Already exists here
             return
         # New interface, lets sub to their event announcer and feed it directly into ours
-        sub = intf.EventAnnouncer.subscribe(self.EventAnnouncer.availableDataTypes)
+        sub = intf.EventAnnouncer.subscribe(*self.EventAnnouncer.availableDataTypes)
         # We want to listen to stageinfo and stagestatuses
         sub.deliverTo(StageInfo, self.EventAnnouncer.event)
         sub.deliverTo(StageStatus, self.EventAnnouncer.event)

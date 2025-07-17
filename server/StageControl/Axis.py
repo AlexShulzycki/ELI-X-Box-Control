@@ -17,13 +17,6 @@ class Axis:
         self.reversed = reversed
         self.minmax = None
 
-        # create a blank stagestatus and stageinfo
-        self.status = StageStatus(identifier = identifier)
-        self.info = StageInfo(
-            model = "N/A",
-            identifier = self.identifier,
-        )
-
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
 
@@ -67,34 +60,33 @@ class Axis:
         interface.getRelevantInterface(self.identifier).moveTo(target)
 
     async def getUpdatedStatus(self)-> StageStatus:
-        self.status = interface.getRelevantInterface(self.identifier).stageInfo([self.identifier])[0]
-        return self.status
+        await interface.getRelevantInterface(self.identifier).updateStageStatus(self.identifier)
+        return interface.getRelevantInterface(self.identifier).stageStatus[self.identifier]
 
     def getStatus(self) -> StageStatus:
         """
         Gets the StageStatus that was last known. Does not query the axis for an update.
         :return: Last known StageStatus, not necessarily up to date!
         """
-        return self.status
+        return interface.getRelevantInterface(self.identifier).stageStatus[self.identifier]
 
     async def getUpdatedStageInfo(self) -> StageInfo:
-        self.info = await interface.getRelevantInterface(self.identifier).stageInfo([self.identifier])[0]
-        return self.info
+        await interface.getRelevantInterface(self.identifier).updateStageInfo(self.identifier)
+        return interface.getRelevantInterface(self.identifier).stageInfo[self.identifier]
 
     def getStageInfo(self) -> StageInfo:
         """
         Gets the StageInfo that was last known. Does not query the axis for an update.
         :return: Last known StageInfo, not necessarily up to date!
         """
-        return self.info
+        return interface.getRelevantInterface(self.identifier).stageInfo[self.identifier]
 
-    async def getPos(self) -> float:
+    def getPos(self) -> float:
         """
         Gets the position of the axis
         @return: Position
         """
-        status = await self.getStatus()
-        return status.position
+        return interface.getRelevantInterface(self.identifier).stageStatus[self.identifier].position
 
     async def onTarget(self) -> bool:
         """
@@ -102,14 +94,13 @@ class Axis:
         @return: True or False, depending if it's on target
         @rtype: bool
         """
-        status = await self.getStatus()
-        return status.ontarget
+        return interface.getRelevantInterface(self.identifier).stageStatus[self.identifier].onTarget
 
     async def range(self) -> list:
         """
         Returns the [min,max] range of travel for this axis - must be calculated in the constructor
         """
-        info: StageInfo = await interface.getRelevantInterface(self.identifier).stageInfo([self.identifier])[0]
+        info = interface.getRelevantInterface(self.identifier).stageInfo[self.identifier]
         return [info.minimum, info.maximum]
 
 

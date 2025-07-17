@@ -27,7 +27,27 @@ class TestEventAnnouncer(TestCase):
         intfunc.assert_called_with(5)
 
     def test_unsubscribe(self):
-        self.fail()
+        EA = EventAnnouncer(int, str)
+        sub = EA.subscribe(str)
+        destination = MagicMock()
+        sub.deliverTo(str, destination)
+
+        msg = "skibidi wewooowewewewe"
+        EA.event(msg)
+        destination.assert_called_with(msg)
+
+        # ensure we can unsubscribe from within both the sub and EA
+        sub2 = EA.subscribe(str)
+        EA.unsubscribe(sub)
+        assert len(EA.subs) == 1
+        sub2.unsubscribe()
+        assert len(EA.subs) == 0
+
+
+        # final check
+        EA.event("")
+        # Should still be the old message
+        destination.assert_called_with(msg)
 
 
 class TestSubscription(TestCase):

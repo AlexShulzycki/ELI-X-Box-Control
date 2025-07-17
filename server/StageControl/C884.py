@@ -378,11 +378,48 @@ class C884Interface(ControllerInterface):
     """Implementation of ControllerInterface for the C884. Stages are identified by the last number appended to the
     serial number of the controller"""
 
+
     def __init__(self):
+        super().__init__()
         self.c884: dict[int, C884] = {}
         """Dict of serial number mapped to C884 object"""
 
-    def deconstruct_Serial_Channel(self, serial_channel):
+    # TODO RESTRUCTURE FOR UPDATED CONTROLLERINTERFACE FORMAT BELOW
+    @property
+    def stages(self) -> list[int]:
+        """Returns unique integer identifiers for each stage"""
+        raise NotImplementedError
+
+    def moveTo(self, identifier: int, position: float):
+        """Move stage to position"""
+        raise NotImplementedError
+
+    @property
+    def stageInfo(self) -> dict[int, StageInfo]:
+        """Returns StageInfo of connected stages"""
+        raise NotImplementedError
+
+    def updateStageInfo(self, identifiers: list[int] = None):
+        """Updates StageInfo for the given stages or all if identifier list is empty.
+        MUST UPDATE EVENTANNOUNCER"""
+        raise NotImplementedError
+
+    @property
+    def stageStatus(self) -> dict[int, StageStatus]:
+        """Return StageStatus objects for the given stages"""
+        raise NotImplementedError
+
+    def updateStageStatus(self, identifiers: list[int] = None):
+        """Updates stageStatus for the given stages or all if identifier list is empty.
+        MUST UPDATE EVENTANNOUNCER"""
+        raise NotImplementedError
+
+    def addStagesByConfigs(self, configs: list[Any]):
+        raise NotImplementedError
+
+
+    @staticmethod
+    def deconstruct_Serial_Channel(serial_channel):
         """
         Extracts the channel and serial number from a unique serial-number-channel identifier
         :param serial_channel: serial number with the channel glued to the end
@@ -410,6 +447,8 @@ class C884Interface(ControllerInterface):
             self.c884[newC884.config.serial_number] = newC884
             # return the serial number
             return newC884.config.serial_number
+        else:
+            raise Exception(f"Failed to connect to {newC884.config.serial_number}")
 
     async def onTarget(self, serial_number_channel:list[int]) -> list[bool]:
         """

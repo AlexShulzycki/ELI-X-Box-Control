@@ -38,7 +38,7 @@ class VirtualControllerInterface(ControllerInterface):
         return
 
     @property
-    def stageInfo(self):
+    def stageInfo(self) -> dict[int, StageInfo]:
         e = {} # dunno why I called it e
         for v in self.virtualstages.values():
             e[v.stageInfo.identifier] = v.stageInfo
@@ -51,7 +51,7 @@ class VirtualControllerInterface(ControllerInterface):
         return
 
     @property
-    def stageStatus(self):
+    def stageStatus(self) -> dict[int, StageStatus]:
         """Return StageStatus objects for the given stages"""
         e = {}  # dunno why I called it e
         for v in self.virtualstages.values():

@@ -64,6 +64,9 @@ class EventAnnouncer:
             if sub.datatypes.__contains__(type(event)):
                 sub.event(event)
 
+    def unsubscribe(self, sub: Subscription):
+        self.subs.remove(sub)
+
 
 class Subscription:
 
@@ -109,6 +112,9 @@ class Subscription:
         # Deliver the package
         for func in self.deliveries.get(type(event)):
             func(event)
+
+    def unsubscribe(self):
+        self.announcer.unsubscribe(self)
 
 
 
