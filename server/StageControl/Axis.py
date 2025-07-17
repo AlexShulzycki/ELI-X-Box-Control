@@ -32,15 +32,18 @@ class Axis:
         raise NotImplementedError("Implement exit behavior for " + str(type(self)) + " please!")
 
     @property
-    def identifier(self):
+    def identifier(self) -> int:
         return self._identifier
-        pass
 
     @identifier.setter
-    def identifier(self, value):
+    def identifier(self, value:int):
         """Sets the identifier for the axis. Exception if this identifier is not present in any interface"""
-
-        if interface.getAllStages
+        if interface.getRelevantInterface(value) is not None:
+            # Identifier exists, we can use it
+            self._identifier = value
+        else:
+            # Does not exist in any control interface, we cannot use it.
+            raise Exception(f"Stage identifier {value} is not present in any interface")
 
     def getProperPos(self, position: float) -> float:
         # Check if in range

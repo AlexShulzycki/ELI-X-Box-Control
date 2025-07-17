@@ -1,4 +1,5 @@
 import asyncio
+from typing import Awaitable
 
 from pipython import GCSDevice
 from pydantic import BaseModel
@@ -35,51 +36,82 @@ class MainInterface:
         return self._interfaces
 
     def addInterface(self, intf: ControllerInterface):
+        """
+        Adds a ControllerInterface to this interface. Checks if already added, also sets up the
+        event announcer.
+        :param intf: controller interface to add.
+        :return:
+        """
         if self.interfaces.__contains__(intf):
             # Already exists here
             return
         # New interface, lets sub to their event announcer and feed it directly into ours
         sub = intf.EventAnnouncer.subscribe(self.EventAnnouncer.availableDataTypes)
+        # We want to listen to stageinfo and stagestatuses
         sub.deliverTo(StageInfo, self.EventAnnouncer.event)
         sub.deliverTo(StageStatus, self.EventAnnouncer.event)
 
         # All done, finally append to the list
         self._interfaces.append(intf)
 
-    async def getAllStages(self) -> list[StageInfo]:
+    async def updateStageInfo(self, identifiers: list[int] = None):
         """
-        Gets StageInfo for all configured stages.
-        :return:
+        Asks relevant controller interface(s) to update their stage info.
+        :param identifiers: list of stage identifiers to update stage info for. If none, then all are updated
         """
-        res: list[StageInfo] = []
-        for interface in self.interfaces:
-            connected_stages = interface.stages
-            stageinfo = await interface.stageInfo(connected_stages)
-            res += stageinfo
-        return res
+        awaiters: list[Awaitable] = []
+        for cnt in self.interfaces:
+            awaiters.append(cnt.updateStageInfo(identifiers))
 
-    async def stageInfo(self, identifiers: list[int]) -> list[StageInfo]:
+        await asyncio.gather(*awaiters)
+
+
+    @property
+    def StageInfo(self) -> dict[int, StageInfo]:
         """
-        Gets StageInfo for requested stages.
-        :param identifiers: unique identifiers of the requested stages
-        :return:
+        Returns the stage info from each controller.
+        :return: dict of identifier -> StageInfo
         """
-        res = []
-        for identifier in identifiers:
-            # iterate through interfaces
-            for interface in self.interfaces:
-                # find the stage by identifier
-                if interface.stages.__contains__(identifier):
-                    res.append(interface.stageInfo([identifier])[0]) # stageInfo function works with lists
-                    break # found it, move on to the next identifier
+        res: dict[int, StageInfo] = {}
+        for cnt in self.interfaces:
+            res += cnt.stageInfo
 
         return res
 
-    def getRelevantInterface(self, identifier: int) -> ControllerInterface:
+    async def updateStageStatus(self, identifiers: list[int] = None):
+        """
+        Asks relevant controller interface(s) to update their stage status.
+        :param identifiers: list of stage identifiers to update stage status for. If none, then all are updated
+        """
+        awaiters: list[Awaitable] = []
+        for cnt in self.interfaces:
+            awaiters.append(cnt.updateStageStatus(identifiers))
+
+        await asyncio.gather(*awaiters)
+
+    @property
+    def StageStatus(self) -> dict[int, StageStatus]:
+        """
+        Returns the stage status from each controller.
+        :return: dict of identifier -> StageInfo
+        """
+        res: dict[int, StageInfo] = {}
+        for cnt in self.interfaces:
+            res += cnt.stageStatus
+
+        return res
+
+    def getRelevantInterface(self, identifier: int) -> ControllerInterface|None:
+        """
+        Returns relevant controller interface for given identifier.
+        :param identifier: identifier to look for
+        :return: ControllerInterface, or if the identifier isn't found, None.
+        """
         for interface in self.interfaces:
             if interface.stages.__contains__(identifier):
                 return interface
-        raise Exception("No interface holds the given identifier")
+        # We haven't found anything, return none.
+        return None
 
 
 
