@@ -27,6 +27,9 @@ class TestVirtualControllerInterface(TestCase):
 
     def test_move_to(self):
         self.vinterface.moveTo(1, 25)
+        # TODO Finish implementing the update simulation
+        # make sure that it only updates when we run the update function
+        #assert self.vinterface.stageStatus[1].position == 0
         self.vinterface.updateStageStatus()
         assert self.vinterface.stageStatus[1].position == 25
 
@@ -36,3 +39,16 @@ class TestVirtualControllerInterface(TestCase):
         assert self.vinterface.stages == []
         assert self.vinterface.stageStatus == {}
         assert self.vinterface.stageInfo == {}
+
+    def test_add_duplicate(self):
+
+        failed = False
+        try:
+            self.vinterface.addStagesByConfigs([StageInfo(
+                identifier=1,
+                model="virtual, but a duplicate!"
+            )])
+        except:
+            failed = True
+
+        assert failed

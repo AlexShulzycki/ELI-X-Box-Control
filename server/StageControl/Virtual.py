@@ -18,7 +18,10 @@ class VirtualControllerInterface(ControllerInterface):
 
     def addStagesByConfigs(self, configs: list[StageInfo]):
         for config in configs:
-            self.virtualstages[config.identifier] = VirtualStage(config)
+            if config.identifier not in self.virtualstages:
+                self.virtualstages[config.identifier] = VirtualStage(config)
+            else:
+                raise Exception(f"Virtual Stage {config.identifier} already exists, use another identifier.")
 
     @property
     def stages(self) -> list[int]:
@@ -58,9 +61,9 @@ class VirtualControllerInterface(ControllerInterface):
             e[v.stageInfo.identifier] = v.stageStatus
         return e
 
-    def removeStage(self, serial_number: int):
-        if serial_number in self.stages:
-            self.virtualstages.pop(serial_number)
+    def removeStage(self, identifier: int):
+        if identifier in self.stages:
+            self.virtualstages.pop(identifier)
             return True
         else:
             return False

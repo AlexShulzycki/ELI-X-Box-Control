@@ -159,3 +159,11 @@ class ControllerInterface:
 
     def addStagesByConfigs(self, configs: list[Any]):
         raise NotImplementedError
+
+    def removeStage(self, identifier: int) -> bool:
+        """
+        Removes the given stage, i.e. disconnects it and all related stages
+        :param identifier: identifier of the stage to remove
+        :return: Whether the stage was removed successfully
+        """
+        raise NotImplementedError

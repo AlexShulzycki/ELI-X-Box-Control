@@ -74,7 +74,7 @@ class MainInterface:
         """
         res: dict[int, StageInfo] = {}
         for cnt in self.interfaces:
-            res += cnt.stageInfo
+            res.update(cnt.stageInfo)
 
         return res
 
@@ -95,9 +95,9 @@ class MainInterface:
         Returns the stage status from each controller.
         :return: dict of identifier -> StageInfo
         """
-        res: dict[int, StageInfo] = {}
+        res: dict[int, StageStatus] = {}
         for cnt in self.interfaces:
-            res += cnt.stageStatus
+            res.update(cnt.stageStatus)
 
         return res
 
@@ -113,6 +113,23 @@ class MainInterface:
         # We haven't found anything, return none.
         return None
 
+    def moveStage(self, identifier: int, position: float) -> bool:
+        """
+        Move the stage to the given position. Returns True if the stage was moved, raises and
+        exception in all other cases.
+        :param identifier: identifier of the stage.
+        :param position: position to move to
+        :return: True, or exception.
+        """
+        interface = self.getRelevantInterface(identifier)
+        if interface is None:
+            raise Exception(f"Stage {identifier} doesn't exist")
+
+        interface.moveTo(identifier, position)
+
+        # if we're here, no exception was thrown, so it worked.
+        return True
+
 
 
 
@@ -120,4 +137,5 @@ class MainInterface:
 C884interface = C884Interface()
 Virtualinterface = VirtualControllerInterface()
 
-toplevelinterface = MainInterface(C884interface, Virtualinterface)
+# TODO Re-Add C884 interface once rewritten
+toplevelinterface = MainInterface(Virtualinterface)
