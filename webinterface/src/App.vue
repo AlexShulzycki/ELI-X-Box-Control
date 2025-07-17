@@ -3,7 +3,8 @@
 
 <template>
   <header>
-    <strong>Current route path:</strong> {{ $route.fullPath }}
+    <h3><strong>Current route path:</strong> {{ $route.fullPath }}<br></h3>
+    <router-link to="/">Go Home</router-link>
   </header>
 
   <main>

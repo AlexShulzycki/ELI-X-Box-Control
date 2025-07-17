@@ -22,7 +22,15 @@ export default defineConfig({
       //   -> http://localhost:5815/users
       '/get': {
         target: 'http://127.0.0.1:8000',
-        changeOrigin: true,
+        //changeOrigin: true,
+      },
+      '/stage': {
+        target: 'http://127.0.0.1:8000',
+        //changeOrigin: true,
+      },
+      '/virtual': {
+        target: 'http://127.0.0.1:8000',
+        //changeOrigin: true,
       },
       '/ws': {
         target: 'ws://127.0.0.1:8000',
