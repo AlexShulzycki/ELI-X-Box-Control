@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -14,8 +13,13 @@ class PIConnectionType(Enum):
     rs232 = "rs232"
     network = "network"
 
+class PIControllerModel(Enum):
+    C884 = "C884"
+    mock = "mock"
+
 class PIControllerStatus(BaseModel):
     SN: int = Field(description="Serial number of the controller")
+    model: PIControllerModel = Field(description="Name of the model", examples=[PIControllerModel.C884])
     connection_type: PIConnectionType = Field(description="How the controller is connected")
     connected: bool = Field(examples=[True, False], description="If the controller is connected")
     channel_amount: int = Field(examples=[0], description="Number of channels controller supports")
@@ -72,17 +76,47 @@ class PISettings(ControllerSettings):
     def __init__(self):
         ControllerSettings.__init__(self)
         # type hint, this is where we store controller statuses
-        self._controllerStatuses: list[PIControllerStatus]
+        self.controllers: dict[int, PIController] = {}
+
 
     async def configurationChangeRequest(self, request: PIControllerStatus):
         """
         Tries to turn the desired state into reality.
-        :param request: A PIController status.
+        :param request: A valid PIController status.
         :return:
         """
-        pass
+
+        # Try to find a PIControllerStatus with the same serial number
+        controller = self.controllers[request.SN]
+
+        #If we haven't found it, we set up a new connection
+        if controller is None:
+            return self.newController(request)
+
+        # Update the relevant controller
+        return self.updateController(request)
+
+    async def removeConfiguration(self, SN: int):
+        """
+        Removes a controller.
+        :param SN: Serial number of the controller.
+        :return:
+        """
+        await self.controllers[SN].shutdown_and_cleanup()
+        self.controllers.pop(SN)
 
 
+    def newController(self, status: PIControllerStatus):
+        if status.model == PIControllerModel.mock:
+            self.controllers[status.SN] = TestPIController(status)
+        if status.model == PIControllerModel.C884:
+            # TODO IMPLEMENT A C884
+            #self.controllers[status.SN] = C884(status)
+            pass
+
+    def updateController(self, status: PIControllerStatus):
+        if self.controllers[status.SN] is not None:
+            self.controllers[status.SN].updateFromStatus(status)
 
     def getDataTypes(self) -> list[type]:
         return [PIStageInfo, PIControllerStatus]
@@ -90,8 +124,49 @@ class PISettings(ControllerSettings):
 
     @property
     def stageStatus(self) -> dict[int, StageStatus]:
+        """Return stage status of properly configured and ready stages"""
         raise NotImplementedError
 
     @property
     def stageInfo(self) -> dict[int, PIStageInfo]:
         raise NotImplementedError
+
+
+
+class PIController:
+
+    def addFromStatus(self, status: PIControllerStatus):
+        raise NotImplementedError
+
+    def updateFromStatus(self, status: PIControllerStatus):
+        raise NotImplementedError
+
+    def shutdown_and_cleanup(self):
+        raise NotImplementedError
+
+    async def refreshFullStatus(self):
+        """
+        Refresh the entire status of the controller.
+        """
+        raise NotImplementedError
+
+    async def refreshPosOnTarget(self):
+        """
+        Just like refreshFullStatus, but only refreshes position and ontarget status.
+        """
+        raise NotImplementedError
+
+    async def moveTo(self, channel, position: float):
+        raise NotImplementedError
+
+    @property
+    def status(self) -> PIControllerStatus:
+        """
+        Construct and return a status object for this controller, WITHOUT asking the controller.
+        """
+        raise NotImplementedError
+
+class TestPIController(PIController):
+
+    def __init__(self, status: PIControllerStatus):
+        pass

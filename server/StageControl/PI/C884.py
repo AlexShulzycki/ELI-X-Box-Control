@@ -4,7 +4,7 @@ from typing import Coroutine, Awaitable, Any
 from pipython import GCSDevice
 from pydantic import Field, BaseModel
 
-from .DataTypes import StageKind, StageInfo, ControllerInterface, StageStatus
+from server.StageControl.DataTypes import StageKind, StageInfo, ControllerInterface, StageStatus
 
 
 class C884Status(BaseModel):

@@ -1,7 +1,7 @@
 import unittest
 from fastapi.testclient import TestClient
 
-from server.StageControl.C884 import C884RS232Config, C884Config
+from server.StageControl.PI.C884 import C884RS232Config, C884Config
 from server.main import app
 from server.API.Settings.SettingsAPI import StageConfig
 

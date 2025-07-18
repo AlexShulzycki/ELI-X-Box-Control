@@ -2,9 +2,8 @@ import asyncio
 from typing import Awaitable
 
 from pipython import GCSDevice
-from pydantic import BaseModel
 
-from .StageControl.C884 import C884Interface
+from server.StageControl.PI.C884 import C884Interface
 from .StageControl.Virtual import VirtualControllerInterface
 from .StageControl.DataTypes import StageInfo, ControllerInterface, EventAnnouncer, StageStatus
 

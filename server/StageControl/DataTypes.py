@@ -153,8 +153,8 @@ class ControllerInterface:
 
     def updateStageInfo(self, identifiers: list[int] = None):
         """Updates StageInfo for the given stages or all if identifier list is empty.
-        MUST UPDATE EVENTANNOUNCER"""
-        raise NotImplementedError
+        Call super after you are done, this will update the event announcer."""
+        self.EventAnnouncer.event(self.stageInfo)
 
     @property
     def stageStatus(self) -> dict[int, StageStatus]:
@@ -163,19 +163,9 @@ class ControllerInterface:
 
     def updateStageStatus(self, identifiers: list[int] = None):
         """Updates stageStatus for the given stages or all if identifier list is empty.
-        MUST UPDATE EVENTANNOUNCER"""
-        raise NotImplementedError
+        Call super after you are done, this will update the event announcer."""
+        self.EventAnnouncer.event(self.stageStatus)
 
-    def addStagesByConfigs(self, configs: list[Any]):
-        raise NotImplementedError
-
-    def removeStage(self, identifier: int) -> bool:
-        """
-        Removes the given stage, i.e. disconnects it and all related stages
-        :param identifier: identifier of the stage to remove
-        :return: Whether the stage was removed successfully
-        """
-        raise NotImplementedError
 
 
 
@@ -187,11 +177,11 @@ class ControllerSettings:
         pass
 
     @property
-    def controllerStatuses(self) -> list[BaseModel]:
+    def controllerStatuses(self) -> list[Any]:
         """Send over a list of status objects specific for the controller.
         These status objects should describe all that is going on with the
         controller(s)"""
-        return self._controllerStatuses
+        raise NotImplementedError
 
     def getDataTypes(self) -> list[type]:
         """ Some way of sending over the formatting of the settings """
@@ -202,6 +192,14 @@ class ControllerSettings:
         Upon receiving a controller status object, tries to turn it into reality.
         :param request: controller status object, same as from controllerStatuses
         :return: Either none, or raise an error
+        """
+        raise NotImplementedError
+
+    async def removeConfiguration(self, id: int):
+        """
+        Remove a configuration. This can mean a controller, stage, whatever
+        :param id: some kind of id to differentiate it, doesn't need to be a stage identifier.
+        :return:
         """
         raise NotImplementedError
 

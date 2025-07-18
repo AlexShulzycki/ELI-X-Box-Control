@@ -4,7 +4,7 @@ import fastapi.encoders
 from fastapi.testclient import TestClient
 from server.main import app
 from server.Interface import C884interface
-from server.StageControl.C884 import C884Config, C884RS232Config
+from server.StageControl.PI.C884 import C884Config, C884RS232Config
 from server.API.Settings.SettingsAPI import StageConfig
 
 
