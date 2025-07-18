@@ -13,6 +13,11 @@ class StageKind(Enum):
 
 
 class StageInfo(BaseModel):
+    """
+    StageInfo contains configuration information about the stage, i.e. model, type, minmax.
+    This data structure is extended for individual implementations for different brands, and
+    more information can be put in here as needed.
+    """
     model: str = Field(description="Stage model, i.e. L-406.20DD10", examples=["L-406.20DD10", "Virtual Linear Stage"])
     identifier: int = Field(description='Unique identifier for the stage')
     kind: StageKind = Field(default=StageKind.linear, description="What kind of stage this is")
@@ -33,6 +38,10 @@ class StageInfo(BaseModel):
         return self
 
 class StageStatus(BaseModel):
+    """
+    Stage Status contains basic information about the state of the stage, i.e. position and
+    ontarget status.
+    """
     identifier: int = Field(description='Unique identifier for the stage')
     connected: bool = Field(default=False, description="Whether the stage is connected.")
     ready: bool = Field(default=False, description="Whether the stage is ready or not.")
@@ -41,11 +50,11 @@ class StageStatus(BaseModel):
 
 
 class EventAnnouncer:
-    def __init__(self, *availableDataTypes: object):
+    def __init__(self, *availableDataTypes: type):
         self.subs: list[Subscription] = []
-        self.availableDataTypes = availableDataTypes
+        self.availableDataTypes: list[type] = list(availableDataTypes)
 
-    def subscribe(self, *datatypes: object) -> Subscription:
+    def subscribe(self, *datatypes: type) -> Subscription:
         """Subscribe to events, pass in the data type you want to get"""
 
         # Check that we have the requested data types
@@ -70,15 +79,15 @@ class EventAnnouncer:
 
 class Subscription:
 
-    def __init__(self, ea: EventAnnouncer, datatypes: list[object]):
+    def __init__(self, ea: EventAnnouncer, datatypes: list[type]):
         self.announcer = ea
         """EventAnnouncer we are subscribed to"""
         self.datatypes = datatypes
         """Supported datatypes"""
-        self.deliveries: dict[object, list[Callable[[Any], None]]] = {}
+        self.deliveries: dict[type, list[Callable[[Any], None]]] = {}
         """Dict of data type -> list of callables"""
 
-    def deliverTo(self, datatype:object, destination: Callable[[Any], None]):
+    def deliverTo(self, datatype:type, destination: Callable[[Any], None]):
         """
         Tell the subscription where to deliver received data
         :param datatype: Which datatype we want to receive
@@ -167,3 +176,48 @@ class ControllerInterface:
         :return: Whether the stage was removed successfully
         """
         raise NotImplementedError
+
+
+
+class ControllerSettings:
+
+    def __init__(self):
+        self.EventAnnouncer = EventAnnouncer(*self.getDataTypes())
+        self._controllerStatuses = []
+        pass
+
+    @property
+    def controllerStatuses(self) -> list[BaseModel]:
+        """Send over a list of status objects specific for the controller.
+        These status objects should describe all that is going on with the
+        controller(s)"""
+        return self._controllerStatuses
+
+    def getDataTypes(self) -> list[type]:
+        """ Some way of sending over the formatting of the settings """
+        raise NotImplementedError
+
+    async def configurationChangeRequest(self, request: Any):
+        """
+        Upon receiving a controller status object, tries to turn it into reality.
+        :param request: controller status object, same as from controllerStatuses
+        :return: Either none, or raise an error
+        """
+        raise NotImplementedError
+
+    @property
+    def stageStatus(self) -> dict[int, StageStatus]:
+        """
+        Returns StageStatus objects for configured stages.
+        :return:
+        """
+        raise NotImplementedError
+
+    @property
+    def stageInfo(self) -> dict[int, StageInfo]:
+        """
+        Returns StageInfo objects for configured stages.
+        :return:
+        """
+        raise NotImplementedError
+
