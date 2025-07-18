@@ -6,6 +6,12 @@ const StageInterface = useStageInterfaceStore();
 <template>
 <button @click="StageInterface.syncAll()">Sync stage status from server</button>
   <button @click="StageInterface.updateStageInfo();StageInterface.updateStageStatus();">Update statuses from server</button>/
+
+  <li v-for="stage in StageInterface.stageInfo.values()">
+    <p>{{ stage.kind }} stage, model {{ stage.model }} with identifier {{ stage.identifier }}. Position:
+      {{ StageInterface.stageStatus.get(stage.identifier)?.position }}</p>
+  </li>
+
 </template>
 
 <style scoped>
