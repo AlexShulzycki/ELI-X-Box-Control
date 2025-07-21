@@ -5,32 +5,8 @@ from pipython import GCSDevice
 from pydantic import Field, BaseModel
 
 from server.StageControl.DataTypes import StageKind, StageInfo, ControllerInterface, StageStatus
+from server.StageControl.PI.DataTypes import PIController, PIControllerStatus, PIConnectionType
 
-
-class C884Status(BaseModel):
-    serial_number: int = Field(examples=[425003044])
-    connected: bool = Field(examples=[True, False], description="If the controller is connected")
-    ready: bool = Field(examples=[True, False], description="Whether the controller is ready")
-    # TODO Make sure that when the controller returns none, we treat is as false or something like that
-    referenced: list[bool] = Field(examples=[[True, False, False, False]], description="Whether each axis is referenced")
-    clo: list[bool] = Field(examples=[[True, False, True, False]],
-                        description="Whether each axis is in closed loop operation, i.e. if its turned on")
-    error: str = Field(description="Error message. If no error, its an empty string")
-
-class C884Config(BaseModel):
-    serial_number: int|None
-    stages: list[str] = Field(default = ["NOSTAGE", "NOSTAGE", "NOSTAGE", "NOSTAGE"], min_length=4,
-                          examples=[['L-406.20DD10', 'NOSTAGE', 'L-611.90AD', 'NOSTAGE']])
-    """Array of 4 devices connected on the controller, in order from channel 1 to 4, or 6. If no stage is
-        present, "NOSTAGE" is required. Example: Channel 1 and 3 are connected: ['L-406.20DD10','NOSTAGE', 'L-611.90AD',
-         'NOSTAGE']"""
-
-class C884RS232Config(C884Config):
-    serial_number: int|None = None
-    comport: int = Field(examples=[20, 4, 21])
-    """Comport to connect to"""
-    baudrate: int = Field(default=115200, examples=[115200])
-    """Baudrate, default is 115200"""
 
 class ControllerNotReadyException(Exception):
     def __init__(self, message = ""):
@@ -51,7 +27,7 @@ def sn_in_device_list(SN: int, enumerate_usb: [str]):
     return exists
 
 
-class C884:
+class C884(PIController):
     """
     Class used to interact with a single PI C-884 controller.
     Remember to close the connection once you are done with the controller to avoid blocking the com port - especially
@@ -68,7 +44,60 @@ class C884:
     5 Set soft limits??? working on that. You an also check if the type of axis has to be FRF'd by asking qRON()
     """
 
-    def dict2list(self, fromController: dict) -> list[any] | list[None]:
+    def __init__(self, config: PIControllerStatus, status: PIControllerStatus):
+        """
+        Initialize the controller and update/reference what's requested in the config. Throws an exception if it fails.
+
+        A device which is not powered or improperly connected will raise an error!
+        """
+
+        # Start up GCS device
+        self.device: GCSDevice.gcsdevice = GCSDevice("C-884").gcsdevice
+        """GCSDevice instance, DO NOT ACESS/MODIFY OUTSIDE OF THE C884 CLASS"""
+
+        super().__init__(status)
+
+    async def updateFromStatus(self, status: PIControllerStatus):
+        """
+        Compares given status with current status of controller, and changes settings if necessary.
+        :param status: Status object with the controller state that we want.
+        :return:
+        """
+
+        if not self.status.connected and status.connected:
+            await self.openConnection()
+
+        if status.stages != self.status.stages:
+            await self.loadStagesToC884(status.stages)
+
+        if status.clo != self.status.clo:
+            await self.setServoCLO(status.clo)
+
+        if status.referenced != self.status.referenced:
+            await self.reference(status.referenced)
+
+
+    @staticmethod
+    def list2dict(fromList: list[Any]) -> dict[int, Any]:
+        """
+        Helper function that converts an array where each entry is one axis, i.e [True, None, 1.4] to a dictionary.
+        :param fromList: list to convert to dict
+        :return: dict in the correct format
+        """
+        request_dict = {}
+
+        for i, value in enumerate(fromList):
+            # Ignore none values
+            if value is None:
+                continue
+            else:
+                request_dict[i + 1] = value
+
+        return request_dict
+
+
+
+    def dict2list(self, fromController: dict) -> list[Any|None]:
         """
         Helper function.
         Converts dict received from the controller into a list, putting a None where no stage is connected
@@ -80,77 +109,30 @@ class C884:
 
         return res
 
-    @property
-    def numberOfChannels(self) -> int:
-        """Returns maximum number of channels available to this controller"""
-        return len(self.device.allaxes)
-
-    @property
-    def connectedChannels(self) -> list[int]:
-        """Returns list of connected channels"""
-        res = []
-        for i in self.device.axes:
-            res.append(int(i))
-        return res
-
-    def __init__(self, config: C884Config):
-        """
-        Initialize the controller and reference all axes, communication is over RS232. Throws an exception if it fails.
-
-        A device which is not powered or improperly connected will raise an error!
-        """
-        # Start up GCS device
-        self.device: GCSDevice.gcsdevice = GCSDevice("C-884").gcsdevice
-        """GCSDevice instance, DO NOT ACESS/MODIFY OUTSIDE OF THE C884 CLASS"""
-
-        # Set up configs
-        self.config: C884Config|C884RS232Config = config
-
-        return
-
-    async def updateConfig(self, config: C884Config):
-
-        # Serial number sanity check
-        if not config.serial_number == self.config.serial_number:
-            raise Exception("Serial number differs, instantiate a new C884 object with the new serial number")
-        else:
-            self.config = config
-
 
     async def loadStagesFromC884(self):
         """
-        Loads stages configured per axis on controller. Stores these in self.stages.
-        :return: self.stages, freshly updated
+        Queries and returns stages configured per axis from controller.
+        :return: The stages configured on the controller.
         """
         self.checkReady()
 
         res =  self.device.qCST()
 
-        self.config.stages = self.dict2list(res)
+        return self.dict2list(res)
 
-        return self.config.stages
-
-    async def loadStagesToC884(self):
+    async def loadStagesToC884(self, stages: list[str]):
         """
         Loads stages per axis onto the controller, from self.stages
         :return:
         """
         self.checkReady()
 
-        request_dict = {}
-
         try:
-            for i, stages in enumerate(self.config.stages):
-                request_dict[i+1] = stages
-            print(request_dict)
-            self.device.CST(request_dict)
+            self.device.CST(self.list2dict(stages))
         except Exception as e:
             print(e)
             raise e
-
-    def getConfig(self) -> C884Config:
-        return self.config
-
 
     @property
     async def error(self)-> str | None:
@@ -176,7 +158,7 @@ class C884:
         return self.isavailable # for now just isavailables
 
     def checkReady(self, message: str = ""):
-        """ Raises ControllerNotReady exception if controlelr is not ready"""
+        """ Raises ControllerNotReady exception if controller is not ready"""
         if not self.ready:
             raise ControllerNotReadyException(message)
 
@@ -190,7 +172,7 @@ class C884:
         return self.dict2list(self.device.qRON(self.device.axes))
 
     @property
-    async def isReferenced(self):
+    async def isReferenced(self) -> list[bool| None]:
         """
         Returns true for axes already referenced
         :return:
@@ -208,7 +190,7 @@ class C884:
         return self.dict2list(self.device.qSVO(self.device.axes))
 
 
-    async def setServoCLOTrue(self, axes: list[int] = None):
+    async def setServoCLO(self, axes: list[bool] = None):
         """
         Try to set all axes to closed loop operation, i.e. enabling them. if no list is given, all configured axes will
         have their CLO set to true
@@ -217,10 +199,11 @@ class C884:
         """
         if axes is None:
             axes = self.device.axes
-        print([True]* len(axes))
-        self.device.SVO(axes, [True] * len(axes))
+            self.device.SVO(axes, [True] * len(axes))
+        else:
+            self.device.SVO(axes)
 
-    async def reference(self, axes: list[int] = None):
+    async def reference(self, axes: list[bool] = None):
         """
         Reference the given axes. If none, reference all axes.
         :param axes: for example [1, 2, 4] for servos on channel 1, 2, and 4
@@ -229,29 +212,45 @@ class C884:
         self.checkReady()
         if axes is None:
             axes = self.device.axes
-        self.device.FRF(axes) #, [True] * len(axes))
+            self.device.FRF(axes) #, [True] * len(axes))
+        else:
+            self.device.FRF(axes)
 
-    @property
-    async def status(self) -> C884Status:
-        status = C884Status(
-            serial_number=self.config.serial_number,
+
+    async def refreshFullStatus(self):
+        status = PIControllerStatus(
+            SN=self.status.SN,
+            model = self.status.model,
+            connection_type = self.status.connection_type,
             connected = self.isconnected,
             ready = self.ready,
-            # For now, we assume the stage is not ready, and we preemptively set everything to false
-            referenced = [False] * len(self.config.stages),
-            clo = [False] * len(self.config.stages),
-            error = "",
+            # For now, we assume the stage is not ready, so everything else is in their defaults
         )
+        # if we are doing rs232, check the additional fields
+        if status.connection_type is PIConnectionType.rs232:
+            status.baud_rate = self.status.baud_rate
+            status.comport = self.status.comport
+
         # If the controller is ready, then we query for the rest of the status information
         if status.ready:
             status.referenced = await self.isReferenced,
             status.clo = await self.servoCLO,
-            status.error = await self.error
+            status.error = await self.error,
+            status.stages = await self.loadStagesFromC884()
 
-        return status
+        self._status = status
 
     @property
-    async def position(self)-> list[float] | list[None]:
+    def status(self) -> PIControllerStatus:
+        # Update the status with data that doesn't need to be async'd
+        self._status.ready = self.ready
+        self._status.connected = self.isconnected
+
+        # return the status
+        return self._status
+
+    @property
+    async def position(self)-> list[float|None]:
         """
         Gets position of stages from controller
         :return:
@@ -260,7 +259,7 @@ class C884:
         return self.dict2list(await self.device.qPOS())
 
     @position.setter
-    async def position(self, pos: list[float]|list[None]):
+    async def position(self, pos: list[float|None]):
         self.checkReady("Cannot move axes.")
 
         awaiters = []

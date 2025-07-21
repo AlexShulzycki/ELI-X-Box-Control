@@ -1,9 +1,10 @@
 from enum import Enum
 
+import time
 from pydantic import BaseModel, Field, field_validator
 from pydantic_core.core_schema import FieldValidationInfo
 
-from server.StageControl.DataTypes import ControllerSettings, StageStatus, StageInfo
+from server.StageControl.DataTypes import ControllerSettings, StageStatus, StageInfo, EventAnnouncer
 
 
 class C884Settings(BaseModel):
@@ -22,20 +23,20 @@ class PIControllerStatus(BaseModel):
     SN: int = Field(description="Serial number of the controller")
     model: PIControllerModel = Field(description="Name of the model", examples=[PIControllerModel.C884])
     connection_type: PIConnectionType = Field(description="How the controller is connected")
-    connected: bool = Field(examples=[True, False], description="If the controller is connected")
-    channel_amount: int = Field(examples=[0], description="Number of channels controller supports")
-    ready: bool = Field(examples=[True, False], description="Whether the controller is ready")
-    referenced: list[bool] = Field(examples=[[True, False, False, False]],
+    connected: bool = Field(default= False, examples=[True, False], description="If the controller is connected")
+    channel_amount: int = Field(default= [], examples=[0], description="Number of channels controller supports")
+    ready: bool = Field(default= [], examples=[True, False], description="Whether the controller is ready")
+    referenced: list[bool|None] = Field(default=[], examples=[[True, False, False, False]],
                                    description="Whether each axis is referenced")
-    clo: list[bool] = Field(examples=[[True, False, True, False]],
+    clo: list[bool|None] = Field(default=[], examples=[[True, False, True, False]],
                             description="Whether each axis is in closed loop operation, i.e. if its turned on")
-    stages: list[str] = Field(default=["NOSTAGE", "NOSTAGE", "NOSTAGE", "NOSTAGE"],
+    stages: list[str] = Field(default=[],
                               examples=[['L-406.20DD10', 'NOSTAGE', 'L-611.90AD', 'NOSTAGE']])
     """Array of 4 devices connected on the controller, in order from channel 1 to 4, or 6. If no stage is
         present, "NOSTAGE" is required. Example: Channel 1 and 3 are connected: ['L-406.20DD10','NOSTAGE', 'L-611.90AD',
          'NOSTAGE']"""
     error: str = Field(description="Error message. If no error, its an empty string", default="")
-    baud_rate: int = Field(default=None, description="Baud rate of RS232 connection.")
+    baud_rate: int = Field(description="Baud rate of RS232 connection.", default=115200, examples=[115200])
     comport: int = Field(default = None, description="Comport for RS232 connection.")
 
     @field_validator("referenced", "clo", "stages", mode="after")
@@ -82,15 +83,15 @@ class PIStageInfo(StageInfo):
 
     # the identifier is supposed to be (controller SN)(channel number) so we check this is true
     # I cant be bothered to do the math thing so we check using strings, sorry.
-    @field_validator("controllerSN")
-    def validate_controllerSN(cls, value):
-        if str(cls.identifier)[:-1] != str(value):
+    @field_validator("controllerSN", mode="after")
+    def validate_controllerSN(cls, value, info: FieldValidationInfo):
+        if str(info.data["identifier"])[:-1] != str(value):
             raise ValueError(f"SN {value} doesnt match identifier")
         return value
 
     @field_validator("channel")
-    def validate_controllerSN(cls, value):
-        if str(cls.identifier)[-1] != str(value):
+    def validate_controllerSN(cls, value, info: FieldValidationInfo):
+        if str(info.data["identifier"])[-1] != str(value):
             raise ValueError(f"SN {value} doesnt match identifier")
         return value
 
@@ -159,10 +160,20 @@ class PISettings(ControllerSettings):
 
 class PIController:
 
-    def addFromStatus(self, status: PIControllerStatus):
-        raise NotImplementedError
+    def __init__(self, status: PIControllerStatus):
+        self.EA = EventAnnouncer(StageStatus, StageInfo)
 
-    def updateFromStatus(self, status: PIControllerStatus):
+        # Initialize up an empty status
+        self._status: PIControllerStatus = PIControllerStatus(
+            SN=status.SN,
+            model=status.model,
+            connection_type=status.connection_type
+        )
+
+        # Set up the controller with user config
+        self.updateFromStatus(status)
+
+    async def updateFromStatus(self, status: PIControllerStatus):
         raise NotImplementedError
 
     def shutdown_and_cleanup(self):
@@ -195,23 +206,44 @@ class MockPIController(PIController):
     PI controller that's not real, used for testing, doesn't connect to anything, but acts like one.
     """
     def __init__(self, status: PIControllerStatus):
-        super().__init__()
         self._status: PIControllerStatus = None
-        self.addFromStatus(status)
-
-    def addFromStatus(self, status: PIControllerStatus):
-        """
-        Populate self from status. Verify if status is valid and OK.
-        :param status: settings to use
-        :return:
-        """
-        # We simulate connecting to the controller
-        self._status = status
-        # initially not connected
+        self.position: list[float] = [0] * status.channel_amount
+        super().__init__(status)
 
 
-    def updateFromStatus(self, status: PIControllerStatus):
-        pass
+    async def connect(self):
+        time.sleep(0.1)
+        self._status.connected = True
+
+    async def reference(self, toreference):
+        time.sleep(0.1)
+        self._status.referenced = toreference
+
+    async def load_stages(self, stages):
+        time.sleep(0.1)
+        self._status.stages = stages
+
+    async def enable_clo(self, clo):
+        time.sleep(0.1)
+        self._status.clo = clo
+
+    async def updateFromStatus(self, status: PIControllerStatus):
+        # Go through each parameter step by step
+        if not self.status.connected and status.connected:
+            #connect
+            await self.connect()
+
+        if status.stages != self.status.stages:
+            await self.load_stages(status.stages)
+
+        if status.clo != self.status.clo:
+            await self.enable_clo(status.clo)
+
+        if status.referenced != self.status.referenced:
+            await self.reference(status.referenced)
+
+        # TODO find a way to simulate this more closely
+        self._status.ready = True
 
     def shutdown_and_cleanup(self):
         pass
@@ -222,12 +254,13 @@ class MockPIController(PIController):
     async def refreshPosOnTarget(self):
         pass
 
-    async def moveTo(self, channel, position: float):
-        pass
+    async def moveTo(self, channel:int, position: float):
+        self.position[channel + 1] = position
+
+    async def onTarget(self):
+        time.sleep(0.1)
+        return self.status.channel_amount * [True]
 
     @property
     def status(self) -> PIControllerStatus:
-        pass
-
-    def __init__(self, status: PIControllerStatus):
-        pass
+        return self._status
