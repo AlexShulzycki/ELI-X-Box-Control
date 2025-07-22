@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from server.StageControl.PI.DataTypes import PISettings, PIControllerStatus, PIControllerModel, PIConnectionType
+from server.StageControl.PI.DataTypes import PIControllerStatus, PIControllerModel, PIConnectionType
 
 
 class TestPISettings(TestCase):
@@ -59,5 +59,20 @@ class TestPIControllerStatus(TestCase):
                 clo = [True],
                 stages = ["NOSTAGE"]
             )
+    def test_initialize_pos_ont(self):
+        usb = PIControllerStatus(
+            SN=1,
+            model=PIControllerModel.C884,
+            connection_type=PIConnectionType.usb,
+            connected=True,
+            channel_amount=2,
+            ready=False,
+            referenced=[True, False],
+            clo=[True, False],
+            stages=["NOSTAGE", "weewoo"]
+        )
 
+        assert usb.position is [None]
+        assert usb.on_target is [None]
+        assert usb.min_max is [None]
 

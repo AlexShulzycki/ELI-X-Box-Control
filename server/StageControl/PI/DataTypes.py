@@ -1,14 +1,12 @@
+from __future__ import annotations
 from enum import Enum
 
 import time
-from xml.sax.handler import property_dom_node
 
 from pydantic import BaseModel, Field, field_validator
 from pydantic_core.core_schema import FieldValidationInfo
 
 from server.StageControl.DataTypes import ControllerSettings, StageStatus, StageInfo, EventAnnouncer, StageKind
-from server.StageControl.PI.C884 import C884
-
 
 class C884Settings(BaseModel):
     pass
@@ -27,8 +25,8 @@ class PIControllerStatus(BaseModel):
     model: PIControllerModel = Field(description="Name of the model", examples=[PIControllerModel.C884])
     connection_type: PIConnectionType = Field(description="How the controller is connected")
     connected: bool = Field(default= False, examples=[True, False], description="If the controller is connected")
-    channel_amount: int = Field(default= [], examples=[0], description="Number of channels controller supports")
-    ready: bool = Field(default= [], examples=[True, False], description="Whether the controller is ready")
+    channel_amount: int = Field(default= 0, examples=[0,4,6], description="Number of channels controller supports")
+    ready: bool = Field(default= False, examples=[True, False], description="Whether the controller is ready")
     referenced: list[bool|None] = Field(default=[], examples=[[True, False, False, False]],
                                    description="Whether each axis is referenced")
     clo: list[bool|None] = Field(default=[], examples=[[True, False, True, False]],
@@ -38,11 +36,14 @@ class PIControllerStatus(BaseModel):
     """Array of 4 devices connected on the controller, in order from channel 1 to 4, or 6. If no stage is
         present, "NOSTAGE" is required. Example: Channel 1 and 3 are connected: ['L-406.20DD10','NOSTAGE', 'L-611.90AD',
          'NOSTAGE']"""
+    position: list[float|None] = Field(default=[], description="Position of the stages in mm")
+    on_target: list[bool|None] = Field(default=[], description="on target status of the stages")
+    min_max: list[list[float]|None] = Field(default=[], examples=[[[0,0], [0, 15.2]]], description="min and max values of the stages")
     error: str = Field(description="Error message. If no error, its an empty string", default="")
     baud_rate: int = Field(description="Baud rate of RS232 connection.", default=115200, examples=[115200])
     comport: int = Field(default = None, description="Comport for RS232 connection.")
 
-    @field_validator("referenced", "clo", "stages", mode="after")
+    @field_validator("referenced", "clo", "stages", "position", "on_target", "min_max", mode="after")
     def validate_channel_amounts(cls, value, info: FieldValidationInfo):
         if info.data["channel_amount"] != len(value):
             raise ValueError("Needs to match number of channels")
@@ -60,6 +61,14 @@ class PIControllerStatus(BaseModel):
         if not info.data["connected"]:
             return False
         else: return value
+
+    @field_validator("position", "on_target", "min_max")
+    def non_initialized_pos_ont_minmax(cls, value, info: FieldValidationInfo):
+        if len(value) is 0:
+            return [None] * info.data["channel_amount"]
+        else:
+            return value
+
 
     # If disconnected put all relevant fields into a "clean" slate
     @field_validator( "referenced", "clo")
@@ -97,72 +106,6 @@ class PIStageInfo(StageInfo):
         if str(info.data["identifier"])[-1] != str(value):
             raise ValueError(f"SN {value} doesnt match identifier")
         return value
-
-
-class PISettings(ControllerSettings):
-
-    def __init__(self):
-        ControllerSettings.__init__(self)
-        # type hint, this is where we store controller statuses
-        self.controllers: dict[int, PIController] = {}
-
-
-    async def configurationChangeRequest(self, request: PIControllerStatus):
-        """
-        Tries to turn the desired state into reality.
-        :param request: A valid PIController status.
-        :return:
-        """
-
-        # Try to find a PIControllerStatus with the same serial number
-        controller = self.controllers[request.SN]
-
-        #If we haven't found it, we set up a new connection
-        if controller is None:
-            return self.newController(request)
-
-        # Update the relevant controller
-        return self.updateController(request)
-
-    async def removeConfiguration(self, SN: int):
-        """
-        Removes a controller.
-        :param SN: Serial number of the controller.
-        :return:
-        """
-        await self.controllers[SN].shutdown_and_cleanup()
-        self.controllers.pop(SN)
-
-
-    def newController(self, status: PIControllerStatus):
-        if status.model == PIControllerModel.mock:
-            self.controllers[status.SN] = MockPIController(status)
-        if status.model == PIControllerModel.C884:
-            self.controllers[status.SN] = C884(status)
-            pass
-
-    def updateController(self, status: PIControllerStatus):
-        if self.controllers[status.SN] is not None:
-            self.controllers[status.SN].updateFromStatus(status)
-
-    def getDataTypes(self) -> list[type]:
-        return [PIStageInfo, PIControllerStatus]
-
-
-    @property
-    def stageStatus(self) -> dict[int, StageStatus]:
-        """Return stage status of properly configured and ready stages"""
-        res = []
-        for cntrl in self.controllers.values():
-            res.extend(cntrl.stageStatuses)
-
-    @property
-    def stageInfo(self) -> dict[int, PIStageInfo]:
-        res = []
-        for cntrl in self.controllers.values():
-            res.extend(cntrl.stageInfos)
-
-
 
 class PIController:
 
@@ -209,11 +152,36 @@ class PIController:
 
     @property
     def stageInfos(self) -> list[PIStageInfo]:
-        raise NotImplementedError
+        res = []
+        for i in range(self.status.channel_amount):
+            # Check if valid stage
+            if self.status.stages[i] == "NOSTAGE":
+                continue
+
+            res.append(PIStageInfo(
+                controllerSN=self.status.SN,
+                channel=i+1,
+                model = self.status.stages[i],
+                identifier = self.status.SN * 10 + (i+1), # controller SN plus channel
+                kind = StageKind.linear, #TODO UNHARDCODE
+                minimum = self.status.min_max[i][0],
+                maximum = self.status.min_max[i][1]
+            ))
+
+            # if we are here, the stage exists
+
+        return res
+
 
     @property
     def stageStatuses(self) -> list[StageStatus]:
-        raise NotImplementedError
+        res = []
+        for i in range(self.status.channel_amount):
+            res.append(StageStatus(
+                position=self.status.position[i],
+                on_target=self.status.on_target[i]
+            ))
+        return res
 
 class MockPIController(PIController):
     """

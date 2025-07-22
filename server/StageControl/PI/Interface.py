@@ -1,8 +1,81 @@
 import asyncio
 from typing import Any
 
-from server.StageControl.DataTypes import ControllerInterface, StageStatus, StageInfo
-from server.StageControl.PI.DataTypes import PISettings, PIControllerStatus
+from server.StageControl.DataTypes import ControllerInterface, StageStatus, StageInfo, ControllerSettings
+from server.StageControl.PI.C884 import C884
+from server.StageControl.PI.DataTypes import PIControllerStatus, PIController, PIStageInfo, PIControllerModel, \
+    MockPIController
+
+
+class PISettings(ControllerSettings):
+
+    def __init__(self):
+        ControllerSettings.__init__(self)
+        # type hint, this is where we store controller statuses
+        self.controllers: dict[int, PIController] = {}
+
+
+    async def configurationChangeRequest(self, request: PIControllerStatus):
+        """
+        Tries to turn the desired state into reality.
+        :param request: A valid PIController status.
+        :return:
+        """
+
+        # Try to find a PIControllerStatus with the same serial number
+        controller = self.controllers[request.SN]
+
+        #If we haven't found it, we set up a new connection
+        if controller is None:
+            return self.newController(request)
+
+        # Update the relevant controller
+        return self.updateController(request)
+
+    async def removeConfiguration(self, SN: int):
+        """
+        Removes a controller.
+        :param SN: Serial number of the controller.
+        :return:
+        """
+        await self.controllers[SN].shutdown_and_cleanup()
+        self.controllers.pop(SN)
+
+
+    def newController(self, status: PIControllerStatus):
+        if status.model == PIControllerModel.C884:
+            self.controllers[status.SN] = C884(status)
+        elif status.model == PIControllerModel.mock:
+            self.controllers[status.SN] = MockPIController(status)
+        else:
+            raise Exception("Unknown PI controller model")
+
+    def updateController(self, status: PIControllerStatus):
+        if self.controllers[status.SN] is not None:
+            self.controllers[status.SN].updateFromStatus(status)
+
+    def getDataTypes(self) -> list[type]:
+        return [PIStageInfo, PIControllerStatus]
+
+
+    @property
+    def stageStatus(self) -> list[StageStatus]:
+        """Return stage status of properly configured and ready stages"""
+        res = []
+        for cntrl in self.controllers.values():
+            res.extend(cntrl.stageStatuses)
+
+        return res
+
+    @property
+    def stageInfo(self) -> list[PIStageInfo]:
+        res = []
+        for cntrl in self.controllers.values():
+            res.extend(cntrl.stageInfos)
+        return res
+
+
+
 
 
 def deconstruct_SN_Channel(sn_channel):
@@ -88,3 +161,39 @@ class PIControllerInterface(ControllerInterface):
 
         super().updateStageStatus()
         pass
+
+
+    async def bulkCommand(self, serial_number_channel: list[int], command) -> Awaitable[list[Any]]:
+        """
+        Execute a getter command efficiently across available C884s
+        :param serial_number_channel: identifier of the axes we want to work with
+        :param command: command we want to issue, from the C884 object
+        :return: results in the same order as the axes identifiers were given
+        """
+        # Avoid making redundant requests, extract as much info as possible
+        # Round up the controller serial numbers, create empty dict
+        controllers = {}
+        for sc in serial_number_channel:
+            sn, ch = self.deconstruct_Serial_Channel(sc)
+            controllers[sn] = []
+        print(controllers)
+        # Iterate through each controller serial number in the dict
+        for cntr_sn in controllers:
+            controllers[cntr_sn]: Awaitable[list[Any]] = command(self.c884[cntr_sn])  # this returns a coroutine!!!
+
+        # Finally, iterate through the request array again and create a parallel response array
+        res: list[Any] = []
+        for sn_ch in serial_number_channel:
+            sn, ch = self.deconstruct_Serial_Channel(sn_ch)
+
+            # await if we have to
+            solution = controllers[sn]
+            print(type(solution))
+            if isinstance(solution, Coroutine):
+                controllers[sn] = await solution
+
+            # the relevant dict entry now contains the solution
+            res.append((controllers[sn])[ch -1]) # we only want the relevant channel, -1 to get the index.
+
+        res: Awaitable[list[Any]] # make sure to hint that it's an awaitable
+        return res
