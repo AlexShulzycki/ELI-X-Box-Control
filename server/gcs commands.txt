@@ -19,3 +19,6 @@ TMN, TMX min/max assignable position
 SVO open loop operation, query and set
 qFRF if an axis is referenced
 qRON get reference mode, true means it must be referenced first
+
+
+dev.allaxes returns all axes, connected or not, of the controller

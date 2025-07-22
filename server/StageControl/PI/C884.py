@@ -44,7 +44,7 @@ class C884(PIController):
     5 Set soft limits??? working on that. You an also check if the type of axis has to be FRF'd by asking qRON()
     """
 
-    def __init__(self, config: PIControllerStatus, status: PIControllerStatus):
+    def __init__(self, status: PIControllerStatus):
         """
         Initialize the controller and update/reference what's requested in the config. Throws an exception if it fails.
 
@@ -65,7 +65,8 @@ class C884(PIController):
         """
 
         if not self.status.connected and status.connected:
-            await self.openConnection()
+            # open connection handles channel_amount as well
+            await self.openConnection(status)
 
         if status.stages != self.status.stages:
             await self.loadStagesToC884(status.stages)
@@ -286,7 +287,7 @@ class C884(PIController):
         self.checkReady()
         return self.dict2list(await self.device.qONT())
 
-    async def openConnection(self) -> bool:
+    async def openConnection(self, config: PIControllerStatus) -> bool:
         """
         Opens connection to controller device if not already connected
         :return: true if successful or already connected, false otherwise
@@ -296,37 +297,34 @@ class C884(PIController):
         else:
             # try to connect
             try:
-                if isinstance(self.config, C884RS232Config):
+                if config.connection_type is PIConnectionType.rs232:
                     print("Connecting with rs232")
                     # connect with rs232
-                    self.device.ConnectRS232(self.config.comport, self.config.baudrate)
+                    self.device.ConnectRS232(config.comport, config.baudrate)
 
                     # Grab serial number
                     SN = int(self.device.qIDN().split(", ")[-2])
 
-                    # If we already have an SN in the config, check if matches
-                    if self.config.serial_number is not None:
-                        if not SN == self.config.serial_number:
-                            raise Exception(f"Controller serial number does not match with config: {SN}")
-
-                    # Otherwise put the connected controller's SN into the config
-                    else:
-                        self.config.serial_number = SN
+                    # Check if serial number matches config status
+                    if config.SN != SN:
+                        raise Exception(f"Serial number of RS232 controller does not match configuration: {SN}")
 
                 else:
                     # connect with usb
                     # Check if we have this serial number connected via usb
-                    exists = sn_in_device_list(self.config.serial_number,  self.device.EnumerateUSB())
+                    exists = sn_in_device_list(config.serial_number, self.device.EnumerateUSB())
 
                     if exists:
-                        self.device.ConnectUSB(self.config.serial_number)
+                        self.device.ConnectUSB(config.serial_number)
                     else:
-                        raise Exception(f"USB Controller with given serial number not connected: {self.config.serial_number}")
+                        raise Exception(f"USB Controller with given serial number not connected: {config.SN}")
 
-                # if we make it here we made it without exceptions, return connection status
+                # set the channel amount
+                self._status.channel_amount = len(self.device.allaxes)
                 return self.device.connected
+
             except Exception as e:
-                # close the connection for certain
+                # close the connection explicitly just to be sure
                 self.closeConnection()
                 raise e
 

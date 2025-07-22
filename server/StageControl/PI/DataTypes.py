@@ -1,10 +1,13 @@
 from enum import Enum
 
 import time
+from xml.sax.handler import property_dom_node
+
 from pydantic import BaseModel, Field, field_validator
 from pydantic_core.core_schema import FieldValidationInfo
 
-from server.StageControl.DataTypes import ControllerSettings, StageStatus, StageInfo, EventAnnouncer
+from server.StageControl.DataTypes import ControllerSettings, StageStatus, StageInfo, EventAnnouncer, StageKind
+from server.StageControl.PI.C884 import C884
 
 
 class C884Settings(BaseModel):
@@ -135,8 +138,7 @@ class PISettings(ControllerSettings):
         if status.model == PIControllerModel.mock:
             self.controllers[status.SN] = MockPIController(status)
         if status.model == PIControllerModel.C884:
-            # TODO IMPLEMENT A C884
-            #self.controllers[status.SN] = C884(status)
+            self.controllers[status.SN] = C884(status)
             pass
 
     def updateController(self, status: PIControllerStatus):
@@ -150,11 +152,15 @@ class PISettings(ControllerSettings):
     @property
     def stageStatus(self) -> dict[int, StageStatus]:
         """Return stage status of properly configured and ready stages"""
-        raise NotImplementedError
+        res = []
+        for cntrl in self.controllers.values():
+            res.extend(cntrl.stageStatuses)
 
     @property
     def stageInfo(self) -> dict[int, PIStageInfo]:
-        raise NotImplementedError
+        res = []
+        for cntrl in self.controllers.values():
+            res.extend(cntrl.stageInfos)
 
 
 
@@ -199,6 +205,14 @@ class PIController:
         """
         Construct and return a status object for this controller, WITHOUT asking the controller.
         """
+        raise NotImplementedError
+
+    @property
+    def stageInfos(self) -> list[PIStageInfo]:
+        raise NotImplementedError
+
+    @property
+    def stageStatuses(self) -> list[StageStatus]:
         raise NotImplementedError
 
 class MockPIController(PIController):
@@ -257,10 +271,34 @@ class MockPIController(PIController):
     async def moveTo(self, channel:int, position: float):
         self.position[channel + 1] = position
 
-    async def onTarget(self):
-        time.sleep(0.1)
-        return self.status.channel_amount * [True]
-
     @property
     def status(self) -> PIControllerStatus:
         return self._status
+
+    @property
+    def stageStatuses(self) -> list[StageStatus]:
+        res = []
+        for i in range(self.status.channel_amount):
+            res.append(StageStatus(
+                position=self.position[i],
+                ontarget=True,
+            ))
+
+        return res
+
+    @property
+    def stageInfos(self) -> list[PIStageInfo]:
+
+        res = []
+        for i in range(self.status.channel_amount):
+            res.append(PIStageInfo(
+                model = "mock stage",
+                identifier = self.status.SN * 10 + (i+1),
+                kind = StageKind.linear,
+                minimum = 0,
+                maximum = 10,
+                channel = i+1,
+                controllerSN = self.status.SN
+            ))
+
+        return res
