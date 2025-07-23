@@ -1,9 +1,9 @@
 import asyncio
-from typing import Any
+from typing import Any, Awaitable
 
 from server.StageControl.DataTypes import ControllerInterface, StageStatus, StageInfo, ControllerSettings
 from server.StageControl.PI.C884 import C884
-from server.StageControl.PI.DataTypes import PIControllerStatus, PIController, PIStageInfo, PIControllerModel, \
+from server.StageControl.PI.DataTypes import PIConfiguration, PIController, PIStageInfo, PIControllerModel, \
     MockPIController
 
 
@@ -15,22 +15,26 @@ class PISettings(ControllerSettings):
         self.controllers: dict[int, PIController] = {}
 
 
-    async def configurationChangeRequest(self, request: PIControllerStatus):
+    @property
+    def currentConfiguration(self) -> list[PIConfiguration]:
+        res = []
+        for controller in self.controllers.values():
+            res.append(controller.config)
+        return res
+
+    async def configurationChangeRequest(self, request: PIConfiguration):
         """
         Tries to turn the desired state into reality.
         :param request: A valid PIController status.
         :return:
         """
 
-        # Try to find a PIControllerStatus with the same serial number
-        controller = self.controllers[request.SN]
-
-        #If we haven't found it, we set up a new connection
-        if controller is None:
-            return self.newController(request)
+        # If we don't have a controller with the SN we need to create a blank new one
+        if not self.controllers.keys().__contains__(request.SN):
+            self.newController(request)
 
         # Update the relevant controller
-        return self.updateController(request)
+        await asyncio.wait_for(self.updateController(request), 5)
 
     async def removeConfiguration(self, SN: int):
         """
@@ -42,20 +46,19 @@ class PISettings(ControllerSettings):
         self.controllers.pop(SN)
 
 
-    def newController(self, status: PIControllerStatus):
-        if status.model == PIControllerModel.C884:
-            self.controllers[status.SN] = C884(status)
-        elif status.model == PIControllerModel.mock:
-            self.controllers[status.SN] = MockPIController(status)
+    def newController(self, config: PIConfiguration):
+        if config.model == PIControllerModel.C884:
+            self.controllers[config.SN] = C884()
+        elif config.model == PIControllerModel.mock:
+            self.controllers[config.SN] = MockPIController()
         else:
             raise Exception("Unknown PI controller model")
 
-    def updateController(self, status: PIControllerStatus):
-        if self.controllers[status.SN] is not None:
-            self.controllers[status.SN].updateFromStatus(status)
+    def updateController(self, config: PIConfiguration) -> Awaitable:
+        return self.controllers[config.SN].updateFromConfig(config)
 
     def getDataTypes(self) -> list[type]:
-        return [PIStageInfo, PIControllerStatus]
+        return [PIStageInfo, PIConfiguration]
 
 
     @property
@@ -97,7 +100,11 @@ class PIControllerInterface(ControllerInterface):
 
     @property
     def stages(self) -> list[int]:
-        pass
+        res = []
+        for info in self.settings.stageInfo:
+            res.append(info.identifier)
+
+        return res
 
     def moveTo(self, identifier: int, position: float):
         sn, channel = deconstruct_SN_Channel(identifier)
@@ -105,7 +112,10 @@ class PIControllerInterface(ControllerInterface):
 
     @property
     def stageInfo(self) -> dict[int, StageInfo]:
-        return self.settings.stageInfo
+        res = {}
+        for info in self.settings.stageInfo:
+            res[info.identifier] = info
+        return res
 
     def getAllControllerSNs(self) -> list[int]:
         sns: list[int] = []
@@ -143,7 +153,10 @@ class PIControllerInterface(ControllerInterface):
 
     @property
     def stageStatus(self) -> dict[int, StageStatus]:
-        return self.settings.stageStatus
+        res = {}
+        for stat in self.settings.stageStatus:
+            res[stat.identifier] = stat
+        return res
 
     async def updateStageStatus(self, identifiers: list[int] = None):
         """

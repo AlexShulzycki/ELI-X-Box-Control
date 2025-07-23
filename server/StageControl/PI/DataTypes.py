@@ -20,7 +20,10 @@ class PIControllerModel(Enum):
     C884 = "C884"
     mock = "mock"
 
-class PIControllerStatus(BaseModel):
+class PIConfiguration(BaseModel):
+    """
+    State of a single PI controller. Required: SN, model, connection_type (with additional rs232 fields if required)
+    """
     SN: int = Field(description="Serial number of the controller")
     model: PIControllerModel = Field(description="Name of the model", examples=[PIControllerModel.C884])
     connection_type: PIConnectionType = Field(description="How the controller is connected")
@@ -64,7 +67,7 @@ class PIControllerStatus(BaseModel):
 
     @field_validator("position", "on_target", "min_max")
     def non_initialized_pos_ont_minmax(cls, value, info: FieldValidationInfo):
-        if len(value) is 0:
+        if len(value) == 0:
             return [None] * info.data["channel_amount"]
         else:
             return value
@@ -102,27 +105,18 @@ class PIStageInfo(StageInfo):
         return value
 
     @field_validator("channel")
-    def validate_controllerSN(cls, value, info: FieldValidationInfo):
+    def validate_channelSN(cls, value, info: FieldValidationInfo):
         if str(info.data["identifier"])[-1] != str(value):
             raise ValueError(f"SN {value} doesnt match identifier")
         return value
 
 class PIController:
 
-    def __init__(self, status: PIControllerStatus):
+    def __init__(self):
         self.EA = EventAnnouncer(StageStatus, StageInfo)
+        self._config = None
 
-        # Initialize up an empty status
-        self._status: PIControllerStatus = PIControllerStatus(
-            SN=status.SN,
-            model=status.model,
-            connection_type=status.connection_type
-        )
-
-        # Set up the controller with user config
-        self.updateFromStatus(status)
-
-    async def updateFromStatus(self, status: PIControllerStatus):
+    async def updateFromConfig(self, status: PIConfiguration):
         raise NotImplementedError
 
     def shutdown_and_cleanup(self):
@@ -144,7 +138,7 @@ class PIController:
         raise NotImplementedError
 
     @property
-    def status(self) -> PIControllerStatus:
+    def config(self) -> PIConfiguration:
         """
         Construct and return a status object for this controller, WITHOUT asking the controller.
         """
@@ -153,19 +147,19 @@ class PIController:
     @property
     def stageInfos(self) -> list[PIStageInfo]:
         res = []
-        for i in range(self.status.channel_amount):
+        for i in range(self.config.channel_amount):
             # Check if valid stage
-            if self.status.stages[i] == "NOSTAGE":
+            if self.config.stages[i] == "NOSTAGE":
                 continue
 
             res.append(PIStageInfo(
-                controllerSN=self.status.SN,
+                controllerSN=self.config.SN,
                 channel=i+1,
-                model = self.status.stages[i],
-                identifier = self.status.SN * 10 + (i+1), # controller SN plus channel
+                model = self.config.stages[i],
+                identifier =self.config.SN * 10 + (i + 1), # controller SN plus channel
                 kind = StageKind.linear, #TODO UNHARDCODE
-                minimum = self.status.min_max[i][0],
-                maximum = self.status.min_max[i][1]
+                minimum = self.config.min_max[i][0],
+                maximum = self.config.min_max[i][1]
             ))
 
             # if we are here, the stage exists
@@ -176,10 +170,11 @@ class PIController:
     @property
     def stageStatuses(self) -> list[StageStatus]:
         res = []
-        for i in range(self.status.channel_amount):
+        for i in range(self.config.channel_amount):
             res.append(StageStatus(
-                position=self.status.position[i],
-                on_target=self.status.on_target[i]
+                identifier =self.config.SN * 10 + (i + 1),
+                position=self.config.position[i],
+                ontarget=self.config.on_target[i]
             ))
         return res
 
@@ -187,45 +182,71 @@ class MockPIController(PIController):
     """
     PI controller that's not real, used for testing, doesn't connect to anything, but acts like one.
     """
-    def __init__(self, status: PIControllerStatus):
-        self._status: PIControllerStatus = None
-        self.position: list[float] = [0] * status.channel_amount
-        super().__init__(status)
+    def __init__(self):
+        super().__init__()
+        self.position = None
+        self.on_target = None
 
 
     async def connect(self):
         time.sleep(0.1)
-        self._status.connected = True
+        self._config.connected = True
 
     async def reference(self, toreference):
         time.sleep(0.1)
-        self._status.referenced = toreference
+        self._config.referenced = toreference
 
     async def load_stages(self, stages):
         time.sleep(0.1)
-        self._status.stages = stages
+        if self.config.channel_amount != len(stages):
+            # We redo the stages thing
+            self._config.channel_amount = len(stages)
+            self._config.stages = ["NOSTAGE"] * len(stages)
+            self._config.position = [None] * len(stages)
+            self._config.on_target = [None] * len(stages)
+            self._config.clo = [None] * len(stages)
+
+        for i, stage in enumerate(stages):
+            if stage == "NOSTAGE":
+                continue
+            else:
+                self._config.stages[i] = stage
+
+        self._config.stages = stages
 
     async def enable_clo(self, clo):
         time.sleep(0.1)
-        self._status.clo = clo
+        self._config.clo = clo
 
-    async def updateFromStatus(self, status: PIControllerStatus):
+    async def updateFromConfig(self, config: PIConfiguration):
+        # Double check that we have the correct config
+        assert config.model == PIControllerModel.mock
+
+        # Check if we are brand new
+        if self.config is None:
+            self._config = PIConfiguration(
+                SN = config.SN,
+                model = config.model,
+                connection_type = config.connection_type
+            )
+
+
         # Go through each parameter step by step
-        if not self.status.connected and status.connected:
+        if not self.config.connected and config.connected:
             #connect
             await self.connect()
 
-        if status.stages != self.status.stages:
-            await self.load_stages(status.stages)
+        if config.stages != self.config.stages:
+            await self.load_stages(config.stages)
 
-        if status.clo != self.status.clo:
-            await self.enable_clo(status.clo)
+        if config.clo != self.config.clo:
+            await self.enable_clo(config.clo)
 
-        if status.referenced != self.status.referenced:
-            await self.reference(status.referenced)
+        if config.referenced != self.config.referenced:
+            await self.reference(config.referenced)
 
         # TODO find a way to simulate this more closely
-        self._status.ready = True
+        self._config.ready = True
 
     def shutdown_and_cleanup(self):
         pass
@@ -240,14 +261,15 @@ class MockPIController(PIController):
         self.position[channel + 1] = position
 
     @property
-    def status(self) -> PIControllerStatus:
-        return self._status
+    def config(self) -> PIConfiguration:
+        return self._config
 
     @property
     def stageStatuses(self) -> list[StageStatus]:
         res = []
-        for i in range(self.status.channel_amount):
+        for i in range(self.config.channel_amount):
             res.append(StageStatus(
+                identifier =self.config.SN * 10 + (i + 1),
                 position=self.position[i],
                 ontarget=True,
             ))
@@ -258,15 +280,15 @@ class MockPIController(PIController):
     def stageInfos(self) -> list[PIStageInfo]:
 
         res = []
-        for i in range(self.status.channel_amount):
+        for i in range(self.config.channel_amount):
             res.append(PIStageInfo(
                 model = "mock stage",
-                identifier = self.status.SN * 10 + (i+1),
+                identifier =self.config.SN * 10 + (i + 1),
                 kind = StageKind.linear,
                 minimum = 0,
                 maximum = 10,
                 channel = i+1,
-                controllerSN = self.status.SN
+                controllerSN = self.config.SN
             ))
 
         return res

@@ -4,7 +4,7 @@ from typing import Coroutine, Awaitable, Any
 from pipython import GCSDevice
 
 from server.StageControl.DataTypes import StageKind, StageInfo, ControllerInterface, StageStatus
-from server.StageControl.PI.DataTypes import PIController, PIControllerStatus, PIConnectionType, PIStageInfo
+from server.StageControl.PI.DataTypes import PIController, PIConfiguration, PIConnectionType, PIStageInfo
 
 
 class ControllerNotReadyException(Exception):
@@ -43,7 +43,7 @@ class C884(PIController):
     5 Set soft limits??? working on that. You an also check if the type of axis has to be FRF'd by asking qRON()
     """
 
-    def __init__(self, status: PIControllerStatus):
+    def __init__(self):
         """
         Initialize the controller and update/reference what's requested in the config. Throws an exception if it fails.
 
@@ -54,26 +54,26 @@ class C884(PIController):
         self.device: GCSDevice.gcsdevice = GCSDevice("C-884").gcsdevice
         """GCSDevice instance, DO NOT ACESS/MODIFY OUTSIDE OF THE C884 CLASS"""
 
-        super().__init__(status)
+        super().__init__()
 
-    async def updateFromStatus(self, status: PIControllerStatus):
+    async def updateFromConfig(self, status: PIConfiguration):
         """
         Compares given status with current status of controller, and changes settings if necessary.
         :param status: Status object with the controller state that we want.
         :return:
         """
 
-        if not self.status.connected and status.connected:
+        if not self.config.connected and status.connected:
             # open connection handles channel_amount as well
             await self.openConnection(status)
 
-        if status.stages != self.status.stages:
+        if status.stages != self.config.stages:
             await self.loadStagesToC884(status.stages)
 
-        if status.clo != self.status.clo:
+        if status.clo != self.config.clo:
             await self.setServoCLO(status.clo)
 
-        if status.referenced != self.status.referenced:
+        if status.referenced != self.config.referenced:
             await self.reference(status.referenced)
 
 
@@ -218,18 +218,18 @@ class C884(PIController):
 
 
     async def refreshFullStatus(self):
-        status = PIControllerStatus(
-            SN=self.status.SN,
-            model = self.status.model,
-            connection_type = self.status.connection_type,
+        status = PIConfiguration(
+            SN=self.config.SN,
+            model = self.config.model,
+            connection_type = self.config.connection_type,
             connected = self.isconnected,
             ready = self.ready,
             # For now, we assume the stage is not ready, so everything else is in their defaults
         )
         # if we are doing rs232, check the additional fields
         if status.connection_type is PIConnectionType.rs232:
-            status.baud_rate = self.status.baud_rate
-            status.comport = self.status.comport
+            status.baud_rate = self.config.baud_rate
+            status.comport = self.config.comport
 
         # If the controller is ready, then we query for the rest of the status information
         if status.ready:
@@ -247,7 +247,7 @@ class C884(PIController):
         await self.update_range()
 
     @property
-    def status(self) -> PIControllerStatus:
+    def config(self) -> PIConfiguration:
         # Update the status with data that doesn't need to be async'd
         self._status.ready = self.ready
         self._status.connected = self.isconnected
@@ -285,7 +285,7 @@ class C884(PIController):
         self.checkReady()
         self._status.on_target = self.dict2list(await self.device.qONT())
 
-    async def openConnection(self, config: PIControllerStatus) -> bool:
+    async def openConnection(self, config: PIConfiguration) -> bool:
         """
         Opens connection to controller device if not already connected
         :return: true if successful or already connected, false otherwise
@@ -340,8 +340,8 @@ class C884(PIController):
         minrange = self.device.qTMN()
         maxrange = self.device.qTMX()
 
-        for i in range(self.status.channel_amount):
-            if self.status.stages[i] is "NOSTAGE":
+        for i in range(self.config.channel_amount):
+            if self.config.stages[i] == "NOSTAGE":
                 self._status.min_max[i] = None
             else:
                 self._status.min_max[i] = [minrange[i+1], maxrange[i+1]]

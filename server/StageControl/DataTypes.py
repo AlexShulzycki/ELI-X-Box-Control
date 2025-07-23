@@ -177,8 +177,8 @@ class ControllerSettings:
         pass
 
     @property
-    def controllerStatuses(self) -> list[Any]:
-        """Send over a list of status objects specific for the controller.
+    def currentConfiguration(self) -> list[Any]:
+        """List of configuration objects describing this controller.
         These status objects should describe all that is going on with the
         controller(s)"""
         raise NotImplementedError
@@ -189,8 +189,8 @@ class ControllerSettings:
 
     async def configurationChangeRequest(self, request: Any):
         """
-        Upon receiving a controller status object, tries to turn it into reality.
-        :param request: controller status object, same as from controllerStatuses
+        Upon receiving a configuration object, tries to turn it into reality.
+        :param request: configuration status object, same as from currentConfiguration
         :return: Either none, or raise an error
         """
         raise NotImplementedError

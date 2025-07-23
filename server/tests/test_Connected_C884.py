@@ -1,14 +1,14 @@
 import unittest
 
 from server.StageControl.PI.C884 import C884
-from server.StageControl.PI.DataTypes import PIControllerStatus, PIControllerModel, PIConnectionType
+from server.StageControl.PI.DataTypes import PIConfiguration, PIControllerModel, PIConnectionType
 
 
 class TestC884(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        self.c1 = C884(PIControllerStatus(
+        self.c1 = C884(PIConfiguration(
             SN = 5,
             model= PIControllerModel.C884,
             connection_type = PIConnectionType.rs232,
