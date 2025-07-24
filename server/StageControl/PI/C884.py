@@ -56,25 +56,32 @@ class C884(PIController):
 
         super().__init__()
 
-    async def updateFromConfig(self, status: PIConfiguration):
+    async def updateFromConfig(self, config: PIConfiguration):
         """
         Compares given status with current status of controller, and changes settings if necessary.
-        :param status: Status object with the controller state that we want.
+        :param config: Status object with the controller state that we want.
         :return:
         """
+        # if we are a fresh object without a config, lets make one
+        if self.config is None:
+            self._config = PIConfiguration(
+                SN = config.SN,
+                model = config.model,
+                connection_type = config.connection_type,
+            )
 
-        if not self.config.connected and status.connected:
+        if not self.config.connected and config.connected:
             # open connection handles channel_amount as well
-            await self.openConnection(status)
+            await self.openConnection(config)
 
-        if status.stages != self.config.stages:
-            await self.loadStagesToC884(status.stages)
+        if config.stages != self.config.stages:
+            await self.loadStagesToC884(config.stages)
 
-        if status.clo != self.config.clo:
-            await self.setServoCLO(status.clo)
+        if config.clo != self.config.clo:
+            await self.setServoCLO(config.clo)
 
-        if status.referenced != self.config.referenced:
-            await self.reference(status.referenced)
+        if config.referenced != self.config.referenced:
+            await self.reference(config.referenced)
 
 
     @staticmethod
@@ -238,7 +245,7 @@ class C884(PIController):
             status.error = await self.error,
             status.stages = await self.loadStagesFromC884()
 
-        self._status = status
+        self._config = status
 
         # update other bits and bobs
         await self.update_range()
@@ -248,12 +255,17 @@ class C884(PIController):
 
     @property
     def config(self) -> PIConfiguration:
+
+        # if we are none, return none
+        if self._config is None:
+            return None
+
         # Update the status with data that doesn't need to be async'd
-        self._status.ready = self.ready
-        self._status.connected = self.isconnected
+        self._config.ready = self.ready
+        self._config.connected = self.isconnected
 
         # return the status
-        return self._status
+        return self._config
 
     async def refreshPosOnTarget(self):
         await self.update_onTarget()
@@ -265,7 +277,7 @@ class C884(PIController):
         :return:
         """
         self.checkReady("Cannot get position.")
-        self._status.position = self.dict2list(await self.device.qPOS())
+        self._config.position = self.dict2list(await self.device.qPOS())
 
     async def moveChannelTo(self, channel: int, target: float):
         """
@@ -283,7 +295,7 @@ class C884(PIController):
         @return: Boolean or array of booleans of whether the axes are on target.
         """
         self.checkReady()
-        self._status.on_target = self.dict2list(await self.device.qONT())
+        self._config.on_target = self.dict2list(await self.device.qONT())
 
     async def openConnection(self, config: PIConfiguration) -> bool:
         """
@@ -318,7 +330,7 @@ class C884(PIController):
                         raise Exception(f"USB Controller with given serial number not connected: {config.SN}")
 
                 # set the channel amount
-                self._status.channel_amount = len(self.device.allaxes)
+                self._config.channel_amount = len(self.device.allaxes)
                 return self.device.connected
 
             except Exception as e:
@@ -342,9 +354,9 @@ class C884(PIController):
 
         for i in range(self.config.channel_amount):
             if self.config.stages[i] == "NOSTAGE":
-                self._status.min_max[i] = None
+                self._config.min_max[i] = None
             else:
-                self._status.min_max[i] = [minrange[i+1], maxrange[i+1]]
+                self._config.min_max[i] = [minrange[i + 1], maxrange[i + 1]]
 
 
     async def getSupportedStages(self)-> list[str]:

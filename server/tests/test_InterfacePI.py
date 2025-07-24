@@ -88,7 +88,7 @@ class TestPIControllerStatus(TestCase):
                 clo = [True],
                 stages = ["NOSTAGE"]
             )
-    def test_initialize_pos_ont(self):
+    def test_initialize_pos_ont_stages(self):
         usb = PIConfiguration(
             SN=1,
             model=PIControllerModel.C884,
@@ -97,9 +97,9 @@ class TestPIControllerStatus(TestCase):
             channel_amount=2,
             ready=False,
             referenced=[True, False],
-            clo=[True, False],
-            stages=["NOSTAGE", "weewoo"]
+            clo=[True, False]
         )
+        assert usb.stages == ["NOSTAGE", "NOSTAGE"]
 
 class TestMockC884(IsolatedAsyncioTestCase):
     # not a very good test because the mock C884 is not very good either

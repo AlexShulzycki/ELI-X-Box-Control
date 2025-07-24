@@ -35,7 +35,8 @@ class PIConfiguration(BaseModel):
                                    description="Whether each axis is referenced", validate_default=True)
     clo: list[bool|None] = Field(default=[], examples=[[True, False, True, False]],
                             description="Whether each axis is in closed loop operation, i.e. if its turned on", validate_default=True)
-    stages: list[str] = Field(examples=[['L-406.20DD10', 'NOSTAGE', 'L-611.90AD', 'NOSTAGE']], description= "A list with the stages for each channel")
+    stages: list[str] = Field(default = [], examples=[['L-406.20DD10', 'NOSTAGE', 'L-611.90AD', 'NOSTAGE']],
+                              description= "A list with the stages for each channel", validate_default=True)
     """Array of 4 devices connected on the controller, in order from channel 1 to 4, or 6. If no stage is
         present, "NOSTAGE" is required. Example: Channel 1 and 3 are connected: ['L-406.20DD10','NOSTAGE', 'L-611.90AD',
          'NOSTAGE']"""
@@ -48,6 +49,12 @@ class PIConfiguration(BaseModel):
 
     @field_validator("referenced", "clo", "position", "on_target", "min_max", mode="after")
     def validate_channel_amounts(cls, value, info: FieldValidationInfo):
+        """
+        Checks if the fields have the correct length, if length zero then initialize with None. Otherwise, raise error
+        :param value: value of the field
+        :param info: info on this object as its being constructed
+        :return: the value of the field we are validating
+        """
         # check if there's a discrepancy
         if info.data["channel_amount"] != len(value):
             # if empty (default value) we populate with None
@@ -55,6 +62,17 @@ class PIConfiguration(BaseModel):
                 return [None] * info.data["channel_amount"]
             # othewise the length is incorrect.
             raise ValueError("Needs to match number of channels")
+        return value
+
+    @field_validator("stages")
+    def validate_init_stages(cls, value, info: FieldValidationInfo):
+        """Does the same as validate_channel_amounts, but for the stages field"""
+        if info.data["channel_amount"] != len(value):
+            # additionally check if zero
+            if len(value) == 0:
+                # Populate with NOSTAGE
+                return ["NOSTAGE"] * info.data["channel_amount"]
+            raise ValueError("Stage list must have the right amount of channels")
         return value
 
     @model_validator(mode="after")
@@ -98,6 +116,7 @@ class PIController:
     def __init__(self):
         self.EA = EventAnnouncer(StageStatus, StageInfo)
         self._config = None
+
 
     async def updateFromConfig(self, status: PIConfiguration):
         raise NotImplementedError
