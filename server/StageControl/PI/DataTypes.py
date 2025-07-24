@@ -81,6 +81,8 @@ class PIConfiguration(BaseModel):
             if self.baud_rate is None or self.comport is None:
                 raise ValueError("Baud rate and comport must be specified for an RS232 connection")
 
+        return self
+
     def initialize_stage_field(self, field):
         if len(field) != self.channel_amount:
             return [None] * self.channel_amount

@@ -68,6 +68,8 @@ class C884(PIController):
                 SN = config.SN,
                 model = config.model,
                 connection_type = config.connection_type,
+                comport = 0 # else we get a validation error, we are not actually bypassing anything here because this is
+                # explicitly checked with the user input and further down in the connection function.
             )
 
         if not self.config.connected and config.connected:
@@ -87,7 +89,7 @@ class C884(PIController):
     @staticmethod
     def list2dict(fromList: list[Any]) -> dict[int, Any]:
         """
-        Helper function that converts an array where each entry is one axis, i.e [True, None, 1.4] to a dictionary.
+        Helper function that converts an array where each entry is one axis, i.e [True, None, 1.4] to a dictionary {1: True, 3: 1.4}.
         :param fromList: list to convert to dict
         :return: dict in the correct format
         """
@@ -197,31 +199,39 @@ class C884(PIController):
         return self.dict2list(self.device.qSVO(self.device.axes))
 
 
-    async def setServoCLO(self, axes: list[bool] = None):
+    async def setServoCLO(self, clolist: list[bool] = None):
         """
         Try to set all axes to closed loop operation, i.e. enabling them. if no list is given, all configured axes will
         have their CLO set to true
-        :param axes:
+        :param clolist:
         :return:
         """
-        if axes is None:
-            axes = self.device.axes
-            self.device.SVO(axes, [True] * len(axes))
+        if clolist is None:
+            self.device.SVO(self.device.axes, [True] * len(self.device.axes))
         else:
-            self.device.SVO(axes)
+            req = self.list2dict(clolist)
+            # only do a request if our request is not empty, else an exception will be thrown
+            if len(req.values()) != 0:
+                self.device.SVO(self.list2dict(clolist))
 
     async def reference(self, axes: list[bool] = None):
         """
         Reference the given axes. If none, reference all axes.
-        :param axes: for example [1, 2, 4] for servos on channel 1, 2, and 4
+        :param axes: for example [True, False, True] we will reference axes 1 and 3
         :return:
         """
         self.checkReady()
         if axes is None:
-            axes = self.device.axes
-            self.device.FRF(axes) #, [True] * len(axes))
+            self.device.FRF(self.device.axes)
         else:
-            self.device.FRF(axes)
+            # we need a list of the axes we want to reference
+            req = []
+            for i in range(len(axes)):
+                # We only want to reference axes that are not already referenced
+                if axes[i] and not self.config.referenced[i]:
+                    req.append(i+1)
+                if len(req) != 0:
+                    self.device.FRF(req)
 
 
     async def refreshFullStatus(self):
@@ -231,6 +241,7 @@ class C884(PIController):
             connection_type = self.config.connection_type,
             connected = self.isconnected,
             ready = self.ready,
+            comport = 0, # for validation
             # For now, we assume the stage is not ready, so everything else is in their defaults
         )
         # if we are doing rs232, check the additional fields
@@ -277,7 +288,7 @@ class C884(PIController):
         :return:
         """
         self.checkReady("Cannot get position.")
-        self._config.position = self.dict2list(await self.device.qPOS())
+        self._config.position = self.dict2list(self.device.qPOS())
 
     async def moveChannelTo(self, channel: int, target: float):
         """
@@ -295,7 +306,7 @@ class C884(PIController):
         @return: Boolean or array of booleans of whether the axes are on target.
         """
         self.checkReady()
-        self._config.on_target = self.dict2list(await self.device.qONT())
+        self._config.on_target = self.dict2list(self.device.qONT())
 
     async def openConnection(self, config: PIConfiguration) -> bool:
         """
@@ -310,27 +321,33 @@ class C884(PIController):
                 if config.connection_type is PIConnectionType.rs232:
                     print("Connecting with rs232")
                     # connect with rs232
-                    self.device.ConnectRS232(config.comport, config.baudrate)
+                    self.device.ConnectRS232(config.comport, config.baud_rate)
 
                     # Grab serial number
                     SN = int(self.device.qIDN().split(", ")[-2])
 
                     # Check if serial number matches config status
                     if config.SN != SN:
+                        self.device.close()
                         raise Exception(f"Serial number of RS232 controller does not match configuration: {SN}")
 
                 else:
                     # connect with usb
                     # Check if we have this serial number connected via usb
-                    exists = sn_in_device_list(config.serial_number, self.device.EnumerateUSB())
+                    exists = sn_in_device_list(config.SN, self.device.EnumerateUSB())
 
                     if exists:
-                        self.device.ConnectUSB(config.serial_number)
+                        self.device.ConnectUSB(config.SN)
                     else:
+                        self.device.close()
                         raise Exception(f"USB Controller with given serial number not connected: {config.SN}")
 
-                # set the channel amount
-                self._config.channel_amount = len(self.device.allaxes)
+                # check the channel amount. If incorrect, disconnect and tell the user
+
+                ch_amount = len(self.device.allaxes)
+                if config.channel_amount != ch_amount:
+                    self.device.close()
+                    raise Exception(f"The controller has {ch_amount} channel(s), but {config.channel_amount} are in the config. Try again with the correct amount.")
                 return self.device.connected
 
             except Exception as e:
@@ -352,6 +369,7 @@ class C884(PIController):
         minrange = self.device.qTMN()
         maxrange = self.device.qTMX()
 
+        # TODO SOMETHING GOES WRONG HERE FIX IT PLEASE
         for i in range(self.config.channel_amount):
             if self.config.stages[i] == "NOSTAGE":
                 self._config.min_max[i] = None
