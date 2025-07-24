@@ -8,7 +8,8 @@ class TestC884(unittest.TestCase):
 
     @classmethod
     def setUpClass(self):
-        self.c1 = C884(PIConfiguration(
+        self.c1 = C884()
+        self.c1.updateFromConfig(PIConfiguration(
             SN = 5,
             model= PIControllerModel.C884,
             connection_type = PIConnectionType.rs232,

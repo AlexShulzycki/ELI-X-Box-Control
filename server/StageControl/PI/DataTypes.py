@@ -3,8 +3,9 @@ from enum import Enum
 
 import time
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic_core.core_schema import FieldValidationInfo
+from typing_extensions import Self
 
 from server.StageControl.DataTypes import ControllerSettings, StageStatus, StageInfo, EventAnnouncer, StageKind
 
@@ -31,63 +32,45 @@ class PIConfiguration(BaseModel):
     channel_amount: int = Field(default= 0, examples=[0,4,6], description="Number of channels controller supports")
     ready: bool = Field(default= False, examples=[True, False], description="Whether the controller is ready")
     referenced: list[bool|None] = Field(default=[], examples=[[True, False, False, False]],
-                                   description="Whether each axis is referenced")
+                                   description="Whether each axis is referenced", validate_default=True)
     clo: list[bool|None] = Field(default=[], examples=[[True, False, True, False]],
-                            description="Whether each axis is in closed loop operation, i.e. if its turned on")
-    stages: list[str] = Field(default=[],
-                              examples=[['L-406.20DD10', 'NOSTAGE', 'L-611.90AD', 'NOSTAGE']])
+                            description="Whether each axis is in closed loop operation, i.e. if its turned on", validate_default=True)
+    stages: list[str] = Field(examples=[['L-406.20DD10', 'NOSTAGE', 'L-611.90AD', 'NOSTAGE']], description= "A list with the stages for each channel")
     """Array of 4 devices connected on the controller, in order from channel 1 to 4, or 6. If no stage is
         present, "NOSTAGE" is required. Example: Channel 1 and 3 are connected: ['L-406.20DD10','NOSTAGE', 'L-611.90AD',
          'NOSTAGE']"""
-    position: list[float|None] = Field(default=[], description="Position of the stages in mm")
-    on_target: list[bool|None] = Field(default=[], description="on target status of the stages")
-    min_max: list[list[float]|None] = Field(default=[], examples=[[[0,0], [0, 15.2]]], description="min and max values of the stages")
+    position: list[float|None] = Field(default=[], description="Position of the stages in mm", validate_default=True)
+    on_target: list[bool|None] = Field(default=[], description="on target status of the stages", validate_default=True)
+    min_max: list[list[float]|None] = Field(default=[], examples=[[[0,0], [0, 15.2]]], description="min and max values of the stages", validate_default=True)
     error: str = Field(description="Error message. If no error, its an empty string", default="")
     baud_rate: int = Field(description="Baud rate of RS232 connection.", default=115200, examples=[115200])
     comport: int = Field(default = None, description="Comport for RS232 connection.")
 
-    @field_validator("referenced", "clo", "stages", "position", "on_target", "min_max", mode="after")
+    @field_validator("referenced", "clo", "position", "on_target", "min_max", mode="after")
     def validate_channel_amounts(cls, value, info: FieldValidationInfo):
+        # check if there's a discrepancy
         if info.data["channel_amount"] != len(value):
+            # if empty (default value) we populate with None
+            if len(value) == 0:
+                return [None] * info.data["channel_amount"]
+            # othewise the length is incorrect.
             raise ValueError("Needs to match number of channels")
         return value
 
-    @field_validator("connection_type", mode="after")
-    def validate_required_fields(cls, value, info: FieldValidationInfo):
-        if value is PIConnectionType.rs232:
-            if info.data["baud_rate"] is None or info.data['comport'] is None:
+    @model_validator(mode="after")
+    def validate_rs232(self):
+        if self.connection_type is PIConnectionType.rs232:
+            if self.baud_rate is None or self.comport is None:
                 raise ValueError("Baud rate and comport must be specified for an RS232 connection")
 
-        return value
+    def initialize_stage_field(self, field):
+        if len(field) != self.channel_amount:
+            return [None] * self.channel_amount
+        else:
+            return field
+
     @field_validator("ready")
     def not_ready_if_disconnected(cls, value, info: FieldValidationInfo):
-        if not info.data["connected"]:
-            return False
-        else: return value
-
-    @field_validator("position", "on_target", "min_max")
-    def non_initialized_pos_ont_minmax(cls, value, info: FieldValidationInfo):
-        if len(value) == 0:
-            return [None] * info.data["channel_amount"]
-        else:
-            return value
-
-
-    # If disconnected put all relevant fields into a "clean" slate
-    @field_validator( "referenced", "clo")
-    def disconnected_ref_clo(cls, value, info: FieldValidationInfo):
-        """Controller can't be in CLO or referenced if disconnected."""
-        if not info.data["connected"]:
-            return info.data["channel_amount"] * [False]
-        else: return value
-    @field_validator( "stages")
-    def disconnected_stages(cls, value, info: FieldValidationInfo):
-        if not info.data["connected"]:
-            return info.data["channel_amount"] * ["NOSTAGE"]
-        else: return value
-
-    @field_validator( "ready")
-    def disconnected_not_ready(cls, value, info: FieldValidationInfo):
         if not info.data["connected"]:
             return False
         else: return value

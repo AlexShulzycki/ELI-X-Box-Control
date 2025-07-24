@@ -30,8 +30,36 @@ class TestPIControllerStatus(TestCase):
                 clo = [True],
                 stages = ["NOSTAGE"]
             )
+            rs232 = PIConfiguration(
+                SN=1,
+                model=PIControllerModel.C884,
+                connection_type=PIConnectionType.rs232,
+                comport = 5,
+                connected=True,
+                channel_amount=1,
+                ready=False,
+                referenced=[True],
+                clo=[True],
+                stages=["NOSTAGE"]
+            )
         except:
             self.fail()
+
+    def test_channel_amount(self):
+        rs232 = PIConfiguration(
+            SN=1,
+            model=PIControllerModel.C884,
+            connection_type=PIConnectionType.rs232,
+            comport=5,
+            connected=True,
+            channel_amount=1,
+            ready=False,
+            referenced=[True],
+            clo=[True],
+            stages=["NOSTAGE"]
+        )
+        assert rs232.min_max == [None]
+        assert len(rs232.min_max) == 1
 
     def test_incorrect_channel_amount(self):
         with self.assertRaises(ValueError):
