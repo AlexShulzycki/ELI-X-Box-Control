@@ -385,7 +385,6 @@ class C884(PIController):
         minrange = self.device.qTMN()
         maxrange = self.device.qTMX()
 
-        # TODO SOMETHING GOES WRONG HERE FIX IT PLEASE
         for i in range(self.config.channel_amount):
             if self.config.stages[i] == "NOSTAGE":
                 self._config.min_max[i] = None

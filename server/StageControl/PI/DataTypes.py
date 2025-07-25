@@ -121,7 +121,7 @@ class PIStageInfo(StageInfo):
         validate_assignment = True
 
 class PIController:
-
+    #TODO Implement event announcer
     def __init__(self):
         self.EA = EventAnnouncer(StageStatus, StageInfo)
         self._config = None
@@ -188,6 +188,8 @@ class PIController:
                 continue
             res.append(StageStatus(
                 identifier =self.config.SN * 10 + (i + 1),
+                connected = self.config.connected,
+                ready = self.config.ready,
                 position=self.config.position[i],
                 ontarget=self.config.on_target[i]
             ))
