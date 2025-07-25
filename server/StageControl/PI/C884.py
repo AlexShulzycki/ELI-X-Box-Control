@@ -68,21 +68,27 @@ class C884(PIController):
                 SN = config.SN,
                 model = config.model,
                 connection_type = config.connection_type,
-                comport = 0 # else we get a validation error, we are not actually bypassing anything here because this is
+                comport = 0, # else we get a validation error, we are not actually bypassing anything here because this is
                 # explicitly checked with the user input and further down in the connection function.
             )
+            await self.openConnection(config)
+            return
 
         if not self.config.connected and config.connected:
             # open connection handles channel_amount as well
+            print("opening connection")
             await self.openConnection(config)
 
-        if config.stages != self.config.stages:
+        if not config.stages.__eq__(self.config.stages):
+            print("loading new stages")
             await self.loadStagesToC884(config.stages)
 
-        if config.clo != self.config.clo:
+        if not config.clo.__eq__(self.config.clo):
+            print("setting CLO")
             await self.setServoCLO(config.clo)
 
-        if config.referenced != self.config.referenced:
+        if not config.referenced.__eq__(self.config.referenced):
+            print("Referencing")
             await self.reference(config.referenced)
 
 
@@ -126,9 +132,12 @@ class C884(PIController):
         """
         self.checkReady()
 
-        res =  self.device.qCST()
-
-        return self.dict2list(res)
+        cst =  self.device.qCST()
+        res = []
+        # dict to list
+        for i in range(self.config.channel_amount):
+            res.append(cst[str(i+1)]) # mind the index
+        return res
 
     async def loadStagesToC884(self, stages: list[str]):
         """
@@ -240,6 +249,7 @@ class C884(PIController):
             model = self.config.model,
             connection_type = self.config.connection_type,
             connected = self.isconnected,
+            channel_amount=self.config.channel_amount,
             ready = self.ready,
             comport = 0, # for validation
             # For now, we assume the stage is not ready, so everything else is in their defaults
@@ -262,7 +272,6 @@ class C884(PIController):
         await self.update_range()
         await self.update_position()
         await self.update_onTarget()
-        await self.update_range()
 
     @property
     def config(self) -> PIConfiguration:
@@ -290,7 +299,7 @@ class C884(PIController):
         self.checkReady("Cannot get position.")
         self._config.position = self.dict2list(self.device.qPOS())
 
-    async def moveChannelTo(self, channel: int, target: float):
+    async def moveTo(self, channel: int, target: float):
         """
         Moves channel(s) to target(s)
         @param channel: Integer of channel to which device(s) is/are connected
@@ -313,9 +322,7 @@ class C884(PIController):
         Opens connection to controller device if not already connected
         :return: true if successful or already connected, false otherwise
         """
-        if self.device.connected:
-            return True
-        else:
+        if not self.device.connected:
             # try to connect
             try:
                 if config.connection_type is PIConnectionType.rs232:
@@ -342,18 +349,20 @@ class C884(PIController):
                         self.device.close()
                         raise Exception(f"USB Controller with given serial number not connected: {config.SN}")
 
-                # check the channel amount. If incorrect, disconnect and tell the user
-
-                ch_amount = len(self.device.allaxes)
-                if config.channel_amount != ch_amount:
-                    self.device.close()
-                    raise Exception(f"The controller has {ch_amount} channel(s), but {config.channel_amount} are in the config. Try again with the correct amount.")
-                return self.device.connected
 
             except Exception as e:
                 # close the connection explicitly just to be sure
                 self.closeConnection()
                 raise e
+
+        # check the channel amount. If incorrect, disconnect and tell the user
+        ch_amount = len(self.device.allaxes)
+        if config.channel_amount != ch_amount:
+            self.device.close()
+            raise Exception(
+                f"The controller has {ch_amount} channel(s), but {config.channel_amount} are in the config. Try again with the correct amount.")
+        self._config.channel_amount = ch_amount
+        return self.device.connected
 
     def closeConnection(self):
         """
@@ -366,6 +375,7 @@ class C884(PIController):
         Returns the [min,max] for each channel
         @return: [min,max]
         """
+        self.checkReady()
         minrange = self.device.qTMN()
         maxrange = self.device.qTMX()
 
@@ -374,7 +384,7 @@ class C884(PIController):
             if self.config.stages[i] == "NOSTAGE":
                 self._config.min_max[i] = None
             else:
-                self._config.min_max[i] = [minrange[i + 1], maxrange[i + 1]]
+                self._config.min_max[i] = [minrange[str(i + 1)], maxrange[str(i + 1)]]
 
 
     async def getSupportedStages(self)-> list[str]:
