@@ -177,7 +177,7 @@ class PIController:
         for i in range(self.config.channel_amount):
 
             # only add if its an actual stage
-            if self.config.stages[i] is "NOSTAGE":
+            if self.config.stages[i] == "NOSTAGE":
                 continue
             res.append(StageStatus(
                 identifier =self.config.SN * 10 + (i + 1),

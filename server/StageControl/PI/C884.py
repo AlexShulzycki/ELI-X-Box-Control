@@ -307,7 +307,7 @@ class C884(PIController):
         """
         self.checkReady("Cannot move axis.")
 
-        await self.device.MOV(channel, target)
+        self.device.MOV(channel, target)
 
     async def update_onTarget(self):
         """
