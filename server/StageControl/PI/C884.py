@@ -262,21 +262,13 @@ class C884(PIController):
 
         # If the controller is ready, then we query for the rest of the status information
         if status.ready:
-            isrefd = await self.isReferenced
-            status.referenced = isrefd
-            clo = await self.servoCLO
-            status.clo = clo,
-            error = await self.error,
-            status.error = error
-            stages = await self.loadStagesFromC884()
-            status.stages = stages
+            res = await asyncio.gather(self.isReferenced, self.servoCLO, self.error, self.loadStagesFromC884())
+            status.referenced, status.clo,status.error, status.stages = res
 
         self._config = status
 
         # update other bits and bobs
-        await self.update_range()
-        await self.update_position()
-        await self.update_onTarget()
+        await asyncio.gather(self.update_range(), self.update_position(), self.update_onTarget())
 
     @property
     def config(self) -> PIConfiguration:
@@ -293,8 +285,7 @@ class C884(PIController):
         return self._config
 
     async def refreshPosOnTarget(self):
-        await self.update_onTarget()
-        await self.update_position()
+        await asyncio.gather(self.update_onTarget(), self.update_position())
 
     async def update_position(self):
         """
