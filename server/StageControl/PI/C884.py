@@ -68,26 +68,26 @@ class C884(PIController):
                 SN = config.SN,
                 model = config.model,
                 connection_type = config.connection_type,
-                comport = 0, # else we get a validation error, we are not actually bypassing anything here because this is
+                comport = config.comport,
+                channel_amount = config.channel_amount# else we get a validation error, we are not actually bypassing anything here because this is
                 # explicitly checked with the user input and further down in the connection function.
             )
-            await self.openConnection(config)
-            return
+
 
         if not self.config.connected and config.connected:
             # open connection handles channel_amount as well
             print("opening connection")
             await self.openConnection(config)
 
-        if not config.stages.__eq__(self.config.stages):
+        if not config.stages == self.config.stages:
             print("loading new stages")
             await self.loadStagesToC884(config.stages)
 
-        if not config.clo.__eq__(self.config.clo):
+        if not config.clo == self.config.clo:
             print("setting CLO")
             await self.setServoCLO(config.clo)
 
-        if not config.referenced.__eq__(self.config.referenced):
+        if not config.referenced == self.config.referenced:
             print("Referencing")
             await self.reference(config.referenced)
 
@@ -215,6 +215,7 @@ class C884(PIController):
         :param clolist:
         :return:
         """
+        print(f"enabling clo {clolist}")
         if clolist is None:
             self.device.SVO(self.device.axes, [True] * len(self.device.axes))
         else:
@@ -235,12 +236,12 @@ class C884(PIController):
         else:
             # we need a list of the axes we want to reference
             req = []
-            for i in range(len(axes)):
+            for i, ax in enumerate(axes):
                 # We only want to reference axes that are not already referenced
-                if axes[i] and not self.config.referenced[i]:
+                if ax and not self.config.referenced[i]:
                     req.append(i+1)
-                if len(req) != 0:
-                    self.device.FRF(req)
+            if len(req) != 0:
+                self.device.FRF(req)
 
 
     async def refreshFullStatus(self):
@@ -261,10 +262,14 @@ class C884(PIController):
 
         # If the controller is ready, then we query for the rest of the status information
         if status.ready:
-            status.referenced = await self.isReferenced,
-            status.clo = await self.servoCLO,
-            status.error = await self.error,
-            status.stages = await self.loadStagesFromC884()
+            isrefd = await self.isReferenced
+            status.referenced = isrefd
+            clo = await self.servoCLO
+            status.clo = clo,
+            error = await self.error,
+            status.error = error
+            stages = await self.loadStagesFromC884()
+            status.stages = stages
 
         self._config = status
 
@@ -332,7 +337,8 @@ class C884(PIController):
 
                     # Grab serial number
                     SN = int(self.device.qIDN().split(", ")[-2])
-
+                    # update comport
+                    self._config.comport = config.comport
                     # Check if serial number matches config status
                     if config.SN != SN:
                         self.device.close()

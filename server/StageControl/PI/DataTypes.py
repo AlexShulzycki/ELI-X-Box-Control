@@ -2,10 +2,11 @@ from __future__ import annotations
 from enum import Enum
 
 import time
+from typing import Union, Any
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic_core.core_schema import FieldValidationInfo
-from typing_extensions import Self
+from typing_extensions import Self, Annotated
 
 from server.StageControl.DataTypes import ControllerSettings, StageStatus, StageInfo, EventAnnouncer, StageKind
 
@@ -31,17 +32,17 @@ class PIConfiguration(BaseModel):
     connected: bool = Field(default= False, examples=[True, False], description="If the controller is connected")
     channel_amount: int = Field(default= 0, examples=[0,4,6], description="Number of channels controller supports")
     ready: bool = Field(default= False, examples=[True, False], description="Whether the controller is ready")
-    referenced: list[bool|None] = Field(default=[], examples=[[True, False, False, False]],
+    referenced: list[Any] = Field(default=[], examples=[[True, False, False, None]],
                                    description="Whether each axis is referenced", validate_default=True)
-    clo: list[bool|None] = Field(default=[], examples=[[True, False, True, False]],
+    clo: list[Any] = Field(default=[], examples=[[True, False, True, False, None]],
                             description="Whether each axis is in closed loop operation, i.e. if its turned on", validate_default=True)
     stages: list[str] = Field(default = [], examples=[['L-406.20DD10', 'NOSTAGE', 'L-611.90AD', 'NOSTAGE']],
                               description= "A list with the stages for each channel", validate_default=True)
     """Array of 4 devices connected on the controller, in order from channel 1 to 4, or 6. If no stage is
         present, "NOSTAGE" is required. Example: Channel 1 and 3 are connected: ['L-406.20DD10','NOSTAGE', 'L-611.90AD',
          'NOSTAGE']"""
-    position: list[float|None] = Field(default=[], description="Position of the stages in mm", validate_default=True)
-    on_target: list[bool|None] = Field(default=[], description="on target status of the stages", validate_default=True)
+    position: list[Any] = Field(default=[], description="Position of the stages in mm", validate_default=True)
+    on_target: list[Any] = Field(default=[], description="on target status of the stages", validate_default=True)
     min_max: list[list[float]|None] = Field(default=[], examples=[[[0,0], [0, 15.2]]], description="min and max values of the stages", validate_default=True)
     error: str = Field(description="Error message. If no error, its an empty string", default="")
     baud_rate: int = Field(description="Baud rate of RS232 connection.", default=115200, examples=[115200])
@@ -61,7 +62,7 @@ class PIConfiguration(BaseModel):
             if len(value) == 0:
                 return [None] * info.data["channel_amount"]
             # othewise the length is incorrect.
-            raise ValueError("Needs to match number of channels")
+            raise ValueError(f"Length ({len(value)}) needs to match number of channels ({info.data["channel_amount"]})")
         return value
 
     @field_validator("stages")
@@ -95,6 +96,9 @@ class PIConfiguration(BaseModel):
             return False
         else: return value
 
+    #class Config:
+    #    validate_assignment = True
+
 class PIStageInfo(StageInfo):
     controllerSN: int  = Field(description="SN of controller controlling this stage")
     channel: int = Field(description="Which controller channel this stage is connected to")
@@ -112,6 +116,9 @@ class PIStageInfo(StageInfo):
         if str(info.data["identifier"])[-1] != str(value):
             raise ValueError(f"SN {value} doesnt match identifier")
         return value
+
+    class Config:
+        validate_assignment = True
 
 class PIController:
 
