@@ -2,7 +2,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.openapi.utils import get_openapi
 
 from .API import StageControlAPI, WebSocketAPI, GeometryAPI, KinematicsAPI
-from .API.Settings import SettingsAPI, PISettingsAPI, VirtualStageSettingsAPI
+from .API.Settings import SettingsAPI, VirtualStageSettingsAPI
 
 tags_metadata = [
     {
@@ -26,7 +26,7 @@ app = FastAPI(openapi_tags = tags_metadata)
 
 # settings routers
 app.include_router(SettingsAPI.router)
-app.include_router(PISettingsAPI.router)
+#app.include_router(PISettingsAPI.router)
 app.include_router(VirtualStageSettingsAPI.router)
 
 # Geometry and stage control routers

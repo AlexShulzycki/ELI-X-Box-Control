@@ -2,8 +2,6 @@ import asyncio
 from typing import Coroutine, Awaitable, Any
 
 from pipython import GCSDevice
-
-from server.StageControl.DataTypes import StageKind, StageInfo, ControllerInterface, StageStatus
 from server.StageControl.PI.DataTypes import PIController, PIConfiguration, PIConnectionType, PIStageInfo
 
 

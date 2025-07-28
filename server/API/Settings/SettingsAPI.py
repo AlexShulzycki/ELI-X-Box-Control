@@ -8,13 +8,7 @@ import json
 
 from pydantic import BaseModel, Field
 
-from server import Interface
-from server.StageControl.PI.C884 import C884Config, C884RS232Config
-
-
-class StageConfig(BaseModel):
-    C884: list[C884Config | C884RS232Config] = Field(default=[], examples=[[C884RS232Config(comport=15)]])
-
+from server.Interface import toplevelinterface
 
 router = APIRouter(tags=["settings"])
 
@@ -49,81 +43,57 @@ def getComPorts() -> list[int]:
     return result
 
 
-
-
-
-@router.get("/get/StageAxisInfo")
-def getSavedStageAxisTypes():
-    try:
-        with open('../../settings/stageinfo/PIStages.json') as f:
-            PIStages = json.load(f)
-            f.close()
-        with open('../../settings/stageinfo/Axes.json') as f:
-            Axes = json.load(f)
-            f.close()
-        with open("../../settings/stageinfo/StandaStages.json") as f:
-            StandaStages = json.load(f)
-            f.close()
-
-        return {
-            "Stages": {"PI": PIStages, "Standa": StandaStages},
-            "Axes": Axes,
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 @router.get("/get/SavedStageConfig")
-def getSavedStageSettings() -> StageConfig:
+def getSavedStageSettings() -> None:
     """
-    Returns saved stage configuration loaded from settings/StageConfig.json
-    @return: JSON object saved in SavedMotorSettings.py
+    Does nothing
+    @return: nothing
     """
     # Load from file
     with open("../../settings/StageConfig.json") as f:
-        settings: StageConfig = json.load(f)
+#        settings: StageConfig = json.load(f)
         f.close()
 
-    return settings
+    return None
 
 
 @router.get("/get/CurrentConfig")
-async def getCurrentConfig() -> StageConfig:
+def getCurrentConfig():
     """
-    Get current stage configuration running on the server
+    Returns current configuration for every interface
+    :return:
     """
-    # Dump each C884 BaseModel into dict to avoid passing in a BaseModel into StageConfig, which is also BaseModel
-    c884configs = []
-    for c884 in Interface.C884interface.getC884Configs():
-        c884configs.append(c884.model_dump())
+    res = {}
+    for interface in toplevelinterface.interfaces:
+        res[interface.name] = interface.settings.currentConfiguration
+    return res
 
-    return StageConfig(C884=c884configs)
-
-
-@router.post("/post/UpdateConfig")
-async def updateConfig(data: StageConfig):
+@router.get("/get/ConfigSchema")
+def getConfigSchema():
     """
-    Update received stage configurations
+    Returns the schema of congfiguration objects
+    :return:
     """
-    print("Received updated stage config: ", data)
-    try:
-        await Interface.C884interface.updateC884Configs(data.C884)
-        return await getCurrentConfig()
+    return toplevelinterface.configSchema
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
+@router.post("/post/UpdateConfiguration")
+async def updateConfiguration(configuration):
+    awaiters = []
+    for name, value in enumerate(configuration):
+        for interface in toplevelinterface.interfaces:
+            if name == interface.name:
+                awaiters.append(interface.settings.configurationChangeRequest(value))
 
 @router.get("/get/SaveCurrentStageConfig")
 async def getSaveCurrentStageConfig():
     """
+    Does nothing right now.
     Saves current stage configuration on the server to settings/StageConfig.json
     """
     # Grab configuration data from the interfaces TODO FIX
-    config = await getCurrentConfig()
-    config = config.model_dump_json()
+    #config = await getCurrentConfig()
+    #config = config.model_dump_json()
 
     with open("../../settings/StageConfig.json", "w") as f:
-        f.write(config)
+        #f.write(config)
         f.close()

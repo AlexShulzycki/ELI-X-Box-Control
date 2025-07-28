@@ -3,7 +3,7 @@ from typing import Awaitable
 
 from pipython import GCSDevice
 
-from server.StageControl.PI.C884 import C884Interface
+from .StageControl.PI.Interface import PIControllerInterface
 from .StageControl.Virtual import VirtualControllerInterface
 from .StageControl.DataTypes import StageInfo, ControllerInterface, EventAnnouncer, StageStatus
 
@@ -64,7 +64,6 @@ class MainInterface:
 
         await asyncio.gather(*awaiters)
 
-
     @property
     def StageInfo(self) -> dict[int, StageInfo]:
         """
@@ -100,7 +99,7 @@ class MainInterface:
 
         return res
 
-    def getRelevantInterface(self, identifier: int) -> ControllerInterface|None:
+    def getRelevantInterface(self, identifier: int) -> ControllerInterface | None:
         """
         Returns relevant controller interface for given identifier.
         :param identifier: identifier to look for
@@ -129,12 +128,16 @@ class MainInterface:
         # if we're here, no exception was thrown, so it worked.
         return True
 
-
-
+    @property
+    def configSchema(self):
+        res = {}
+        for intf in self.interfaces:
+            res[intf.name] = intf.settings.configurationFormat
+        return res
 
 # INIT ALL INTERFACES TOGETHER
-C884interface = C884Interface()
+PIinterface = PIControllerInterface()
 Virtualinterface = VirtualControllerInterface()
 
 # TODO Re-Add C884 interface once rewritten
-toplevelinterface = MainInterface(Virtualinterface)
+toplevelinterface = MainInterface(Virtualinterface, PIinterface)

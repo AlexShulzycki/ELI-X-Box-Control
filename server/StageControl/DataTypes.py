@@ -133,6 +133,7 @@ class ControllerInterface:
     Base class of controller interfaces. Make sure you pass on any updates to the event announcer.
 
     """
+    settings: ControllerSettings
 
     def __init__(self):
         self.EventAnnouncer = EventAnnouncer(StageStatus, StageInfo)
@@ -166,6 +167,9 @@ class ControllerInterface:
         Call super after you are done, this will update the event announcer."""
         self.EventAnnouncer.event(self.stageStatus)
 
+    @property
+    def name(self) -> str:
+        raise NotImplementedError
 
 
 
@@ -217,5 +221,16 @@ class ControllerSettings:
         Returns StageInfo objects for configured stages.
         :return:
         """
+        raise NotImplementedError
+
+    @property
+    def configurationFormat(self):
+        """
+        Return a JSON schema describing configuration objects
+        :return:
+        """
+        raise NotImplementedError
+
+    async def fullRefreshAllSettings(self):
         raise NotImplementedError
 

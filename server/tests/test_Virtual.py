@@ -20,7 +20,7 @@ class TestVirtualControllerInterface(TestCase):
             maximum=100
         )
 
-        self.vinterface.addStagesByConfigs([config1, config2])
+        self.vinterface.settings.configurationChangeRequest([config1, config2])
 
     def test_stages(self):
         assert self.vinterface.stages.__contains__(1)
@@ -34,8 +34,8 @@ class TestVirtualControllerInterface(TestCase):
         assert self.vinterface.stageStatus[1].position == 25
 
     def test_remove_stage(self):
-        self.vinterface.removeStage(1)
-        self.vinterface.removeStage(2)
+        self.vinterface.settings.removeConfiguration(1)
+        self.vinterface.settings.removeConfiguration(2)
         assert self.vinterface.stages == []
         assert self.vinterface.stageStatus == {}
         assert self.vinterface.stageInfo == {}
@@ -44,7 +44,7 @@ class TestVirtualControllerInterface(TestCase):
 
         failed = False
         try:
-            self.vinterface.addStagesByConfigs([StageInfo(
+            self.vinterface.settings.configurationChangeRequest([StageInfo(
                 identifier=1,
                 model="virtual, but a duplicate!"
             )])

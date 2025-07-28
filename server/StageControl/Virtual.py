@@ -1,7 +1,43 @@
+from typing import Any
+
 from pydantic import Field, BaseModel
 
-from .DataTypes import StageKind, StageInfo, StageStatus, ControllerInterface
+from .DataTypes import StageKind, StageInfo, StageStatus, ControllerInterface, ControllerSettings
 
+
+class VirtualSettings(ControllerSettings):
+
+    def __init__(self):
+        super().__init__()
+        self.virtualstages: dict[int, VirtualStage] = {}
+
+    @property
+    def currentConfiguration(self) -> list[Any]:
+        res = []
+        for v in self.virtualstages.values():
+            res.append(v)
+        return res
+
+    def configurationChangeRequest(self, requests: list[StageInfo]):
+        for request in requests:
+            if request.identifier not in self.virtualstages:
+                self.virtualstages[request.identifier] = VirtualStage(request)
+            else:
+                raise Exception(f"Virtual Stage {request.identifier} already exists, use another identifier.")
+
+    def removeConfiguration(self, identifier: int):
+        if identifier in self.virtualstages.keys():
+            self.virtualstages.pop(identifier)
+            return True
+        else:
+            return False
+
+    @property
+    def configurationFormat(self):
+        return StageInfo.model_json_schema()
+
+    def getDataTypes(self):
+        return [StageInfo, StageStatus]
 
 
 class VirtualStage:
@@ -13,43 +49,40 @@ class VirtualStage:
 class VirtualControllerInterface(ControllerInterface):
 
     def __init__(self):
-        self.virtualstages: dict[int, VirtualStage] = {}
+        self.settings:VirtualSettings = VirtualSettings()
         super().__init__()
 
-    def addStagesByConfigs(self, configs: list[StageInfo]):
-        for config in configs:
-            if config.identifier not in self.virtualstages:
-                self.virtualstages[config.identifier] = VirtualStage(config)
-            else:
-                raise Exception(f"Virtual Stage {config.identifier} already exists, use another identifier.")
+    @property
+    def name(self) -> str:
+        return "Virtual"
 
     @property
     def stages(self) -> list[int]:
         """Returns unique integer identifiers for each stage"""
-        return list(self.virtualstages.keys())
+        return list(self.settings.virtualstages.keys())
 
     def moveTo(self, serial_number: int, position: float):
         """Move stage to position"""
-        self.virtualstages[serial_number].stageStatus.position = position
-        self.virtualstages[serial_number].stageStatus.ontarget = True
+        self.settings.virtualstages[serial_number].stageStatus.position = position
+        self.settings.virtualstages[serial_number].stageStatus.ontarget = True
 
     def updateStageInfo(self, identifiers: list[int] = None):
         """Return StageInfo objects for the given stages"""
         # loop through I cant be bothered
-        for v in self.virtualstages.values():
+        for v in self.settings.virtualstages.values():
             self.EventAnnouncer.event(v.stageInfo)
         return
 
     @property
     def stageInfo(self) -> dict[int, StageInfo]:
         e = {} # dunno why I called it e
-        for v in self.virtualstages.values():
+        for v in self.settings.virtualstages.values():
             e[v.stageInfo.identifier] = v.stageInfo
         return e
 
     def updateStageStatus(self, identifiers: list[int] = None):
         # loop through I cant be bothered
-        for v in self.virtualstages.values():
+        for v in self.settings.virtualstages.values():
             self.EventAnnouncer.event(v.stageStatus)
         return
 
@@ -57,13 +90,6 @@ class VirtualControllerInterface(ControllerInterface):
     def stageStatus(self) -> dict[int, StageStatus]:
         """Return StageStatus objects for the given stages"""
         e = {}  # dunno why I called it e
-        for v in self.virtualstages.values():
+        for v in self.settings.virtualstages.values():
             e[v.stageInfo.identifier] = v.stageStatus
         return e
-
-    def removeStage(self, identifier: int):
-        if identifier in self.stages:
-            self.virtualstages.pop(identifier)
-            return True
-        else:
-            return False

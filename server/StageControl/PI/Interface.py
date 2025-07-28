@@ -22,19 +22,22 @@ class PISettings(ControllerSettings):
             res.append(controller.config)
         return res
 
-    async def configurationChangeRequest(self, request: PIConfiguration):
+    async def configurationChangeRequest(self, request: list[PIConfiguration]):
         """
         Tries to turn the desired state into reality.
         :param request: A valid PIController status.
         :return:
         """
+        awaiters = []
+        for req in request:
+            # If we don't have a controller with the SN we need to create a blank new one
+            if not self.controllers.keys().__contains__(req.SN):
+                self.newController(req)
 
-        # If we don't have a controller with the SN we need to create a blank new one
-        if not self.controllers.keys().__contains__(request.SN):
-            self.newController(request)
+            # Update the relevant controller
+            awaiters.append(self.updateController(req))
 
-        # Update the relevant controller
-        await asyncio.wait_for(self.updateController(request), 5)
+        await asyncio.gather(*awaiters)
 
     async def removeConfiguration(self, SN: int):
         """
@@ -62,22 +65,33 @@ class PISettings(ControllerSettings):
 
 
     @property
-    def stageStatus(self) -> list[StageStatus]:
+    def stageStatus(self) -> dict[int, StageStatus]:
         """Return stage status of properly configured and ready stages"""
-        res = []
+        res = {}
         for cntrl in self.controllers.values():
-            res.extend(cntrl.stageStatuses)
+            for status in cntrl.stageStatuses:
+                res[status.identifier] = status
 
         return res
 
     @property
-    def stageInfo(self) -> list[PIStageInfo]:
-        res = []
+    def stageInfo(self) -> dict[int, PIStageInfo]:
+        res = {}
         for cntrl in self.controllers.values():
-            res.extend(cntrl.stageInfos)
+            for info in cntrl.stageInfos:
+                res[info.identifier] = info
         return res
 
+    @property
+    def configurationFormat(self):
+        return PIConfiguration.model_json_schema()
 
+    async def fullRefreshAllSettings(self):
+        awaiters = []
+        for cntr in self.controllers.values():
+            awaiters.append(cntr.refreshFullStatus())
+
+        await asyncio.gather(*awaiters)
 
 
 
@@ -95,25 +109,25 @@ class PIControllerInterface(ControllerInterface):
 
     def __init__(self):
         super().__init__()
-        self.settings = PISettings()
+        self.settings:PISettings = PISettings()
         """The PISettings is handling basically everything for us"""
 
     @property
     def stages(self) -> list[int]:
         res = []
-        for info in self.settings.stageInfo:
+        for info in self.settings.stageInfo.values():
             res.append(info.identifier)
 
         return res
 
-    def moveTo(self, identifier: int, position: float):
+    async def moveTo(self, identifier: int, position: float):
         sn, channel = deconstruct_SN_Channel(identifier)
-        self.settings.controllers[sn].moveTo(channel, position)
+        await self.settings.controllers[sn].moveTo(channel, position)
 
     @property
     def stageInfo(self) -> dict[int, StageInfo]:
         res = {}
-        for info in self.settings.stageInfo:
+        for info in self.settings.stageInfo.values():
             res[info.identifier] = info
         return res
 
@@ -154,7 +168,7 @@ class PIControllerInterface(ControllerInterface):
     @property
     def stageStatus(self) -> dict[int, StageStatus]:
         res = {}
-        for stat in self.settings.stageStatus:
+        for stat in self.settings.stageStatus.values():
             res[stat.identifier] = stat
         return res
 
@@ -174,6 +188,10 @@ class PIControllerInterface(ControllerInterface):
 
         super().updateStageStatus()
         pass
+
+    @property
+    def name(self) -> str:
+        return "PI"
 
 
     async def bulkCommand(self, serial_number_channel: list[int], command) -> Awaitable[list[Any]]:
