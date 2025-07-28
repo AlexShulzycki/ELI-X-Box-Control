@@ -23,14 +23,14 @@ def getAllStageStatus() -> dict[int, StageStatus]:
     return toplevelinterface.StageStatus
 
 @router.get("/stage/update/status/")
-def updateStageStatus():
+async def updateStageStatus():
     """
     Updates the status of all connected stages
     """
     toplevelinterface.updateStageStatus()
 
 @router.get("/stage/update/info/")
-def updateStageInfo():
+async def updateStageInfo():
     """
     Updates the info of all connected stages
     """

@@ -15,7 +15,7 @@ class VirtualSettings(ControllerSettings):
     def currentConfiguration(self) -> list[Any]:
         res = []
         for v in self.virtualstages.values():
-            res.append(v)
+            res.append(v.stageInfo)
         return res
 
     def configurationChangeRequest(self, requests: list[StageInfo]):

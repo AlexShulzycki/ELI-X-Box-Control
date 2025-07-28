@@ -77,7 +77,10 @@ def getConfigSchema():
     Returns the schema of congfiguration objects.
     key = controller name (eg pi, virtual, etc), value = its json schema.
     """
-    return toplevelinterface.configSchema
+    try:
+        return toplevelinterface.configSchema
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/post/UpdateConfiguration", description='{"Virtual": [{"model": "Virtual 1","identifier": 1234,"kind": "linear","minimum": 0,"maximum": 200}]}')
 async def updateConfiguration(configuration: dict[str, list[Any]]):
@@ -88,7 +91,10 @@ async def updateConfiguration(configuration: dict[str, list[Any]]):
                 # convert each entry to appropriate configuration object
                 for item in array:
                     toConfig.append(interface.settings.configurationFormat.model_validate(item))
-                interface.settings.configurationChangeRequest(toConfig)
+                try:
+                    interface.settings.configurationChangeRequest(toConfig)
+                except Exception as e:
+                    raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/get/SaveCurrentStageConfig")
 async def getSaveCurrentStageConfig():
