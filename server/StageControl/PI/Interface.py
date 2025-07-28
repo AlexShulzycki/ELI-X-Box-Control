@@ -45,7 +45,7 @@ class PISettings(ControllerSettings):
         :param SN: Serial number of the controller.
         :return:
         """
-        await self.controllers[SN].shutdown_and_cleanup()
+        self.controllers[SN].shutdown_and_cleanup()
         self.controllers.pop(SN)
 
 

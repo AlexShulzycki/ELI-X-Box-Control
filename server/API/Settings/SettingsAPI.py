@@ -1,6 +1,8 @@
 # This file will take care of communicating via api to select and configure the controllers
 import glob
 import sys
+from typing import Any
+
 import serial
 
 from fastapi import APIRouter, HTTPException
@@ -57,22 +59,25 @@ def getSavedStageSettings() -> None:
     return None
 
 
+class currentConfigRes(BaseModel):
+    configs: dict[str, list[object]] = Field(description="Dict of controllers mapped to a list containing configuration objects")
 @router.get("/get/CurrentConfig")
-def getCurrentConfig():
+def getCurrentConfig() -> currentConfigRes:
     """
     Returns current configuration for every interface
     :return:
     """
-    res = {}
+
+    res = currentConfigRes(configs = {})
     for interface in toplevelinterface.interfaces:
-        res[interface.name] = interface.settings.currentConfiguration
+        res.configs[interface.name] = interface.settings.currentConfiguration
     return res
 
 @router.get("/get/ConfigSchema")
 def getConfigSchema():
     """
-    Returns the schema of congfiguration objects
-    :return:
+    Returns the schema of congfiguration objects.
+    key = controller name (eg pi, virtual, etc), value = its json schema.
     """
     return toplevelinterface.configSchema
 
