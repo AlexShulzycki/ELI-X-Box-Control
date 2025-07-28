@@ -224,9 +224,9 @@ class ControllerSettings:
         raise NotImplementedError
 
     @property
-    def configurationFormat(self):
+    def configurationFormat(self) -> BaseModel:
         """
-        Return a JSON schema describing configuration objects
+        Return the configuration object type
         :return:
         """
         raise NotImplementedError

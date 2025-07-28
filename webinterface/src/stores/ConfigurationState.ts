@@ -8,7 +8,7 @@ import axios from "axios";
 export const useConfigurationStore = defineStore('ConfigurationState', {
     state: () => {
         return {
-            configs: new Map<string, object>(),
+            serverConfigs: new Map<string, Array<object>>(),
             configSchemas: new Map<string, SchemaNode>()
         }
     },
@@ -30,10 +30,34 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
             const res = await axios.get("get/ConfigState")
             if (res.status == 200) {
                 console.log("parsing received config state")
+
+                // clear the current state
+                this.serverConfigs.clear()
+
+                // iterate through each config type
                 Object.entries(res.data).forEach(([key, value]) => {
-                    this.configs.set(key, value as object)
+                    let schema = this.configSchemas.get(key)
+                    if(schema != undefined) {
+
+                        // result array
+                        let res: Object[] = []
+
+                        // try to parse the list of configs according to the schema
+                        try {
+                            (value as Array<object>).forEach((configState) => {
+                                res.push(schema.getData(configState))
+                            })
+
+                            // all done, save the parsed settings
+                            this.serverConfigs.set(key, res)
+
+                        } catch (e) {
+                            console.log("Error parsing data for " + key)
+                        }
+
+                    }
                 })
-                console.log("saved received schema")
+                console.log("Updated current configuration state")
             }
         }
     },
@@ -43,9 +67,11 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
         },
         getCurrentConfig: (state) => {
             let res = new Map<string, object>()
-            state.configs.forEach((value, key) => {
+            state.serverConfigs.forEach((value: Array<object>, key) => {
+                // get the schema for the type of config (denoted by the key)
                 let schema = state.configSchemas.get(key)
                 if(schema != undefined){
+                    // try to parse the list of configs according to the schema
                     try{
                         value.forEach((value) => {
                         //TODO Finish this up

@@ -130,9 +130,10 @@ class MainInterface:
 
     @property
     def configSchema(self):
+        """Returns list of JSON schemas of configuration objects"""
         res = {}
         for intf in self.interfaces:
-            res[intf.name] = intf.settings.configurationFormat
+            res[intf.name] = intf.settings.configurationFormat.model_json_schema()
         return res
 
 # INIT ALL INTERFACES TOGETHER

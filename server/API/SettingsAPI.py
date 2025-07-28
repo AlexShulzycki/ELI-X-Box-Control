@@ -1,7 +1,8 @@
 # This file will take care of communicating via api to select and configure the controllers
+import asyncio
 import glob
 import sys
-from typing import Any
+from typing import Any, Awaitable
 
 import serial
 
@@ -78,13 +79,16 @@ def getConfigSchema():
     """
     return toplevelinterface.configSchema
 
-@router.post("/post/UpdateConfiguration")
-async def updateConfiguration(configuration):
-    awaiters = []
-    for name, value in enumerate(configuration):
+@router.post("/post/UpdateConfiguration", description='{"Virtual": [{"model": "Virtual 1","identifier": 1234,"kind": "linear","minimum": 0,"maximum": 200}]}')
+async def updateConfiguration(configuration: dict[str, list[Any]]):
+    for name, array in configuration.items():
         for interface in toplevelinterface.interfaces:
             if name == interface.name:
-                awaiters.append(interface.settings.configurationChangeRequest(value))
+                toConfig = []
+                # convert each entry to appropriate configuration object
+                for item in array:
+                    toConfig.append(interface.settings.configurationFormat.model_validate(item))
+                interface.settings.configurationChangeRequest(toConfig)
 
 @router.get("/get/SaveCurrentStageConfig")
 async def getSaveCurrentStageConfig():

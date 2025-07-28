@@ -34,7 +34,7 @@ class VirtualSettings(ControllerSettings):
 
     @property
     def configurationFormat(self):
-        return StageInfo.model_json_schema()
+        return StageInfo
 
     def getDataTypes(self):
         return [StageInfo, StageStatus]

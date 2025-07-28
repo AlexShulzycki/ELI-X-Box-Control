@@ -84,7 +84,7 @@ class PISettings(ControllerSettings):
 
     @property
     def configurationFormat(self):
-        return PIConfiguration.model_json_schema()
+        return PIConfiguration
 
     async def fullRefreshAllSettings(self):
         awaiters = []

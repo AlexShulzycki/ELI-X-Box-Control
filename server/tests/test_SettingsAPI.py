@@ -10,6 +10,8 @@ from server.API.SettingsAPI import StageConfig
 
 client = TestClient(app)
 
+# OUTDATED, REWRITE PLEASE
+
 class SettingsAPITest(unittest.TestCase):
 
     def test_get_stage_config(self):
