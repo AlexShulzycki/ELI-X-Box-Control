@@ -52,7 +52,7 @@ def getSavedStageSettings() -> None:
     @return: nothing
     """
     # Load from file
-    with open("../../settings/StageConfig.json") as f:
+    with open("../settings/StageConfig.json") as f:
 #        settings: StageConfig = json.load(f)
         f.close()
 
@@ -99,6 +99,6 @@ async def getSaveCurrentStageConfig():
     #config = await getCurrentConfig()
     #config = config.model_dump_json()
 
-    with open("../../settings/StageConfig.json", "w") as f:
+    with open("../settings/StageConfig.json", "w") as f:
         #f.write(config)
         f.close()
