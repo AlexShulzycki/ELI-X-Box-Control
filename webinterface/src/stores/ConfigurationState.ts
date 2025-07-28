@@ -25,9 +25,39 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
                 })
                 console.log("saved received schema")
             }
-
         },
-
+        async syncConfigState(){
+            const res = await axios.get("get/ConfigState")
+            if (res.status == 200) {
+                console.log("parsing received config state")
+                Object.entries(res.data).forEach(([key, value]) => {
+                    this.configs.set(key, value as object)
+                })
+                console.log("saved received schema")
+            }
+        }
+    },
+    getters: {
+        getSchemaNodes: (state) => {
+            return state.configSchemas
+        },
+        getCurrentConfig: (state) => {
+            let res = new Map<string, object>()
+            state.configs.forEach((value, key) => {
+                let schema = state.configSchemas.get(key)
+                if(schema != undefined){
+                    try{
+                        value.forEach((value) => {
+                        //TODO Finish this up
+                        })
+                        res.set(key, schema.getData(value))
+                    }catch (e){
+                        console.log("Error parsing data for "+ key)
+                    }
+                }
+            })
+            return res
+        }
     }
 })
 

@@ -58,19 +58,16 @@ def getSavedStageSettings() -> None:
 
     return None
 
-
-class currentConfigRes(BaseModel):
-    configs: dict[str, list[object]] = Field(description="Dict of controllers mapped to a list containing configuration objects")
-@router.get("/get/CurrentConfig")
-def getCurrentConfig() -> currentConfigRes:
+@router.get("/get/ConfigState")
+def getCurrentConfig():
     """
     Returns current configuration for every interface
     :return:
     """
 
-    res = currentConfigRes(configs = {})
+    res = {}
     for interface in toplevelinterface.interfaces:
-        res.configs[interface.name] = interface.settings.currentConfiguration
+        res[interface.name] = interface.settings.currentConfiguration
     return res
 
 @router.get("/get/ConfigSchema")

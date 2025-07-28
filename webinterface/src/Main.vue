@@ -8,6 +8,7 @@ const settings = useSettingsStore()
 
 function run_debug(){
   configs.syncConfigSchema()
+  configs.syncConfigState()
 }
 
 try{
