@@ -279,8 +279,8 @@ class C884(PIController):
         self._config.ready = self.ready
         self._config.connected = self.isconnected
 
-        # return the status
-        return self._config
+        # return the status, but as a copy, we don't want anyone to access this.
+        return self._config.__copy__()
 
     async def refreshPosOnTarget(self):
         await asyncio.gather(self.update_onTarget(), self.update_position())
