@@ -171,7 +171,10 @@ class ControllerInterface:
     def name(self) -> str:
         raise NotImplementedError
 
-
+class updateResponse(BaseModel):
+    identifier: int
+    success: bool
+    error: str|None = Field(default=None)
 
 class ControllerSettings:
 
@@ -191,7 +194,7 @@ class ControllerSettings:
         """ Some way of sending over the formatting of the settings """
         raise NotImplementedError
 
-    async def configurationChangeRequest(self, request: Any):
+    async def configurationChangeRequest(self, request: list[Any]) -> list[updateResponse]:
         """
         Upon receiving a configuration object, tries to turn it into reality.
         :param request: configuration status object, same as from currentConfiguration

@@ -27,7 +27,8 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
                 console.log("saved received schema")
             }
         },
-        async syncConfigState(){
+        async syncServerConfigState(){
+            // We sync the configs from the server
             const res = await axios.get("get/ConfigState")
             if (res.status == 200) {
                 console.log("parsing received config state")
@@ -59,6 +60,14 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
                     }
                 })
                 console.log("Updated current configuration state")
+            }
+        },
+        async pushUpdateConfigState(){
+            // Pushes contents of updateConfigs to the server
+            const res = await axios.post("post/UpdateConfiguration", this.updateConfigs)
+            if(res.status == 200) {
+                // Successful request, lets read the response
+                console.log("received update state: " + res.data)
             }
         }
     },

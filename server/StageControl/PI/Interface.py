@@ -1,7 +1,8 @@
 import asyncio
 from typing import Any, Awaitable
 
-from server.StageControl.DataTypes import ControllerInterface, StageStatus, StageInfo, ControllerSettings
+from server.StageControl.DataTypes import ControllerInterface, StageStatus, StageInfo, ControllerSettings, \
+    updateResponse
 from server.StageControl.PI.C884 import C884
 from server.StageControl.PI.DataTypes import PIConfiguration, PIController, PIStageInfo, PIControllerModel, \
     MockPIController
@@ -22,22 +23,32 @@ class PISettings(ControllerSettings):
             res.append(controller.config)
         return res
 
-    async def configurationChangeRequest(self, request: list[PIConfiguration]):
+    async def configurationChangeRequest(self, request: list[PIConfiguration]) -> list[updateResponse]:
         """
         Tries to turn the desired state into reality.
         :param request: A valid PIController status.
         :return:
         """
-        awaiters = []
+        res = []
         for req in request:
-            # If we don't have a controller with the SN we need to create a blank new one
-            if not self.controllers.keys().__contains__(req.SN):
-                self.newController(req)
+            try:
+                # If we don't have a controller with the SN we need to create a blank new one
+                if not self.controllers.keys().__contains__(req.SN):
+                    self.newController(req)
+                # Update the relevant controller
+                await self.updateController(req)
+                res.append(updateResponse(
+                    identifier=req.SN,
+                    success=True,
+                ))
+            except Exception as e:
+                res.append(updateResponse(
+                    identifier=req.SN,
+                    success=False,
+                    error=str(e),
+                ))
 
-            # Update the relevant controller
-            awaiters.append(self.updateController(req))
-
-        await asyncio.gather(*awaiters)
+        return res
 
     async def removeConfiguration(self, SN: int):
         """

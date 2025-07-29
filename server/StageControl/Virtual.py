@@ -2,7 +2,7 @@ from typing import Any
 
 from pydantic import Field, BaseModel
 
-from .DataTypes import StageKind, StageInfo, StageStatus, ControllerInterface, ControllerSettings
+from .DataTypes import StageKind, StageInfo, StageStatus, ControllerInterface, ControllerSettings, updateResponse
 
 
 class VirtualSettings(ControllerSettings):
@@ -18,12 +18,25 @@ class VirtualSettings(ControllerSettings):
             res.append(v.stageInfo)
         return res
 
-    def configurationChangeRequest(self, requests: list[StageInfo]):
+    def configurationChangeRequest(self, requests: list[StageInfo]) -> list[updateResponse]:
+        res = []
         for request in requests:
-            if request.identifier not in self.virtualstages:
-                self.virtualstages[request.identifier] = VirtualStage(request)
-            else:
-                raise Exception(f"Virtual Stage {request.identifier} already exists, use another identifier.")
+            try:
+                if request.identifier not in self.virtualstages:
+                    self.virtualstages[request.identifier] = VirtualStage(request)
+                    res.append(updateResponse(
+                        identifier=request.identifier,
+                        success=True,
+                    ))
+                else:
+                    raise Exception(f"Virtual Stage {request.identifier} already exists, use another identifier.")
+            except Exception as e:
+                res.append(updateResponse(
+                    identifier = request.identifier,
+                    success = False,
+                    error = str(e),
+                ))
+        return res
 
     def removeConfiguration(self, identifier: int):
         if identifier in self.virtualstages.keys():

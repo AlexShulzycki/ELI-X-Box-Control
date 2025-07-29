@@ -12,6 +12,7 @@ import json
 from pydantic import BaseModel, Field
 
 from server.Interface import toplevelinterface
+from server.StageControl.DataTypes import updateResponse
 
 router = APIRouter(tags=["settings"])
 
@@ -83,7 +84,8 @@ def getConfigSchema():
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/post/UpdateConfiguration", description='{"Virtual": [{"model": "Virtual 1","identifier": 1234,"kind": "linear","minimum": 0,"maximum": 200}]}')
-async def updateConfiguration(configuration: dict[str, list[Any]]):
+async def updateConfiguration(configuration: dict[str, list[Any]]) -> list[updateResponse]:
+    res: list[updateResponse] = []
     for name, array in configuration.items():
         for interface in toplevelinterface.interfaces:
             if name == interface.name:
@@ -92,9 +94,12 @@ async def updateConfiguration(configuration: dict[str, list[Any]]):
                 for item in array:
                     toConfig.append(interface.settings.configurationFormat.model_validate(item))
                 try:
-                    interface.settings.configurationChangeRequest(toConfig)
+                    # Try configuring the objects, and collect their update responses to the response list
+                    res.extend(interface.settings.configurationChangeRequest(toConfig))
                 except Exception as e:
+                    # something catastrophic has happened if that failed
                     raise HTTPException(status_code=500, detail=str(e))
+    return res
 
 @router.get("/get/SaveCurrentStageConfig")
 async def getSaveCurrentStageConfig():
