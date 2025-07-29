@@ -19,6 +19,21 @@ const type = ref(props.state.kind)
 const min = ref(props.state.minimum)
 const max = ref(props.state.maximum)
 
+function updateToServer(){
+
+  const config = {"Virtual":
+                      [{
+                      "identifier": props.state.identifier,
+                      "model": model.value,
+                      "type": type.value,
+                      "minimum": min.value,
+                      "maximum": max.value,
+                      }]
+              }
+  console.log(config)
+  configstore.pushConfig(config)
+}
+
 </script>
 
 <template>
@@ -48,6 +63,10 @@ const max = ref(props.state.maximum)
       <td>Min/Max: {{props.state.minimum}} - {{props.state.maximum}}mm</td>
       <td>Min: <input v-model="min"> Max: <input v-model="max"/>
       </td>
+    </tr>
+    <tr>
+      <td><button>Add another</button></td>
+      <td><button @click="updateToServer()">Sent to server for update</button></td>
     </tr>
   </table>
 

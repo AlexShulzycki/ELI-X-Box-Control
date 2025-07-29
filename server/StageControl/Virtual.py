@@ -22,14 +22,11 @@ class VirtualSettings(ControllerSettings):
         res = []
         for request in requests:
             try:
-                if request.identifier not in self.virtualstages:
                     self.virtualstages[request.identifier] = VirtualStage(request)
                     res.append(updateResponse(
                         identifier=request.identifier,
                         success=True,
                     ))
-                else:
-                    raise Exception(f"Virtual Stage {request.identifier} already exists, use another identifier.")
             except Exception as e:
                 res.append(updateResponse(
                     identifier = request.identifier,

@@ -65,12 +65,13 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
                 console.log("Updated current configuration state")
             }
         },
-        async pushConfig(configs: Map<string, object[]>) {
-            const res = await axios.post("post/UpdateConfiguration", configs)
+        async pushConfig(config: object) {
+            const res = await axios.post("post/UpdateConfiguration", config)
             let responseArray: object[] = []
             if(res.status == 200) {
                 // Successful request, lets read the response
-                console.log("received update response: " + res.data)
+                console.log("received update response")
+                console.log(res.data)
                 // format the data into an array explicitly
                 res.data.forEach((item: object) => {
                     responseArray.push(item)
