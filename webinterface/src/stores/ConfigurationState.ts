@@ -9,8 +9,11 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
     state: () => {
         return {
             serverConfigs: new Map<string, Array<object>>(),
+            // Configuration on the server
             configSchemas: new Map<string, SchemaNode>(),
+            // Configuration object schemas (from the server)
             updateConfigs: new Map<string, Array<object>>(),
+            // Configurations we want to push to the server.
         }
     },
     actions: {
@@ -33,7 +36,7 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
             if (res.status == 200) {
                 console.log("parsing received config state")
 
-                // clear the current state
+                // clear the current state TODO have it only edit it, so we dont mess up any front end stuff
                 this.serverConfigs.clear()
 
                 // iterate through each config type
@@ -62,12 +65,36 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
                 console.log("Updated current configuration state")
             }
         },
-        async pushUpdateConfigState(){
-            // Pushes contents of updateConfigs to the server
-            const res = await axios.post("post/UpdateConfiguration", this.updateConfigs)
+        async pushConfig(configs: Map<string, object[]>) {
+            const res = await axios.post("post/UpdateConfiguration", configs)
+            let responseArray: object[] = []
             if(res.status == 200) {
                 // Successful request, lets read the response
-                console.log("received update state: " + res.data)
+                console.log("received update response: " + res.data)
+                // format the data into an array explicitly
+                res.data.forEach((item: object) => {
+                    responseArray.push(item)
+                })
+                return responseArray
+            }
+        },
+
+        async pushUpdateConfigState() {
+            // Pushes contents of updateConfigs to the server TODO think if this is even necessary
+            const res = await axios.post("post/UpdateConfiguration", this.updateConfigs)
+            if (res.status == 200) {
+                // Successful request, lets read the response
+                console.log("received update response: " + res.data)
+                // Iterate through the data
+            }
+        },
+        async removeConfig(controllerKey: string, identifier:number){
+            const res = await axios.get("/get/RemoveConfiguration", {params: {controllername: controllerKey, identifier: identifier}})
+            if(res.status != 200){
+              window.alert("Error occurred while removing config: " + res.data)
+            }else{
+              // All good, lets resync the status of everything
+              await this.syncServerConfigState()
             }
         }
     },

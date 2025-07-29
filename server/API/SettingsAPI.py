@@ -114,3 +114,17 @@ async def getSaveCurrentStageConfig():
     with open("../settings/StageConfig.json", "w") as f:
         #f.write(config)
         f.close()
+
+@router.get("/get/RemoveConfiguration")
+async def getRemoveConfiguration(controllername:str, identifier:int):
+    """
+    Removes a single configuration from the server
+    :return: Success (or not)
+    """
+    for cntr in toplevelinterface.interfaces:
+        if cntr.name == controllername:
+            # we found the correct controller, run the command
+            return cntr.settings.removeConfiguration(identifier)
+
+    # if we are here, we haven't found anything
+    raise HTTPException(status_code=404, detail=f"Controller interface {controllername} cannot be found")
