@@ -20,9 +20,6 @@ try{
 
 <template>
 <h1>This is the main page</h1>
-<h4><router-link to="/controllers">Setup controllers</router-link></h4>
-
-  <h4><router-link to="/stages">Stages and their statuses</router-link></h4>
 
   <button @click="run_debug()">The magical debug button</button>
 </template>

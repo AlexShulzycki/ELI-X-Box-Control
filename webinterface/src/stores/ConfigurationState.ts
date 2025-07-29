@@ -9,7 +9,8 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
     state: () => {
         return {
             serverConfigs: new Map<string, Array<object>>(),
-            configSchemas: new Map<string, SchemaNode>()
+            configSchemas: new Map<string, SchemaNode>(),
+            updateConfigs: new Map<string, Array<object>>(),
         }
     },
     actions: {
@@ -72,8 +73,9 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
                 let schema = state.configSchemas.get(key)
                 if(schema != undefined){
                     // try to parse the list of configs according to the schema
+                    console.error("Not ready to parse, implement this method please")
                     try{
-                        value.forEach((value) => {
+                        value.forEach((item) => {
                         //TODO Finish this up
                         })
                         res.set(key, schema.getData(value))
@@ -83,7 +85,7 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
                 }
             })
             return res
-        }
+        },
     }
 })
 

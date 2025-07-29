@@ -1,39 +1,33 @@
 <script setup lang="ts">
+import Settings from "@/Settings.vue";
 </script>
 
 <template>
   <header>
-    <h3><strong>Current route path:</strong> {{ $route.fullPath }}<br></h3>
-    <router-link to="/">Go Home</router-link>
+    <h3 style="float: left"><strong>Current route path:</strong> {{ $route.fullPath }}</h3>
+    <h4 style="float: left;">
+      <router-link to="/">Go Home</router-link><br>
+      <router-link to="/controllers">Setup controllers</router-link><br>
+      <router-link to="/stages">Stages and their statuses</router-link><br>
+    </h4>
   </header>
 
   <main>
-    <RouterView/>
+    <div style="float: left"><RouterView/></div>
+
+    <div style="float: right"><Settings/></div>
   </main>
+
 </template>
 
 <style scoped>
 header {
+  display: flex;
   line-height: 1.5;
 }
 
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
-}
-
 @media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
-
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
+  header{
     display: flex;
     place-items: flex-start;
     flex-wrap: wrap;
