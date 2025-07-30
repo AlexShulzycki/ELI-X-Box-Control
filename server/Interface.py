@@ -5,7 +5,7 @@ from pipython import GCSDevice
 
 from .StageControl.PI.Interface import PIControllerInterface
 from .StageControl.Virtual import VirtualControllerInterface
-from .StageControl.DataTypes import StageInfo, ControllerInterface, EventAnnouncer, StageStatus
+from .StageControl.DataTypes import StageInfo, ControllerInterface, EventAnnouncer, StageStatus, StageRemoved
 
 
 async def EnumPIUSB():
@@ -25,7 +25,7 @@ class MainInterface:
 
     def __init__(self, *controller_interfaces: ControllerInterface):
         """Pass in all additional Controller Interfaces in the constructor"""
-        self.EventAnnouncer: EventAnnouncer = EventAnnouncer(StageInfo, StageStatus)
+        self.EventAnnouncer: EventAnnouncer = EventAnnouncer(StageInfo, StageStatus, StageRemoved)
         self._interfaces: list[ControllerInterface] = []
         for intf in controller_interfaces:
             self.addInterface(intf)
@@ -49,6 +49,7 @@ class MainInterface:
         # We want to listen to stageinfo and stagestatuses
         sub.deliverTo(StageInfo, self.EventAnnouncer.event)
         sub.deliverTo(StageStatus, self.EventAnnouncer.event)
+        sub.deliverTo(StageRemoved, self.EventAnnouncer.event)
 
         # All done, finally append to the list
         self._interfaces.append(intf)

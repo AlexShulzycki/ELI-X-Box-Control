@@ -5,6 +5,9 @@ from typing import Dict, Any
 from fastapi import WebSocket
 from pydantic import BaseModel, Field
 
+from server.Interface import toplevelinterface
+from server.StageControl.DataTypes import EventAnnouncer, StageStatus, StageInfo, StageRemoved
+
 
 class ReqTypes(Enum):
     """Enumerates request types for websocket connections"""
@@ -72,6 +75,12 @@ class WebSocketAPI:
 
     def __init__(self):
         self.active_connections: list[WebSocket] = []
+        self.EA: EventAnnouncer = EventAnnouncer(StageStatus)
+        # Subscribe to stage status changes
+        sub = toplevelinterface.EventAnnouncer.subscribe(StageStatus, StageInfo, StageRemoved)
+        sub.deliverTo(StageStatus,self.broadcastStageStatus)
+        sub.deliverTo(StageInfo,self.broadcastStageInfo)
+        sub.deliverTo(StageRemoved, self.broadcastStageRemoved)
 
     async def receive(self, msg: Req, websocket: WebSocket) -> None:
         """
@@ -80,6 +89,7 @@ class WebSocketAPI:
         :param websocket: websocket which sent the request
         :return: none
         """
+        print(f"Received WS: {msg}")
         # Prepopulate the response var as an unknown request error
         response: WsResponse = WsErrResponse(errortype = ErrTypes.unknown_request, errormsg = f"Unknown request '{msg.request}'")
         try:
@@ -101,10 +111,31 @@ class WebSocketAPI:
     def disconnect(self, websocket: WebSocket):
         self.active_connections.remove(websocket)
 
-    async def broadcast(self, message: dict):
+    def broadcastStageRemoved(self, message: StageRemoved):
+        asyncio.create_task(
+            self.broadcast({
+                "event": "StageRemoved",
+                "data": message.model_dump_json()
+            })
+        )
+    def broadcastStageStatus(self, message: StageStatus):
+        asyncio.create_task(
+            self.broadcast({
+            "event": "StageStatus",
+            "data": message.model_dump_json()
+        }))
+
+    def broadcastStageInfo(self, message: StageInfo):
+        asyncio.create_task(self.broadcast({
+            "event": "StageInfo",
+            "data": message.model_dump_json()
+        }))
+
+    async def broadcast(self, json: dict[str, str]):
+        print(f"Broadcasting event {json}")
         awaiters = []
         for connection in self.active_connections:
-            awaiters.append(connection.send_json(message))
+            awaiters.append(connection.send_json(json))
         await asyncio.gather(*awaiters)
 
 

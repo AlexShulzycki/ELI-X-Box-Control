@@ -74,6 +74,8 @@ async def websocket_endpoint(websocket: WebSocket):
         except WebSocketDisconnect:
             # handle the disconnect through the ws manager.
             wsmanager.disconnect(websocket)
+            print("Disconnected")
+            break
         except Exception as e:
             res = {
                 "response": "error",

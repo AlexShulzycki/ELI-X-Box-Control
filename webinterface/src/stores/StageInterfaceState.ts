@@ -56,6 +56,27 @@ export const useStageInterfaceStore = defineStore('AxisInterfaceState', {
             if(res.status === 200){
                 console.log("moving stage: "+id+" to "+position, res.data)
             }
+        },
+        receiveStageStatus(status: StageStatus) {
+            // try to find an existing stagestatus
+            if(this.stageStatus.has(status.identifier)){
+                this.stageStatus.set(status.identifier, status)
+            }else{
+                // otherwise create a new one (completely redundant for now)
+                this.stageStatus.set(status.identifier, status)
+            }
+        },
+        receiveStageInfo(info: StageInfo) {
+            // try to find an existing stagestatus
+            this.stageInfo.set(info.identifier, info)
+        },
+        receiveStageRemoved(removed: StageRemoved){
+            if(this.stageInfo.has(removed.identifier)){
+                this.stageInfo.delete(removed.identifier)
+            }
+            if(this.stageStatus.has(removed.identifier)){
+                this.stageStatus.delete(removed.identifier)
+            }
         }
     },
     getters: {
@@ -87,13 +108,12 @@ function objectToMap<type>(data:Object) {
 }
 
 
-
 enum StageKind{
     rotational = "rotational",
     linear = "linear"
 }
 
-interface StageInfo{
+export interface StageInfo{
     identifier: number
     model: string
     kind: StageKind
@@ -101,7 +121,7 @@ interface StageInfo{
     maximum: number
 }
 
-interface StageStatus{
+export interface StageStatus{
     identifier: number
     connected: boolean
     ready: boolean
@@ -109,6 +129,6 @@ interface StageStatus{
     ontarget: boolean
 }
 
-interface Stage {
-
+export interface StageRemoved {
+    identifier: number
 }

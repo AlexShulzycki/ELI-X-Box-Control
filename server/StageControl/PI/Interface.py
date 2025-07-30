@@ -2,14 +2,14 @@ import asyncio
 from typing import Any, Awaitable
 
 from server.StageControl.DataTypes import ControllerInterface, StageStatus, StageInfo, ControllerSettings, \
-    updateResponse
+    updateResponse, StageRemoved
 from server.StageControl.PI.C884 import C884
 from server.StageControl.PI.DataTypes import PIConfiguration, PIController, PIStageInfo, PIControllerModel, \
     MockPIController
 
 
 class PISettings(ControllerSettings):
-
+#TODO IMPLEMENT STAGEREMOVED self.EventAnnouncer.event(StageRemoved(identifier = identifier))
     def __init__(self):
         ControllerSettings.__init__(self)
         # type hint, this is where we store controller statuses

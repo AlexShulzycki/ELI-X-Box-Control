@@ -2,7 +2,8 @@ from typing import Any
 
 from pydantic import Field, BaseModel
 
-from .DataTypes import StageKind, StageInfo, StageStatus, ControllerInterface, ControllerSettings, updateResponse
+from .DataTypes import StageKind, StageInfo, StageStatus, ControllerInterface, ControllerSettings, updateResponse, \
+    StageRemoved
 
 
 class VirtualSettings(ControllerSettings):
@@ -27,6 +28,8 @@ class VirtualSettings(ControllerSettings):
                         identifier=request.identifier,
                         success=True,
                     ))
+                    # success, send an event update
+                    self.EventAnnouncer.event(self.virtualstages[request.identifier].stageInfo)
             except Exception as e:
                 res.append(updateResponse(
                     identifier = request.identifier,
@@ -38,6 +41,7 @@ class VirtualSettings(ControllerSettings):
     def removeConfiguration(self, identifier: int):
         if identifier in self.virtualstages.keys():
             self.virtualstages.pop(identifier)
+            self.EventAnnouncer.event(StageRemoved(identifier = identifier))
             return True
         else:
             return False
@@ -59,8 +63,12 @@ class VirtualStage:
 class VirtualControllerInterface(ControllerInterface):
 
     def __init__(self):
-        self.settings:VirtualSettings = VirtualSettings()
         super().__init__()
+        self.settings:VirtualSettings = VirtualSettings()
+        # forward events
+        sub = self.settings.EventAnnouncer.subscribe(StageInfo, StageRemoved)
+        sub.deliverTo(StageInfo, self.EventAnnouncer.event)
+        sub.deliverTo(StageRemoved, self.EventAnnouncer.event)
 
     @property
     def name(self) -> str:
@@ -75,11 +83,13 @@ class VirtualControllerInterface(ControllerInterface):
         """Move stage to position"""
         self.settings.virtualstages[serial_number].stageStatus.position = position
         self.settings.virtualstages[serial_number].stageStatus.ontarget = True
+        self.EventAnnouncer.event(self.stageStatus)
 
-    def updateStageInfo(self, identifiers: list[int] = None):
-        """Return StageInfo objects for the given stages"""
+    async def updateStageInfo(self, identifiers: list[int] = None):
+        """Update stage info objects"""
         # loop through I cant be bothered
         for v in self.settings.virtualstages.values():
+            print("updatestageinfo sending rn")
             self.EventAnnouncer.event(v.stageInfo)
         return
 
@@ -90,7 +100,7 @@ class VirtualControllerInterface(ControllerInterface):
             e[v.stageInfo.identifier] = v.stageInfo
         return e
 
-    def updateStageStatus(self, identifiers: list[int] = None):
+    async def updateStageStatus(self, identifiers: list[int] = None):
         # loop through I cant be bothered
         for v in self.settings.virtualstages.values():
             self.EventAnnouncer.event(v.stageStatus)

@@ -27,14 +27,14 @@ async def updateStageStatus():
     """
     Updates the status of all connected stages
     """
-    toplevelinterface.updateStageStatus()
+    await toplevelinterface.updateStageStatus()
 
 @router.get("/stage/update/info/")
 async def updateStageInfo():
     """
     Updates the info of all connected stages
     """
-    toplevelinterface.updateStageInfo()
+    await toplevelinterface.updateStageInfo()
 
 class MoveStageRequest(BaseModel):
     identifier: int = Field(description="The stage identifier of the stage you want to move")

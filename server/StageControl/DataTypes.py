@@ -48,6 +48,9 @@ class StageStatus(BaseModel):
     position: float = Field(default=0.0, description="Position of the stage in mm.")
     ontarget: bool = Field(default=False, description="Whether the stage is on target.")
 
+class StageRemoved(BaseModel):
+    """Indicates that the stage has been removed."""
+    identifier: int = Field(description='Unique identifier for the stage')
 
 class EventAnnouncer:
     def __init__(self, *availableDataTypes: type):
@@ -136,7 +139,7 @@ class ControllerInterface:
     settings: ControllerSettings
 
     def __init__(self):
-        self.EventAnnouncer = EventAnnouncer(StageStatus, StageInfo)
+        self.EventAnnouncer = EventAnnouncer(StageStatus, StageInfo, StageRemoved)
 
     @property
     def stages(self) -> list[int]:
@@ -179,7 +182,7 @@ class updateResponse(BaseModel):
 class ControllerSettings:
 
     def __init__(self):
-        self.EventAnnouncer = EventAnnouncer(*self.getDataTypes())
+        self.EventAnnouncer = EventAnnouncer(StageStatus, StageInfo, StageRemoved)
         self._controllerStatuses = []
         pass
 
