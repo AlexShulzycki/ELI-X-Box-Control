@@ -62,19 +62,23 @@ function updateToServer(){
 
   <table v-if="!brandNew">
     <tr>
-      <th>Identifier</th>
+      <th>Field</th>
+      <th>Server State</th>
       <th>Update configuration</th>
     </tr>
     <tr>
+      <th>Identifier</th>
       <td>{{serverstate.identifier}}</td>
       <td><button @click="configstore.removeConfig('Virtual', serverstate.identifier)">Remove Stage</button></td>
     </tr>
     <tr>
-      <td>Model: {{serverstate.model}}</td>
+      <th>Model</th>
+      <td>{{serverstate.model}}</td>
       <td><input v-model="model"/></td>
     </tr>
     <tr>
-      <td>Type of stage: {{serverstate.kind}}</td>
+      <th>Stage Type</th>
+      <td>{{serverstate.kind}}</td>
       <td>
         <select v-model="type">
           <option disabled value="">Please select one</option>
@@ -83,7 +87,8 @@ function updateToServer(){
         </select></td>
     </tr>
     <tr>
-      <td>Min/Max: {{serverstate.minimum}} - {{serverstate.maximum}}mm</td>
+      <th>Min/Max</th>
+      <td>{{serverstate.minimum}} - {{serverstate.maximum}}mm</td>
       <td>Min: <input v-model="min"> Max: <input v-model="max"/>
       </td>
     </tr>
