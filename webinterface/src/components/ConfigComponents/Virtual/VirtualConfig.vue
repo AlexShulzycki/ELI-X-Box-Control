@@ -1,14 +1,12 @@
 <script setup lang="ts">
 import {type SchemaNode} from "json-schema-library";
 import {ref} from "vue";
-import axios from "axios";
 import {useConfigurationStore} from "@/stores/ConfigurationState.ts";
 
 const configstore = useConfigurationStore();
 
 // Declare props
 interface Props {
-  schema: SchemaNode | undefined,
   state: Object
 }
 const props = defineProps<Props>()
@@ -65,7 +63,6 @@ function updateToServer(){
       </td>
     </tr>
     <tr>
-      <td><button>Add another</button></td>
       <td><button @click="updateToServer()">Sent to server for update</button></td>
     </tr>
   </table>
