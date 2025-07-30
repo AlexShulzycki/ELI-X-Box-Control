@@ -5,8 +5,8 @@ import {ref} from "vue";
 const props = defineProps<{state: Object}>();
 
 // variables for editing configuration
-const stages= ref(props.state.stages);
-const clo= ref(props.state.clo);
+const stages = ref(props.state.stages);
+const clo = ref(props.state.clo);
 </script>
 
 <template>

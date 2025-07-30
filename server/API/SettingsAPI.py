@@ -92,7 +92,18 @@ async def updateConfiguration(configuration: dict[str, list[Any]]) -> list[updat
                 toConfig = []
                 # convert each entry to appropriate configuration object
                 for item in array:
-                    toConfig.append(interface.settings.configurationFormat.model_validate(item))
+                    try:
+                        # try to validate the input into the relevant configuration format
+                        toConfig.append(interface.settings.configurationFormat.model_validate(item))
+                    except Exception as e:
+                        # Bad validation format, add as error
+                        res.append(updateResponse(
+                            identifier=-5, # some random identifier to pass the pydantic check
+                            success=False,
+                            error=str(e),
+                        ))
+                        # move on, this will skip adding the current (malformed) configuration and add the error response to the response list
+                        continue
                 try:
                     # Try configuring the objects, and collect their update responses to the response list
                     res.extend(interface.settings.configurationChangeRequest(toConfig))

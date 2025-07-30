@@ -6,22 +6,29 @@ import {useConfigurationStore} from "@/stores/ConfigurationState.ts";
 const configstore = useConfigurationStore();
 
 // Declare props
-interface Props {
-  state: Object
+const {brandNew = false, serverstate = {}} = defineProps<{ serverstate?: Object, brandNew?: boolean }>();
+
+// update state when we wait for the response from the server
+interface responseinterface{
+  identifier: number;
+  success: boolean;
+  error?: string;
 }
-const props = defineProps<Props>()
+// -1 is used as a flag here, if its -1 then don't display the message
+const response = ref({identifier: -1, success: false, error: ""} as responseinterface);
 
 // Variables for updating configuration
-const model = ref(props.state.model)
-const type = ref(props.state.kind)
-const min = ref(props.state.minimum)
-const max = ref(props.state.maximum)
+const identifier = ref(serverstate.identifier)
+const model = ref(serverstate.model)
+const type = ref(serverstate.kind)
+const min = ref(serverstate.minimum)
+const max = ref(serverstate.maximum)
 
 function updateToServer(){
 
   const config = {"Virtual":
                       [{
-                      "identifier": props.state.identifier,
+                      "identifier": identifier.value,
                       "model": model.value,
                       "type": type.value,
                       "minimum": min.value,
@@ -29,27 +36,45 @@ function updateToServer(){
                       }]
               }
   console.log(config)
-  configstore.pushConfig(config)
+  configstore.pushConfig(config).then((res) => {
+    if(res != undefined){
+      response.value = res[0] as responseinterface;
+
+      // set the flag back to -1 to hide the message, vary the timeouts if successful/unsuccessful
+      if(response.value.success){
+        setTimeout(()=>{response.value.identifier = -1}, 3000)
+        // also resync the server settings
+        configstore.syncServerConfigState()
+      }else{
+        //setTimeout(()=>{response.value.identifier = -1}, 10000)
+      }
+    }
+  })
 }
 
 </script>
 
 <template>
-  <table>
+  <div v-if="response.identifier != -1">
+    <h4 v-if="response.success">Successfully updated</h4>
+    <h4 v-if="!response.success">Error: {{response.error}}</h4>
+  </div>
+
+  <table v-if="!brandNew">
     <tr>
       <th>Identifier</th>
       <th>Update configuration</th>
     </tr>
     <tr>
-      <td>{{props.state.identifier}}</td>
-      <td><button @click="configstore.removeConfig('Virtual', props.state.identifier)">Remove Stage</button></td>
+      <td>{{serverstate.identifier}}</td>
+      <td><button @click="configstore.removeConfig('Virtual', serverstate.identifier)">Remove Stage</button></td>
     </tr>
     <tr>
-      <td>Model: {{props.state.model}}</td>
+      <td>Model: {{serverstate.model}}</td>
       <td><input v-model="model"/></td>
     </tr>
     <tr>
-      <td>Type of stage: {{props.state.kind}}</td>
+      <td>Type of stage: {{serverstate.kind}}</td>
       <td>
         <select v-model="type">
           <option disabled value="">Please select one</option>
@@ -58,14 +83,37 @@ function updateToServer(){
         </select></td>
     </tr>
     <tr>
-      <td>Min/Max: {{props.state.minimum}} - {{props.state.maximum}}mm</td>
+      <td>Min/Max: {{serverstate.minimum}} - {{serverstate.maximum}}mm</td>
       <td>Min: <input v-model="min"> Max: <input v-model="max"/>
       </td>
     </tr>
+  </table>
+
+  <table v-else-if="brandNew">
     <tr>
-      <td><button @click="updateToServer()">Sent to server for update</button></td>
+      <th>Identifier</th>
+      <td><input v-model="identifier"/></td>
+    </tr>
+    <tr>
+      <th>Model</th>
+      <td><input v-model="model"/></td>
+    </tr>
+    <tr>
+      <th>Type of stage</th>
+      <td>
+        <select v-model="type">
+          <option disabled value="">Please select one</option>
+          <option>linear</option>
+          <option>rotational</option>
+        </select></td>
+    </tr>
+    <tr>
+      <th>Min/Max</th>
+      <td>Min: <input v-model="min"> Max: <input v-model="max"/></td>
     </tr>
   </table>
+
+<button @click="updateToServer()">Sent to server for update</button>
 
 </template>
 

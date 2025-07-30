@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import {useConfigurationStore} from "@/stores/ConfigurationState.ts";
 import VirtualConfig from "@/components/ConfigComponents/Virtual/VirtualConfig.vue";
+import {ref} from "vue";
 const config = useConfigurationStore();
+
+let hidden = ref(true)
+
+function toggleHidden(){
+  hidden.value = !hidden.value;
+}
 
 </script>
 
@@ -10,10 +17,15 @@ const config = useConfigurationStore();
   <h1>Configuration Browser for Virtual Stages</h1>
     <virtual-config
         v-for="state in config.serverConfigs.get('Virtual')"
-        v-bind:state="state"
+        v-bind:serverstate="state"
         :key="state.identifier"
     />
-    <button @click="console.log('weewoo')">Add another configuration</button>
+    <button @click="toggleHidden()" v-if="hidden">Add another configuration</button>
+    <div v-else>
+      <button @click="toggleHidden()">Close new config edit</button>
+      <virtual-config v-bind:brand-new="true"/>
+    </div>
+
 
 </div>
 </template>
