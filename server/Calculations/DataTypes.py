@@ -2,7 +2,7 @@ import csv
 import os
 from enum import Enum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 
 
 class Element(BaseModel):
@@ -10,6 +10,22 @@ class Element(BaseModel):
     symbol: str = Field(description="Element symbol", examples=["Cu", "Fe"])
     AbsorptionEnergy: dict[str, float]|None = Field(description="Dict of absorption lines", examples=[{"K": 8979}], default=None)
     EmissionEnergy: dict[str, float]|None = Field(description="Dict of emission lines", examples=[{"Ka1": 8047.78}], default=None)
+
+class Crystal(BaseModel):
+    material: str = Field(description="Material of the crystal", examples=["Si"])
+    number: str = Field(description="Crystal lattice", examples=["111", "101"], min_length=3, max_length=3)
+    lattice_constant: float = Field(description="Lattice constant of crystal", examples=[1.0])
+
+    @computed_field(description="Nicely formatted name", examples=["Si(111)", "Si(101"])
+    @property
+    def name(self) -> str:
+        return f"{self.material}({self.number})"
+
+elements: dict[str, Element] = {}
+"""Dict of elements {symbol: Element} with their absorption/emission lines loaded from the data folder"""
+crystals: list[Crystal] = []
+"""List of available Crystal objects loaded form data/crystals.csv"""
+
 
 symbol2name: dict[str, str] = {
     "Ti": "Titanium",
@@ -90,9 +106,6 @@ def loadEnergyCsv(filename):
 
     return data
 
-elements: dict[str, Element] = {}
-"""Loaded in dict of elements {symbol: Element} with their absorption/emission lines from the data folder"""
-
 
 try:
     # try to load in emission/absorption values
@@ -134,11 +147,38 @@ try:
                 EmissionEnergy=emission
             )
 
-
 except Exception as e:
     print("Error with loading in emission/absorption lines:")
     print(e)
 
+# Load in crystals
+try:
+    with open("data/Crystals.csv", "r") as f:
+        read_file = csv.reader(f, delimiter=',')
+        # The first row contains the headers, we will use this to create keys for our dict
+        keys = []  # List of columns - Element, Name, Ka1, etc etc
+
+        headers = read_file.__next__()  # Get the headers and move up
+        for header in headers:
+            keys.append(header)
+
+        # Rest of the file is actual data, process it all!
+        for row in read_file:
+            # Read from this row
+            material, number, lattice_constant = row[0], row[1], float(row[2])
+
+            # Create Crystal object and add to the list
+            crystals.append(Crystal(
+                material=material,
+                number=number,
+                lattice_constant=lattice_constant
+            ))
+
+        f.close()  # Politely close the file
+
+except Exception as e:
+    print("Error loading in crystal data:")
+    print(e)
 
 
 

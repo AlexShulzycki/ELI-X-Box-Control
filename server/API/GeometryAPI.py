@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException
 from server import Interface
 from pydantic import BaseModel, Field
 
-from server.Calculations.DataTypes import Element, elements
+from server.Calculations.DataTypes import Element, elements, Crystal, crystals
 
 router = APIRouter(tags=["calculation", "geometry"])
 
@@ -26,5 +26,10 @@ def isReflectionLegal(req: IsReflectionLegalRequest)-> bool:
 
 @router.get("/geometry/ElementData")
 def getElementData() -> dict[str, Element]:
-    """Returns a dict of elements with their emission/absorption lines"""
+    """Returns a dict of Element objects with their emission/absorption lines from /data/"""
     return elements
+
+@router.get("/geometry/CrystalData")
+def getCrystalData() -> list[Crystal]:
+    """Returns a list of Crystal objects loaded from /data/"""
+    return crystals

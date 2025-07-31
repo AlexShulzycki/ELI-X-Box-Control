@@ -4,6 +4,15 @@ from enum import Enum
 from pydantic import BaseModel, Field
 from decimal import Decimal, ROUND_HALF_UP
 
+from server.Calculations.DataTypes import Element
+
+class Alignment:
+    def __init__(self, element: Element):
+        self.element = element
+
+class EmissionAlignment(Alignment):
+    def __init__(self, element: Element):
+        super().__init__(element)
 
 class Triangle:
     """
