@@ -9,13 +9,14 @@ import Settings from "@/Settings.vue";
       <router-link to="/">Go Home</router-link><br>
       <router-link to="/controllers">Setup controllers</router-link><br>
       <router-link to="/stages">Stages and their statuses</router-link><br>
+      <router-link to="/Assembly3D">3D Assembly</router-link><br>
     </h4>
   </header>
 
   <main>
-    <div style="float: left"><RouterView/></div>
+    <div style="flex:0.7"><RouterView/></div>
 
-    <div style="float: right"><Settings/></div>
+    <div style="flex:0.3"><Settings/></div>
   </main>
 
 </template>
@@ -24,6 +25,10 @@ import Settings from "@/Settings.vue";
 header {
   display: flex;
   line-height: 1.5;
+}
+main{
+  display: flex;
+  flex-direction: row;
 }
 
 @media (min-width: 1024px) {
