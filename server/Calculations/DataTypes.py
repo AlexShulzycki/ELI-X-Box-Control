@@ -23,7 +23,7 @@ class Crystal(BaseModel):
 
 elements: dict[str, Element] = {}
 """Dict of elements {symbol: Element} with their absorption/emission lines loaded from the data folder"""
-crystals: list[Crystal] = []
+crystals: dict[str, Crystal] = {}
 """List of available Crystal objects loaded form data/crystals.csv"""
 
 
@@ -168,11 +168,12 @@ try:
             material, number, lattice_constant = row[0], row[1], float(row[2])
 
             # Create Crystal object and add to the list
-            crystals.append(Crystal(
+            crystal = (Crystal(
                 material=material,
                 number=number,
                 lattice_constant=lattice_constant
             ))
+            crystals[crystal.name] = crystal
 
         f.close()  # Politely close the file
 
