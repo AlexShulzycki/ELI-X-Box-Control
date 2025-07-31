@@ -3,10 +3,15 @@ from __future__ import annotations
 from enum import Enum
 
 from pydantic import BaseModel, Field
+from scipy.optimize import root_scalar
 
-from server.StageControl.Axis import Axis
+#TODO Fix circular import
+#from server.StageControl.Axis import Axis
 
 from scipy.spatial.transform import Rotation
+
+from server.StageControl.DataTypes import EventAnnouncer, StageStatus
+
 
 class XYZvector:
     def __init__(self, xyz=None):
@@ -178,3 +183,56 @@ class AxisComponent(Structure):
         # Continue calculations
         return super().getXYZ(currentXYZ)
 
+
+
+# Set up the main interface
+class AssemblyInterface:
+    def __init__(self):
+        self.EA = EventAnnouncer(StageStatus)
+        self._root: Component = Component(name="root") # For now we create a root, rethink this
+
+    @property
+    def root(self):
+        return self._root
+
+    def traverseTree(self, name:str, root) -> Component|None:
+        """Return a component with the given name"""
+        # check if root
+        if root.name == name:
+            return root
+        # traverse the treee
+        for childcomponent in root.attachments:
+            # check if this is it
+            if childcomponent.name == name:
+                return childcomponent
+            # if not, check its children
+            else:
+                traverse_child = self.traverseTree(name, childcomponent)
+                if traverse_child is not None:
+                    # if we found it, return
+                    return traverse_child
+
+        # if we got all the way here we found nothing
+        return None
+
+    def attach(self, comp: Component, attachment: AttachmentPoint):
+        # Check for name duplicates
+        if self.traverseTree(comp.name, self.root) is not None:
+            # Already exists
+            raise Exception(f"Already have a component with the name {comp.name}, pick a different one")
+
+        # Try to find the component we want to attach to
+        if self.traverseTree(attachment.Attached_To_Component.name, self.root) is None:
+            # Cant find target
+            raise Exception(f"Cannot find component with name {attachment.Attached_To_Component.name}")
+        else:
+            comp.attach(attachment)
+
+
+    def unattach(self, targetname: str):
+        traverse = self.traverseTree(targetname, self.root)
+        if traverse is None:
+            # cant find it
+            raise Exception(f"No component with name {targetname} found")
+        else:
+            traverse.unattach()

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from server.Kinematics.Assembly import Axis
+from server.Interface import toplevelAssemblyInterface
 
 router = APIRouter(tags=["control"])
 
@@ -9,3 +9,5 @@ async def getassemblies():
     Get configured assemblies
     """
     pass
+
+@router.get("/kinematics/assembly")

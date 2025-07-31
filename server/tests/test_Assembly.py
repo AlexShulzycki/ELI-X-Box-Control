@@ -3,7 +3,7 @@ from unittest import TestCase
 import numpy as np
 import scipy.constants
 from server.Interface import Virtualinterface as vinterface
-from server.Kinematics.Assembly import Component, AttachmentPoint, XYZvector, AxisComponent
+from server.Kinematics.Assembly import Component, AttachmentPoint, XYZvector, AxisComponent, AssemblyInterface
 from server.StageControl.Axis import Axis
 from server.StageControl.DataTypes import StageInfo
 
@@ -124,3 +124,16 @@ class TestAxisComponent(TestCase):
         assert loc1 == [3, 1, 0]
         print(loc2)
         assert loc2 == [3, 3, 0]
+
+
+
+class TestAssemblyInterface(TestCase):
+
+    def test_basic(self):
+        ass = AssemblyInterface()
+        c1 = Component(name="c1")
+        c2 = Component(name="c2")
+        ass.attach(c1, AttachmentPoint(Attached_To_Component=ass.root))
+        ass.attach(c2, AttachmentPoint(Attached_To_Component=c1))
+        assert ass.root.attachments.__contains__(c1)
+        assert c1.attachments.__contains__(c2)

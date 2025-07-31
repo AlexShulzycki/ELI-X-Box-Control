@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { useStageInterfaceStore} from "@/stores/StageInterfaceState.ts";
-const StageInterface = useStageInterfaceStore();
+import { useStageStore} from "@/stores/StageStore.ts";
+const StageInterface = useStageStore();
 </script>
 
 <template>

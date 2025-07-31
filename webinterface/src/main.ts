@@ -18,12 +18,12 @@ app.mount('#app')
 // THAT IT IS INSTANTIATED AND READY TO USE
 
 import {
-    useStageInterfaceStore,
+    useStageStore,
     type StageStatus,
     type StageInfo,
     type StageRemoved
-} from "@/stores/StageInterfaceState.ts";
-const stagestore = useStageInterfaceStore();
+} from "@/stores/StageStore.ts";
+const stagestore = useStageStore();
 
 class WSClient {
 

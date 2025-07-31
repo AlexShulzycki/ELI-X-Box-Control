@@ -3,7 +3,7 @@ import axios from "axios";
 
 
 
-export const useStageInterfaceStore = defineStore('AxisInterfaceState', {
+export const useStageStore = defineStore('AxisState', {
     state: () => {
         return {
             stageInfo: new Map<number, StageInfo>(),

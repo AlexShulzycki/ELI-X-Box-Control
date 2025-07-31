@@ -3,7 +3,7 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 import Main from "./Main.vue"
 import Controllers from "./Controllers.vue"
 import StageStatus from "@/components/stageStatus.vue";
-import Assembly3D from "@/components/Assembly3D.vue";
+import Assembly3D from "@/components/3D/Assembly3D.vue";
 
 const routes = [
   { path: '/', component: Main },
