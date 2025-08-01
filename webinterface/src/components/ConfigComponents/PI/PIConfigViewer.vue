@@ -17,16 +17,16 @@ const response = ref({identifier: -1, success: false, error: ""} as responseinte
 
 // variables for editing configuration. We have to force a deep copy, because we don't want to ref a reference, we just
 // want to set default values. Apparently double JSONing it is a highly rated stackoverflow answer. I hate typescript.
-const SN = ref<number>(serverstate.SN)
-const model = ref<string>(serverstate.model)
-const connection_type = ref<string>(serverstate.connection_type)
-const channel_amount = ref<number>(serverstate.channel_amount)
-const stages = ref<Array<string>>(serverstate.stages)
-const clo = ref<Array<boolean>>(serverstate.clo)
-const referenced = ref<Array<boolean>>(serverstate.referenced)
-const min_max = ref<Array<Array<number>>>(serverstate.min_max)
-const baud_rate = ref<number>(serverstate.baud_rate)
-const comport = ref<number>(serverstate.comport)
+const SN: number = ref(serverstate.SN)
+const model: string = ref(serverstate.model)
+const connection_type: string = ref(serverstate.connection_type)
+const channel_amount: number = ref(serverstate.channel_amount)
+const stages: Array<string> = ref(serverstate.stages)
+const clo: Array<boolean> = ref(serverstate.clo)
+const referenced: Array<boolean> = ref(serverstate.referenced)
+const min_max: Array<Array<number>> = ref(serverstate.min_max)
+const baud_rate: number = ref(serverstate.baud_rate)
+const comport: number = ref(serverstate.comport)
 
 //Force channel_amount to dictate length of stages, clo, referenced, min_max
 watch(channel_amount, (current, previous) => {
