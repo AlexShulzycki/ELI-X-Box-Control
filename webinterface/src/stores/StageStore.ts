@@ -8,7 +8,6 @@ export const useStageStore = defineStore('AxisState', {
         return {
             stageInfo: new Map<number, StageInfo>(),
             stageStatus: new Map<number, StageStatus>()
-
         }
     },
     actions: {
@@ -94,6 +93,28 @@ export const useStageStore = defineStore('AxisState', {
                 }
             })
             return res
+        },
+        getStatusInfoPairs: (state) => {
+            let res = new Map<number, stageStatusInfoPair>()
+            state.stageInfo.forEach((value, key) => {
+                if(res.has(key)){
+                    let ssi = res.get(key)
+                    ssi.info = value
+                    res.set(key, ssi)
+                }else{
+                    res.set(key, {info: value} as stageStatusInfoPair)
+                }
+            })
+            state.stageStatus.forEach((value, key) => {
+                if(res.has(key)){
+                    let ssi = res.get(key)
+                    ssi.status = value
+                    res.set(key, ssi)
+                }else{
+                    res.set(key, {status: value} as stageStatusInfoPair)
+                }
+            })
+            return res
         }
 
     }
@@ -131,4 +152,9 @@ export interface StageStatus{
 
 export interface StageRemoved {
     identifier: number
+}
+
+export interface stageStatusInfoPair{
+    status?: StageStatus
+    info?: StageInfo
 }

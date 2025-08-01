@@ -45,14 +45,14 @@ class MoveStageResponse(BaseModel):
     error: str = Field(description="The error message in case of failure", default=None)
 
 @router.post("/stage/move/")
-def moveStage(request: MoveStageRequest) -> MoveStageResponse:
+async def moveStage(request: MoveStageRequest) -> MoveStageResponse:
     """
     Moves the indicated stage
     :param request: Request
     :return: Response
     """
     try:
-        toplevelinterface.moveStage(request.identifier, request.position)
+        await toplevelinterface.moveStage(request.identifier, request.position)
         return MoveStageResponse(success=True)
     except Exception as error:
         return MoveStageResponse(success=False, error=str(error))

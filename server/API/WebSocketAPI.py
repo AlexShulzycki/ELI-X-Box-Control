@@ -132,7 +132,7 @@ class WebSocketAPI:
         }))
 
     async def broadcast(self, json: dict[str, str]):
-        print(f"Broadcasting event {json}")
+        print(f"Broadcasting event {json} to {len(self.active_connections)} active clients")
         awaiters = []
         for connection in self.active_connections:
             awaiters.append(connection.send_json(json))

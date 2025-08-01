@@ -113,7 +113,7 @@ class MainInterface:
         # We haven't found anything, return none.
         return None
 
-    def moveStage(self, identifier: int, position: float) -> bool:
+    async def moveStage(self, identifier: int, position: float) -> bool:
         """
         Move the stage to the given position. Returns True if the stage was moved, raises and
         exception in all other cases.
@@ -125,7 +125,7 @@ class MainInterface:
         if interface is None:
             raise Exception(f"Stage {identifier} doesn't exist")
 
-        interface.moveTo(identifier, position)
+        await interface.moveTo(identifier, position)
 
         # if we're here, no exception was thrown, so it worked.
         return True
