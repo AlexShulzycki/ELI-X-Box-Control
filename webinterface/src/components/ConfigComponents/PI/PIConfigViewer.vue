@@ -1,6 +1,6 @@
 <script setup lang="ts">
 
-import {ref, watch} from "vue";
+import {readonly, ref, watch} from "vue";
 import {useConfigurationStore, type responseinterface} from "@/stores/ConfigurationStore.ts";
 
 const configstore = useConfigurationStore();
@@ -15,18 +15,18 @@ const {
 // -1 is used as a flag here, if its -1 then don't display the message
 const response = ref({identifier: -1, success: false, error: ""} as responseinterface);
 
-// variables for editing configuration
-const SN = ref<number>(serverstate.SN)
-const model = ref<string>(serverstate.model)
-const connection_type = ref<string>(serverstate.connection_type)
-const connected = ref<boolean>(serverstate.connected)
-const channel_amount = ref<number>(serverstate.channel_amount)
-const stages = ref<Array<string>>(serverstate.stages);
-const clo = ref<Array<boolean>>(serverstate.clo);
-const referenced = ref<Array<boolean>>(serverstate.referenced)
-const min_max = ref<Array<Array<number>>>(serverstate.min_max)
-const baud_rate = ref<number>(serverstate.baud_rate)
-const comport = ref<number>(serverstate.com_port)
+// variables for editing configuration. We have to force a deep copy, because we don't want to ref a reference, we just
+// want to set default values. Apparently double JSONing it is a highly rated stackoverflow answer. I hate typescript.
+const SN = ref<number>(JSON.parse(JSON.stringify(serverstate.SN)))
+const model = ref<string>(JSON.parse(JSON.stringify(serverstate.model)))
+const connection_type = ref<string>(JSON.parse(JSON.stringify(serverstate.connection_type)))
+const channel_amount = ref<number>(JSON.parse(JSON.stringify(serverstate.channel_amount)))
+const stages = ref<Array<string>>(JSON.parse(JSON.stringify(serverstate.stages)));
+const clo = ref<Array<boolean>>(JSON.parse(JSON.stringify(serverstate.clo)));
+const referenced = ref<Array<boolean>>(JSON.parse(JSON.stringify(serverstate.referenced)))
+const min_max = ref<Array<Array<number>>>(JSON.parse(JSON.stringify(serverstate.min_max)))
+const baud_rate = ref<number>(JSON.parse(JSON.stringify(serverstate.baud_rate)))
+const comport = ref<number>(JSON.parse(JSON.stringify(serverstate.comport)))
 
 // Force channel_amount to dictate length of stages, clo, referenced, min_max
 watch(channel_amount, (current, previous) => {
@@ -66,7 +66,7 @@ function updateToServer() {
           "SN": SN.value,
           "model": model.value,
           "connection_type": connection_type.value,
-          "connected": connected.value,
+          "connected": true,
           "channel_amount": channel_amount.value,
           "stages": stages.value,
           "clo": clo.value,
@@ -76,7 +76,7 @@ function updateToServer() {
           "comport": comport.value
         }]
   }
-  console.log(config)
+  console.log("Sent config to server: ", config)
   configstore.pushConfig(config).then((res) => {
     if (res != undefined) {
       response.value = res[0] as responseinterface;
@@ -106,59 +106,58 @@ function updateToServer() {
     <tbody>
     <tr>
       <th>Field</th>
-      <th>Server Configuration</th>
+      <th v-if="!brandNew">Server Configuration</th>
       <th>Update to</th>
     </tr>
     <tr>
       <th>Serial Number</th>
-      <td>{{ serverstate.SN }}</td>
-      <td><input v-model="SN"/></td>
+      <td v-if="brandNew"><input v-model="SN"/></td>
+      <td v-else>{{ serverstate.SN }}</td>
     </tr>
     <tr>
       <th>Model</th>
-      <td>{{ serverstate.model }}</td>
-      <td>
+      <td v-if="brandNew">
         <select v-model="model">
           <option disabled value="">Please select one</option>
           <option>C884</option>
           <!-For now only C884-/>
         </select>
       </td>
+      <td v-else>{{ serverstate.model }}</td>
     </tr>
-    <tr>
+    <tr v-if="!brandNew">
       <!--TODO work on the exact interface for readonly states-->
-      <th>Connected</th>
-      <td>{{ serverstate.connected }}</td>
-      <td><input v-model="connected" type="checkbox"/></td>
+      <th>Connection state</th>
+      <td>Connected: {{ serverstate.connected }}, Ready: {{serverstate.ready}}</td>
     </tr>
     <tr>
       <th>Connection Type</th>
-      <td>
-        <p>{{ serverstate.connection_type }}</p>
-      </td>
-      <td>
+      <td v-if="brandNew">
         <select v-model="connection_type">
           <option disabled value="">Please select one</option>
           <option value="usb">USB</option>
           <option value="rs232">RS-232</option>
         </select>
       </td>
+      <td v-else>
+        <p>{{ serverstate.connection_type }}</p>
+      </td>
     </tr>
     <tr v-if="connection_type == 'rs232'">
       <th>RS-232 Options</th>
-      <td>
-        Comport {{ serverstate.comport }}
-        Baud Rate {{ serverstate.baud_rate }}
-      </td>
-      <td>
+      <td v-if="brandNew">
         Comport <input v-model="comport">
         Baud Rate <input v-model="baud_rate">
+      </td>
+      <td v-else>
+        Comport {{ serverstate.comport }}
+        Baud Rate {{ serverstate.baud_rate }}
       </td>
     </tr>
     <tr>
       <th>Channel Amount</th>
-      <td>{{ serverstate.channel_amount }}</td>
-      <td><input v-model="channel_amount"/></td>
+      <td v-if="brandNew"><input v-model="channel_amount"/></td>
+      <td v-else>{{ serverstate.channel_amount }}</td>
     </tr>
     <tr>
       <th colspan="3">

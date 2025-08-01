@@ -34,7 +34,6 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
             // We sync the configs from the server
             const res = await axios.get("get/ConfigState")
             if (res.status == 200) {
-                console.log("parsing received config state")
 
                 // clear the current state TODO have it only edit it, so we dont mess up any front end stuff
                 this.serverConfigs.clear()
@@ -50,7 +49,8 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
                         // try to parse the list of configs according to the schema
                         try {
                             (value as Array<object>).forEach((configState) => {
-                                res.push(schema.getData(configState))
+                                const dat = schema.getData(configState)
+                                res.push(dat)
                             })
 
                             // all done, save the parsed settings
