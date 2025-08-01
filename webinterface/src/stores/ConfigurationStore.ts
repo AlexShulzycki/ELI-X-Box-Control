@@ -103,6 +103,10 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
         getSchemaNodes: (state) => {
             return state.configSchemas
         },
+        getServerConfigs: (state) => {
+            return state.serverConfigs
+        },
+
         getCurrentConfig: (state) => {
             let res = new Map<string, object>()
             state.serverConfigs.forEach((value: Array<object>, key) => {

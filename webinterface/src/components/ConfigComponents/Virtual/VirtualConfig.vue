@@ -1,11 +1,11 @@
 <script setup lang="ts">
+
 import {ref} from "vue";
 import {useConfigurationStore, type responseinterface} from "@/stores/ConfigurationStore.ts";
 
 const configstore = useConfigurationStore();
-
 // Declare props
-const {brandNew = false, serverstate = {}} = defineProps<{ serverstate?: Object, brandNew?: boolean }>();
+const { brandNew = false, serverstate = {} } = defineProps<{ serverstate?: Object, brandNew?: boolean }>();
 
 // -1 is used as a flag here, if its -1 then don't display the message
 const response = ref({identifier: -1, success: false, error: ""} as responseinterface);

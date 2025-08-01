@@ -17,9 +17,9 @@ function toggleHidden() {
 <template>
   <h1>Configurations for PI Controllers</h1>
   <PIConfigViewer
-      v-for="state in config.serverConfigs.get('PI')"
-      :key="state.SN"
+      v-for="state in config.getServerConfigs.get('PI')"
       v-bind:serverstate="state"
+      :key="state.SN"
   />
 
   <button @click="toggleHidden()" v-if="hidden">Add another configuration</button>

@@ -16,7 +16,7 @@ function toggleHidden(){
 <div class="flex-container">
   <h1>Configuration Browser for Virtual Stages</h1>
     <virtual-config
-        v-for="state in config.serverConfigs.get('Virtual')"
+        v-for="state in config.getServerConfigs.get('Virtual')"
         v-bind:serverstate="state"
         :key="state.identifier"
     />

@@ -1,36 +1,54 @@
 <script setup lang="ts">
 
-import {readonly, ref, watch} from "vue";
+import {ref, watch} from "vue";
 import {useConfigurationStore, type responseinterface} from "@/stores/ConfigurationStore.ts";
 
 const configstore = useConfigurationStore();
 
-const {
-  brandNew = false, serverstate = {
-    // initialize variables if empty
-    stages: [], clo: [], referenced: [], min_max: []
-  }
-} = defineProps<{ serverstate?: Object, brandNew?: boolean }>();
+const { brandNew = false, serverstate = {stages: [], clo: [], referenced: [], min_max: []} } = defineProps<{ serverstate?: Object, brandNew?: boolean }>();
 
 // -1 is used as a flag here, if its -1 then don't display the message
 const response = ref({identifier: -1, success: false, error: ""} as responseinterface);
 
 // variables for editing configuration. We have to force a deep copy, because we don't want to ref a reference, we just
 // want to set default values. Apparently double JSONing it is a highly rated stackoverflow answer. I hate typescript.
-const SN: number = ref(serverstate.SN)
-const model: string = ref(serverstate.model)
-const connection_type: string = ref(serverstate.connection_type)
-const channel_amount: number = ref(serverstate.channel_amount)
-const stages: Array<string> = ref(serverstate.stages)
-const clo: Array<boolean> = ref(serverstate.clo)
-const referenced: Array<boolean> = ref(serverstate.referenced)
-const min_max: Array<Array<number>> = ref(serverstate.min_max)
-const baud_rate: number = ref(serverstate.baud_rate)
-const comport: number = ref(serverstate.comport)
+const SN = ref<number>(serverstate.SN)
+const model = ref<string>(serverstate.model)
+const connection_type = ref<string>(serverstate.connection_type)
+const channel_amount = ref<number>(serverstate.channel_amount)
+const baud_rate = ref<number>(serverstate.baud_rate)
+const comport = ref<number>(serverstate.comport)
+
+// We manually pass default values with any array like constructs because otherwise we pass in the reference which is not good.
+const stages = ref<Array<string>>([])
+serverstate.stages.forEach((stg)=>{
+  stages.value.push(stg)
+})
+const clo = ref<Array<boolean>>([])
+serverstate.clo.forEach((c) => {
+  clo.value.push(c)
+})
+const referenced = ref<Array<boolean>>([])
+serverstate.referenced.forEach((r) =>{
+  referenced.value.push(r)
+})
+const min_max = ref<Array<Array<number>>>([])
+serverstate.min_max.forEach((mm) => {
+  min_max.value.push(mm)
+})
+
 
 //Force channel_amount to dictate length of stages, clo, referenced, min_max
 watch(channel_amount, (current, previous) => {
-      console.log("changed channel amount", channel_amount.value)
+
+      // Check if lists are initialized
+      if(stages == undefined || clo == undefined || referenced == undefined || min_max == undefined ){
+          stages.value = []
+          clo.value= []
+          referenced.value = []
+          min_max.value = []
+      }
+
       let difference = null
       if (previous == null) {
         difference = current
