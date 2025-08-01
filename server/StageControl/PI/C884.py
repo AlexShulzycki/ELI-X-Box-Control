@@ -146,6 +146,8 @@ class C884(PIController):
 
         try:
             self.device.CST(self.list2dict(stages))
+            # if we're here then we successfully updated stages
+            self._config.stages = stages
         except Exception as e:
             print(e)
             raise e
@@ -206,7 +208,7 @@ class C884(PIController):
         return self.dict2list(self.device.qSVO(self.device.axes))
 
 
-    async def setServoCLO(self, clolist: list[bool] = None):
+    async def setServoCLO(self, clolist: list[bool|None] = None):
         """
         Try to set all axes to closed loop operation, i.e. enabling them. if no list is given, all configured axes will
         have their CLO set to true
@@ -217,8 +219,16 @@ class C884(PIController):
         if clolist is None:
             self.device.SVO(self.device.axes, [True] * len(self.device.axes))
         else:
+            # if there are non-None values for a stage which is a NOSTAGE, set it to none,
+            # or else GCS will throw an error
+            for i in range(self.config.channel_amount):
+                if self.config.stages[i] is "NOSTAGE":
+                    clolist[i] = None
+
+            # Dictify
             req = self.list2dict(clolist)
-            # only do a request if our request is not empty, else an exception will be thrown
+
+            # Only do a request if our request is not empty, else an exception will be thrown
             if len(req.values()) != 0:
                 self.device.SVO(self.list2dict(clolist))
 

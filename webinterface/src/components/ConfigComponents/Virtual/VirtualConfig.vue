@@ -1,19 +1,11 @@
 <script setup lang="ts">
-import {type SchemaNode} from "json-schema-library";
 import {ref} from "vue";
-import {useConfigurationStore} from "@/stores/ConfigurationStore.ts";
+import {useConfigurationStore, type responseinterface} from "@/stores/ConfigurationStore.ts";
 
 const configstore = useConfigurationStore();
 
 // Declare props
 const {brandNew = false, serverstate = {}} = defineProps<{ serverstate?: Object, brandNew?: boolean }>();
-
-// update state when we wait for the response from the server
-interface responseinterface {
-  identifier: number;
-  success: boolean;
-  error?: string;
-}
 
 // -1 is used as a flag here, if its -1 then don't display the message
 const response = ref({identifier: -1, success: false, error: ""} as responseinterface);

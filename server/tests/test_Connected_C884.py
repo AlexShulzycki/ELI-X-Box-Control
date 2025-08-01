@@ -20,6 +20,8 @@ class TestC884(IsolatedAsyncioTestCase):
             connection_type=PIConnectionType.rs232,
             comport=5,
             channel_amount=6,
+            clo=[False, False, None, False, False, False],
+            referenced= [False, False, False, False, False, False],
             stages=["NOSTAGE", "NOSTAGE", "L-406.40DD10", "NOSTAGE", "NOSTAGE", "NOSTAGE"]))
         print(f"Configured, took {time.time() - t}")
         t = time.time()
@@ -40,7 +42,7 @@ class TestC884(IsolatedAsyncioTestCase):
         print(self.c1.config)
         time.sleep(2)
         t = time.time()
-        await self.c1.moveTo(3, 50)
+        await self.c1.moveTo(3, 30)
         await self.c1.refreshPosOnTarget()
         print(self.c1.stageStatuses)
         print(f"moved and refreshed, took {time.time() - t}")

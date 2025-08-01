@@ -62,6 +62,7 @@ class PISettings(ControllerSettings):
 
     def newController(self, config: PIConfiguration):
         if config.model == PIControllerModel.C884:
+            c884 = C884()
             self.controllers[config.SN] = C884()
         elif config.model == PIControllerModel.mock:
             self.controllers[config.SN] = MockPIController()

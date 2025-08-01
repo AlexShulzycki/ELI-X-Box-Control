@@ -9,7 +9,7 @@ import serial
 from fastapi import APIRouter, HTTPException
 import json
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from server.Interface import toplevelinterface
 from server.StageControl.DataTypes import updateResponse
@@ -94,7 +94,13 @@ async def updateConfiguration(configuration: dict[str, list[Any]]) -> list[updat
                 for item in array:
                     try:
                         # try to validate the input into the relevant configuration format
-                        toConfig.append(interface.settings.configurationFormat.model_validate(item))
+                        try:
+                            valid_model = interface.settings.configurationFormat.model_validate(item)
+                            toConfig.append(valid_model)
+                        except ValidationError as e:
+                            print("Issue parsing config: ", e)
+                            print(item)
+                            raise e
                     except Exception as e:
                         # Bad validation format, add as error
                         res.append(updateResponse(
@@ -106,7 +112,10 @@ async def updateConfiguration(configuration: dict[str, list[Any]]) -> list[updat
                         continue
                 try:
                     # Try configuring the objects, and collect their update responses to the response list
-                    res.extend(interface.settings.configurationChangeRequest(toConfig))
+                    awaiters = await asyncio.gather(interface.settings.configurationChangeRequest(toConfig))
+                    for a in awaiters:
+                        res.extend(a)
+
                 except Exception as e:
                     # something catastrophic has happened if that failed
                     raise HTTPException(status_code=500, detail=str(e))
@@ -135,7 +144,7 @@ async def getRemoveConfiguration(controllername:str, identifier:int):
     for cntr in toplevelinterface.interfaces:
         if cntr.name == controllername:
             # we found the correct controller, run the command
-            return cntr.settings.removeConfiguration(identifier)
+            return await cntr.settings.removeConfiguration(identifier)
 
     # if we are here, we haven't found anything
     raise HTTPException(status_code=404, detail=f"Controller interface {controllername} cannot be found")

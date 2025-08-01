@@ -133,3 +133,10 @@ function objectToMap<type>(data:Object) {
     })
     return res
 }
+
+// update state when we wait for the response from the server
+export interface responseinterface {
+  identifier: number;
+  success: boolean;
+  error?: string;
+}

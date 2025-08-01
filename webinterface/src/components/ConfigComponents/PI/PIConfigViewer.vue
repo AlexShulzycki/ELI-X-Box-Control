@@ -1,6 +1,9 @@
 <script setup lang="ts">
 
 import {ref, watch} from "vue";
+import {useConfigurationStore, type responseinterface} from "@/stores/ConfigurationStore.ts";
+
+const configstore = useConfigurationStore();
 
 const {
   brandNew = false, serverstate = {
@@ -8,6 +11,9 @@ const {
     stages: [], clo: [], referenced: [], min_max: []
   }
 } = defineProps<{ serverstate?: Object, brandNew?: boolean }>();
+
+// -1 is used as a flag here, if its -1 then don't display the message
+const response = ref({identifier: -1, success: false, error: ""} as responseinterface);
 
 // variables for editing configuration
 const SN = ref<number>(serverstate.SN)
@@ -24,35 +30,78 @@ const comport = ref<number>(serverstate.com_port)
 
 // Force channel_amount to dictate length of stages, clo, referenced, min_max
 watch(channel_amount, (current, previous) => {
-  console.log("changed channel amount", channel_amount.value)
-  let difference = null
-  if(previous == null) {
-    difference = current
-  }else{
-    difference = current - previous;
-  }
+      console.log("changed channel amount", channel_amount.value)
+      let difference = null
+      if (previous == null) {
+        difference = current
+      } else {
+        difference = current - previous;
+      }
 
 
-  if (difference > 0) {
-    // we added more channels
-    for (let i = 0; i < difference; i++) {
-      stages.value.push("NOSTAGE")
-      clo.value.push(false)
-      referenced.value.push(false)
-      min_max.value.push([0, 0])
+      if (difference > 0) {
+        // we added more channels
+        for (let i = 0; i < difference; i++) {
+          stages.value.push("NOSTAGE")
+          clo.value.push(false)
+          referenced.value.push(false)
+          min_max.value.push([0, 0])
+        }
+      } else if (difference < 0) {
+        for (let i = 0; i < (difference * -1); i++) {
+          stages.value.pop()
+          clo.value.pop()
+          referenced.value.pop()
+          min_max.value.pop()
+        }
+      }
     }
-  } else if (difference < 0) {
-    for (let i = 0; i < (difference * -1); i++) {
-      stages.value.pop()
-      clo.value.pop()
-      referenced.value.pop()
-      min_max.value.pop()
-    }
+)
+
+function updateToServer() {
+
+  const config = {
+    "PI":
+        [{
+          "SN": SN.value,
+          "model": model.value,
+          "connection_type": connection_type.value,
+          "connected": connected.value,
+          "channel_amount": channel_amount.value,
+          "stages": stages.value,
+          "clo": clo.value,
+          "referenced": referenced.value,
+          "min_max": min_max.value,
+          "baud_rate": baud_rate.value,
+          "comport": comport.value
+        }]
   }
-})
+  console.log(config)
+  configstore.pushConfig(config).then((res) => {
+    if (res != undefined) {
+      response.value = res[0] as responseinterface;
+
+      // set the flag back to -1 to hide the message, vary the timeouts if successful/unsuccessful
+      if (response.value.success) {
+        setTimeout(() => {
+          response.value.identifier = -1
+        }, 3000)
+        // also resync the server settings
+        configstore.syncServerConfigState()
+      } else {
+        //setTimeout(()=>{response.value.identifier = -1}, 10000)
+      }
+    }
+  })
+}
 </script>
 
 <template>
+  <div v-if="response.identifier != -1">
+    <h4 v-if="response.success">Successfully updated</h4>
+    <h4 v-if="!response.success">Error: {{ response.error }}</h4>
+  </div>
+
   <table>
     <tbody>
     <tr>
@@ -66,6 +115,17 @@ watch(channel_amount, (current, previous) => {
       <td><input v-model="SN"/></td>
     </tr>
     <tr>
+      <th>Model</th>
+      <td>{{ serverstate.model }}</td>
+      <td>
+        <select v-model="model">
+          <option disabled value="">Please select one</option>
+          <option>C884</option>
+          <!-For now only C884-/>
+        </select>
+      </td>
+    </tr>
+    <tr>
       <!--TODO work on the exact interface for readonly states-->
       <th>Connected</th>
       <td>{{ serverstate.connected }}</td>
@@ -75,8 +135,24 @@ watch(channel_amount, (current, previous) => {
       <th>Connection Type</th>
       <td>
         <p>{{ serverstate.connection_type }}</p>
-        <p v-if="serverstate.connection_type == 'rs232'">Comport {{ serverstate.comport }}, Baud Rate
-          {{ serverstate.baud_rate }}</p>
+      </td>
+      <td>
+        <select v-model="connection_type">
+          <option disabled value="">Please select one</option>
+          <option value="usb">USB</option>
+          <option value="rs232">RS-232</option>
+        </select>
+      </td>
+    </tr>
+    <tr v-if="connection_type == 'rs232'">
+      <th>RS-232 Options</th>
+      <td>
+        Comport {{ serverstate.comport }}
+        Baud Rate {{ serverstate.baud_rate }}
+      </td>
+      <td>
+        Comport <input v-model="comport">
+        Baud Rate <input v-model="baud_rate">
       </td>
     </tr>
     <tr>
@@ -85,46 +161,48 @@ watch(channel_amount, (current, previous) => {
       <td><input v-model="channel_amount"/></td>
     </tr>
     <tr>
-      <th>Stages</th>
-      <td>
-        <div v-for="stage in serverstate.stages" key="index">
-          <p>{{ stage }}</p>
-        </div>
-      </td>
-      <td>
-        <div v-for="(_stage, index) in stages" key="index">
-          <input v-model="stages[index]"/>
-        </div>
-      </td>
-    </tr>
-    <tr>
-      <th>Closed Loop Operation</th>
-      <td>
-        <div v-for="clo in serverstate.clo">
-          <p>{{ clo }}</p>
-        </div>
-      </td>
-      <td>
-        <div v-for="(_clo, index) in clo" :key="index">
-          <input v-model="clo[index]" type="checkbox"/>
-        </div>
-      </td>
-    </tr>
-    <tr>
-      <th>Referenced</th>
-      <td>
-        <div v-for="refd in serverstate.referenced">
-          <p>{{ refd }}</p>
-        </div>
-      </td>
-      <td>
-        <div v-for="(_refd, index) in referenced">
-          <input v-model="referenced[index]" type="checkbox"/>
-        </div>
-      </td>
+      <th colspan="3">
+        <table>
+          <tbody>
+          <tr>
+            <th>Channel</th>
+            <th v-for="(stage, index) in stages">{{ index + 1 }}</th>
+          </tr>
+          <tr>
+            <th>Stages</th>
+
+            <td v-for="(stage, index) in serverstate.stages" key="index">
+              <p>{{ stage }}</p>
+              <p>Change to:</p>
+              <input v-model="stages[index]"/>
+            </td>
+
+          </tr>
+          <tr>
+            <th>Closed Loop Operation</th>
+            <td v-for="(_clo, index) in serverstate.clo">
+              <p>{{ _clo }}</p>
+              <p>Change to:</p>
+              <input v-model="clo[index]" type="checkbox"/>
+            </td>
+          </tr>
+          <tr>
+            <th>Referenced</th>
+
+            <td v-for="(refd, index) in serverstate.referenced" :key="index">
+              <p>{{ refd }}</p>
+              <p>Change to:</p>
+              <input v-model="referenced[index]" type="checkbox"/>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </th>
     </tr>
     </tbody>
   </table>
+
+  <button @click="updateToServer()">Sent to server for update</button>
 </template>
 
 <style scoped>
