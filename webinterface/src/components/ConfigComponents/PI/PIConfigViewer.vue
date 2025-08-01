@@ -2,7 +2,12 @@
 
 import {ref, watch} from "vue";
 
-const {brandNew = false, serverstate = {}} = defineProps<{ serverstate?: Object, brandNew?: boolean }>();
+const {
+  brandNew = false, serverstate = {
+    // initialize variables if empty
+    stages: [], clo: [], referenced: [], min_max: []
+  }
+} = defineProps<{ serverstate?: Object, brandNew?: boolean }>();
 
 // variables for editing configuration
 const SN = ref<number>(serverstate.SN)
@@ -19,7 +24,15 @@ const comport = ref<number>(serverstate.com_port)
 
 // Force channel_amount to dictate length of stages, clo, referenced, min_max
 watch(channel_amount, (current, previous) => {
-  const difference = current - previous;
+  console.log("changed channel amount", channel_amount.value)
+  let difference = null
+  if(previous == null) {
+    difference = current
+  }else{
+    difference = current - previous;
+  }
+
+
   if (difference > 0) {
     // we added more channels
     for (let i = 0; i < difference; i++) {
@@ -41,6 +54,7 @@ watch(channel_amount, (current, previous) => {
 
 <template>
   <table>
+    <tbody>
     <tr>
       <th>Field</th>
       <th>Server Configuration</th>
@@ -60,13 +74,14 @@ watch(channel_amount, (current, previous) => {
     <tr>
       <th>Connection Type</th>
       <td>
-        <p>{{serverstate.connection_type}}</p>
-        <p v-if="serverstate.connection_type == 'rs232'">Comport {{serverstate.comport}}, Baud Rate {{serverstate.baud_rate}}</p>
+        <p>{{ serverstate.connection_type }}</p>
+        <p v-if="serverstate.connection_type == 'rs232'">Comport {{ serverstate.comport }}, Baud Rate
+          {{ serverstate.baud_rate }}</p>
       </td>
     </tr>
     <tr>
       <th>Channel Amount</th>
-      <td>{{serverstate.channel_amount }}</td>
+      <td>{{ serverstate.channel_amount }}</td>
       <td><input v-model="channel_amount"/></td>
     </tr>
     <tr>
@@ -77,21 +92,21 @@ watch(channel_amount, (current, previous) => {
         </div>
       </td>
       <td>
-        <div v-for="stage in stages" key="index">
-          <input v-model="stage"/>
+        <div v-for="(_stage, index) in stages" key="index">
+          <input v-model="stages[index]"/>
         </div>
       </td>
     </tr>
     <tr>
       <th>Closed Loop Operation</th>
       <td>
-        <div v-for="(clo, index) in serverstate.clo" :key="index">
+        <div v-for="clo in serverstate.clo">
           <p>{{ clo }}</p>
         </div>
       </td>
       <td>
-        <div v-for="(clo, index) in clo" :key="index">
-          <input v-model="clo" type="checkbox"/>
+        <div v-for="(_clo, index) in clo" :key="index">
+          <input v-model="clo[index]" type="checkbox"/>
         </div>
       </td>
     </tr>
@@ -99,15 +114,16 @@ watch(channel_amount, (current, previous) => {
       <th>Referenced</th>
       <td>
         <div v-for="refd in serverstate.referenced">
-          <p>{{refd}}</p>
+          <p>{{ refd }}</p>
         </div>
       </td>
       <td>
-        <div v-for="refd in referenced">
-          <input v-model="refd" type="checkbox"/>
+        <div v-for="(_refd, index) in referenced">
+          <input v-model="referenced[index]" type="checkbox"/>
         </div>
       </td>
     </tr>
+    </tbody>
   </table>
 </template>
 

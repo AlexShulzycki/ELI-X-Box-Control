@@ -1,6 +1,6 @@
 <script async setup lang="ts">
 
-import {useConfigurationStore} from "@/stores/ConfigurationState.ts";
+import {useConfigurationStore} from "@/stores/ConfigurationStore.ts";
 
 const configs = useConfigurationStore()
 

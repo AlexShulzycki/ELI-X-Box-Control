@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import VirtualConfigBrowser from "@/components/ConfigComponents/Virtual/VirtualConfigBrowser.vue";
-import {useConfigurationStore} from "@/stores/ConfigurationState.ts";
+import {useConfigurationStore} from "@/stores/ConfigurationStore.ts";
 import PIConfigBrowser from "@/components/ConfigComponents/PI/PIConfigBrowser.vue";
 
 const config = useConfigurationStore()

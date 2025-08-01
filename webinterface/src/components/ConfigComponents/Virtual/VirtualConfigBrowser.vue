@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {useConfigurationStore} from "@/stores/ConfigurationState.ts";
+import {useConfigurationStore} from "@/stores/ConfigurationStore.ts";
 import VirtualConfig from "@/components/ConfigComponents/Virtual/VirtualConfig.vue";
 import {ref} from "vue";
 const config = useConfigurationStore();
