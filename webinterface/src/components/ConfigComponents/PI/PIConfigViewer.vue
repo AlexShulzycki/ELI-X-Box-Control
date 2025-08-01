@@ -17,18 +17,18 @@ const response = ref({identifier: -1, success: false, error: ""} as responseinte
 
 // variables for editing configuration. We have to force a deep copy, because we don't want to ref a reference, we just
 // want to set default values. Apparently double JSONing it is a highly rated stackoverflow answer. I hate typescript.
-const SN = ref<number>(JSON.parse(JSON.stringify(serverstate.SN)))
-const model = ref<string>(JSON.parse(JSON.stringify(serverstate.model)))
-const connection_type = ref<string>(JSON.parse(JSON.stringify(serverstate.connection_type)))
-const channel_amount = ref<number>(JSON.parse(JSON.stringify(serverstate.channel_amount)))
-const stages = ref<Array<string>>(JSON.parse(JSON.stringify(serverstate.stages)));
-const clo = ref<Array<boolean>>(JSON.parse(JSON.stringify(serverstate.clo)));
-const referenced = ref<Array<boolean>>(JSON.parse(JSON.stringify(serverstate.referenced)))
-const min_max = ref<Array<Array<number>>>(JSON.parse(JSON.stringify(serverstate.min_max)))
-const baud_rate = ref<number>(JSON.parse(JSON.stringify(serverstate.baud_rate)))
-const comport = ref<number>(JSON.parse(JSON.stringify(serverstate.comport)))
+const SN = ref<number>(serverstate.SN)
+const model = ref<string>(serverstate.model)
+const connection_type = ref<string>(serverstate.connection_type)
+const channel_amount = ref<number>(serverstate.channel_amount)
+const stages = ref<Array<string>>(serverstate.stages)
+const clo = ref<Array<boolean>>(serverstate.clo)
+const referenced = ref<Array<boolean>>(serverstate.referenced)
+const min_max = ref<Array<Array<number>>>(serverstate.min_max)
+const baud_rate = ref<number>(serverstate.baud_rate)
+const comport = ref<number>(serverstate.comport)
 
-// Force channel_amount to dictate length of stages, clo, referenced, min_max
+//Force channel_amount to dictate length of stages, clo, referenced, min_max
 watch(channel_amount, (current, previous) => {
       console.log("changed channel amount", channel_amount.value)
       let difference = null
@@ -146,8 +146,8 @@ function updateToServer() {
     <tr v-if="connection_type == 'rs232'">
       <th>RS-232 Options</th>
       <td v-if="brandNew">
-        Comport <input v-model="comport">
-        Baud Rate <input v-model="baud_rate">
+        Comport <input v-model="comport" type="number">
+        Baud Rate <input v-model="baud_rate" type="number">
       </td>
       <td v-else>
         Comport {{ serverstate.comport }}
@@ -156,7 +156,7 @@ function updateToServer() {
     </tr>
     <tr>
       <th>Channel Amount</th>
-      <td v-if="brandNew"><input v-model="channel_amount"/></td>
+      <td v-if="brandNew"><input v-model="channel_amount" type="number"/></td>
       <td v-else>{{ serverstate.channel_amount }}</td>
     </tr>
     <tr>

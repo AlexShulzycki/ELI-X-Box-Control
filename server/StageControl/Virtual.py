@@ -19,7 +19,7 @@ class VirtualSettings(ControllerSettings):
             res.append(v.stageInfo)
         return res
 
-    def configurationChangeRequest(self, requests: list[StageInfo]) -> list[updateResponse]:
+    async def configurationChangeRequest(self, requests: list[StageInfo]) -> list[updateResponse]:
         res = []
         for request in requests:
             try:
@@ -38,7 +38,7 @@ class VirtualSettings(ControllerSettings):
                 ))
         return res
 
-    def removeConfiguration(self, identifier: int):
+    async def removeConfiguration(self, identifier: int):
         if identifier in self.virtualstages.keys():
             self.virtualstages.pop(identifier)
             self.EventAnnouncer.event(StageRemoved(identifier = identifier))

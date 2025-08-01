@@ -2,6 +2,8 @@ import asyncio
 from typing import Coroutine, Awaitable, Any
 
 from pipython import GCSDevice
+
+from server.StageControl.DataTypes import EventAnnouncer, StageInfo, StageStatus
 from server.StageControl.PI.DataTypes import PIController, PIConfiguration, PIConnectionType, PIStageInfo
 
 
@@ -51,15 +53,20 @@ class C884(PIController):
         # Start up GCS device
         self.device: GCSDevice.gcsdevice = GCSDevice("C-884").gcsdevice
         """GCSDevice instance, DO NOT ACESS/MODIFY OUTSIDE OF THE C884 CLASS"""
-
         super().__init__()
+
+
 
     async def updateFromConfig(self, config: PIConfiguration):
         """
-        Compares given status with current status of controller, and changes settings if necessary.
+        Compares given status with current status of controller, and changes settings if necessary. If a new valid stage
+        appears, send an event.
         :param config: Status object with the controller state that we want.
         :return:
         """
+
+
+
         # if we are a fresh object without a config, lets make one
         if self.config is None:
             self._config = PIConfiguration(
@@ -222,7 +229,7 @@ class C884(PIController):
             # if there are non-None values for a stage which is a NOSTAGE, set it to none,
             # or else GCS will throw an error
             for i in range(self.config.channel_amount):
-                if self.config.stages[i] is "NOSTAGE":
+                if self.config.stages[i] == "NOSTAGE":
                     clolist[i] = None
 
             # Dictify
@@ -253,6 +260,7 @@ class C884(PIController):
 
 
     async def refreshFullStatus(self):
+        print("referesh full status")
         status = PIConfiguration(
             SN=self.config.SN,
             model = self.config.model,
@@ -278,6 +286,12 @@ class C884(PIController):
         # update other bits and bobs
         await asyncio.gather(self.update_range(), self.update_position(), self.update_onTarget())
 
+        # Send a status update
+        for info in self.stageInfos.values():
+            self.EA.event(info)
+        for status in self.stageStatuses.values():
+            self.EA.event(status)
+
     @property
     def config(self) -> PIConfiguration:
 
@@ -294,6 +308,10 @@ class C884(PIController):
 
     async def refreshPosOnTarget(self):
         await asyncio.gather(self.update_onTarget(), self.update_position())
+
+        # Send a status update
+        for status in self.stageStatuses.values():
+            self.EA.event(status)
 
     async def update_position(self):
         """

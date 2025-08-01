@@ -118,6 +118,7 @@ async def updateConfiguration(configuration: dict[str, list[Any]]) -> list[updat
 
                 except Exception as e:
                     # something catastrophic has happened if that failed
+                    print("Catastrophic failure updating configuration", e)
                     raise HTTPException(status_code=500, detail=str(e))
     return res
 

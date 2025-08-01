@@ -11,10 +11,15 @@ from server.StageControl.PI.DataTypes import PIConfiguration, PIController, PISt
 class PISettings(ControllerSettings):
 #TODO IMPLEMENT STAGEREMOVED self.EventAnnouncer.event(StageRemoved(identifier = identifier))
     def __init__(self):
-        ControllerSettings.__init__(self)
+        super().__init__()
         # type hint, this is where we store controller statuses
         self.controllers: dict[int, PIController] = {}
 
+    def subscribeTo(self, cntr: PIController):
+        sub = cntr.EA.subscribe(StageStatus, StageInfo, StageRemoved)
+        sub.deliverTo(StageStatus, self.EventAnnouncer.event)
+        sub.deliverTo(StageInfo, self.EventAnnouncer.event)
+        sub.deliverTo(StageRemoved, self.EventAnnouncer.event)
 
     @property
     def currentConfiguration(self) -> list[PIConfiguration]:
@@ -34,9 +39,11 @@ class PISettings(ControllerSettings):
             try:
                 # If we don't have a controller with the SN we need to create a blank new one
                 if not self.controllers.keys().__contains__(req.SN):
-                    self.newController(req)
-                # Update the relevant controller
-                await self.updateController(req)
+                    await self.newController(req)
+                else:
+                    # Update the relevant controller
+
+                    await self.updateController(req)
                 res.append(updateResponse(
                     identifier=req.SN,
                     success=True,
@@ -60,11 +67,16 @@ class PISettings(ControllerSettings):
         self.controllers.pop(SN)
 
 
-    def newController(self, config: PIConfiguration):
+    async def newController(self, config: PIConfiguration):
         if config.model == PIControllerModel.C884:
             c884 = C884()
-            self.controllers[config.SN] = C884()
+            await c884.updateFromConfig(config)
+            self.controllers[config.SN] = c884
+            self.subscribeTo(c884)
+
         elif config.model == PIControllerModel.mock:
+            mock = MockPIController()
+            await mock.updateFromConfig(config)
             self.controllers[config.SN] = MockPIController()
         else:
             raise Exception("Unknown PI controller model")
@@ -81,8 +93,7 @@ class PISettings(ControllerSettings):
         """Return stage status of properly configured and ready stages"""
         res = {}
         for cntrl in self.controllers.values():
-            for status in cntrl.stageStatuses:
-                res[status.identifier] = status
+            res.update(cntrl.stageStatuses)
 
         return res
 
@@ -90,8 +101,7 @@ class PISettings(ControllerSettings):
     def stageInfo(self) -> dict[int, PIStageInfo]:
         res = {}
         for cntrl in self.controllers.values():
-            for info in cntrl.stageInfos:
-                res[info.identifier] = info
+            res.update(cntrl.stageInfos)
         return res
 
     @property
@@ -120,9 +130,13 @@ def deconstruct_SN_Channel(sn_channel):
 class PIControllerInterface(ControllerInterface):
 
     def __init__(self):
-        super().__init__()
         self.settings:PISettings = PISettings()
+        super().__init__()
         """The PISettings is handling basically everything for us"""
+        sub = self.settings.EventAnnouncer.subscribe(StageStatus, StageInfo, StageRemoved)
+        sub.deliverTo(StageStatus, self.EventAnnouncer.event)
+        sub.deliverTo(StageInfo, self.EventAnnouncer.event)
+        sub.deliverTo(StageRemoved, self.EventAnnouncer.event)
 
     @property
     def stages(self) -> list[int]:

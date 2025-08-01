@@ -8,7 +8,9 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic_core.core_schema import FieldValidationInfo
 from typing_extensions import Self, Annotated
 
-from server.StageControl.DataTypes import ControllerSettings, StageStatus, StageInfo, EventAnnouncer, StageKind
+from server.StageControl.DataTypes import ControllerSettings, StageStatus, StageInfo, EventAnnouncer, StageKind, \
+    StageRemoved
+
 
 class C884Settings(BaseModel):
     pass
@@ -123,7 +125,7 @@ class PIStageInfo(StageInfo):
 class PIController:
     #TODO Implement event announcer
     def __init__(self):
-        self.EA = EventAnnouncer(StageStatus, StageInfo)
+        self.EA = EventAnnouncer(StageStatus, StageInfo, StageRemoved)
         self._config = None
 
 
@@ -156,14 +158,14 @@ class PIController:
         raise NotImplementedError
 
     @property
-    def stageInfos(self) -> list[PIStageInfo]:
-        res = []
+    def stageInfos(self) -> dict[str, PIStageInfo]:
+        res = {}
         for i in range(self.config.channel_amount):
             # Check if valid stage
             if self.config.stages[i] == "NOSTAGE":
                 continue
 
-            res.append(PIStageInfo(
+            stat = PIStageInfo(
                 controllerSN=self.config.SN,
                 channel=i+1,
                 model = self.config.stages[i],
@@ -171,28 +173,30 @@ class PIController:
                 kind = StageKind.linear, #TODO UNHARDCODE
                 minimum = self.config.min_max[i][0],
                 maximum = self.config.min_max[i][1]
-            ))
-
+            )
             # if we are here, the stage exists
+            res[stat.identifier] = stat
+
 
         return res
 
 
     @property
-    def stageStatuses(self) -> list[StageStatus]:
-        res = []
+    def stageStatuses(self) -> dict[str, StageStatus]:
+        res = {}
         for i in range(self.config.channel_amount):
 
             # only add if its an actual stage
             if self.config.stages[i] == "NOSTAGE":
                 continue
-            res.append(StageStatus(
+            stat = (StageStatus(
                 identifier =self.config.SN * 10 + (i + 1),
                 connected = self.config.connected,
                 ready = self.config.ready,
                 position=self.config.position[i],
                 ontarget=self.config.on_target[i]
             ))
+            res[stat.identifier] = stat
         return res
 
 class MockPIController(PIController):
