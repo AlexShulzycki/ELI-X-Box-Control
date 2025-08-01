@@ -73,6 +73,8 @@ class PISettings(ControllerSettings):
             await c884.updateFromConfig(config)
             self.controllers[config.SN] = c884
             self.subscribeTo(c884)
+            # Do a full status refresh, which sends any new valid axis events
+            await c884.refreshFullStatus()
 
         elif config.model == PIControllerModel.mock:
             mock = MockPIController()
@@ -130,13 +132,10 @@ def deconstruct_SN_Channel(sn_channel):
 class PIControllerInterface(ControllerInterface):
 
     def __init__(self):
-        self.settings:PISettings = PISettings()
         super().__init__()
+        self.settings:PISettings = PISettings()
         """The PISettings is handling basically everything for us"""
-        sub = self.settings.EventAnnouncer.subscribe(StageStatus, StageInfo, StageRemoved)
-        sub.deliverTo(StageStatus, self.EventAnnouncer.event)
-        sub.deliverTo(StageInfo, self.EventAnnouncer.event)
-        sub.deliverTo(StageRemoved, self.EventAnnouncer.event)
+        self.EventAnnouncer.patch_through_from(self.EventAnnouncer.availableDataTypes, self.settings.EventAnnouncer)
 
     @property
     def stages(self) -> list[int]:
@@ -189,8 +188,6 @@ class PIControllerInterface(ControllerInterface):
             awaiters.append(self.settings.controllers[sn].refreshFullStatus())
         await asyncio.gather(*awaiters)
 
-        super().updateStageInfo()
-
     @property
     def stageStatus(self) -> dict[int, StageStatus]:
         res = {}
@@ -212,8 +209,6 @@ class PIControllerInterface(ControllerInterface):
             awaiters.append(self.settings.controllers[sn].refreshPosOnTarget())
         await asyncio.gather(*awaiters)
 
-        super().updateStageStatus()
-        pass
 
     @property
     def name(self) -> str:

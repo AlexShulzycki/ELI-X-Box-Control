@@ -96,6 +96,9 @@ class C884(PIController):
             print("Referencing")
             await self.reference(config.referenced)
 
+        # Do a full status refresh
+        await self.refreshFullStatus()
+
 
     @staticmethod
     def list2dict(fromList: list[Any]) -> dict[int, Any]:
@@ -284,13 +287,11 @@ class C884(PIController):
         self._config = status
 
         # update other bits and bobs
-        await asyncio.gather(self.update_range(), self.update_position(), self.update_onTarget())
+        await asyncio.gather(self.update_range(), self.refreshPosOnTarget())
 
-        # Send a status update
+        # Send an info update, status is handled in pos on target
         for info in self.stageInfos.values():
             self.EA.event(info)
-        for status in self.stageStatuses.values():
-            self.EA.event(status)
 
     @property
     def config(self) -> PIConfiguration:

@@ -79,6 +79,17 @@ class EventAnnouncer:
     def unsubscribe(self, sub: Subscription):
         self.subs.remove(sub)
 
+    def patch_through_from(self, datatypes: list[type], target: EventAnnouncer):
+        """
+        Patch through events of this type to the target EventAnnouncer
+        :param datatypes: Datatypes to forward
+        :param target: target EventAnnouncer
+        :return:
+        """
+        sub = target.subscribe(*datatypes)
+        for datatype in datatypes:
+            sub.deliverTo(datatype, self.event)
+
 
 class Subscription:
 
@@ -156,9 +167,8 @@ class ControllerInterface:
         raise NotImplementedError
 
     def updateStageInfo(self, identifiers: list[int] = None):
-        """Updates StageInfo for the given stages or all if identifier list is empty.
-        Call super after you are done, this will update the event announcer."""
-        self.EventAnnouncer.event(self.stageInfo)
+        """Updates StageInfo for the given stages or all if identifier list is empty"""
+        raise NotImplementedError
 
     @property
     def stageStatus(self) -> dict[int, StageStatus]:
@@ -166,9 +176,8 @@ class ControllerInterface:
         raise NotImplementedError
 
     def updateStageStatus(self, identifiers: list[int] = None):
-        """Updates stageStatus for the given stages or all if identifier list is empty.
-        Call super after you are done, this will update the event announcer."""
-        self.EventAnnouncer.event(self.stageStatus)
+        """Updates stageStatus for the given stages or all if identifier list is empty."""
+        raise NotImplementedError
 
     @property
     def name(self) -> str:
