@@ -226,12 +226,16 @@ class MockPIController(PIController):
             self._config.position = [None] * len(stages)
             self._config.on_target = [None] * len(stages)
             self._config.clo = [None] * len(stages)
+            self._config.min_max = [None] * len(stages)
 
         for i, stage in enumerate(stages):
             if stage == "NOSTAGE":
                 continue
             else:
                 self._config.stages[i] = stage
+                self._config.min_max[i] = [0,0]
+                self._config.position[i] = 0
+                self.config.on_target[i] = False
 
         self._config.stages = stages
 
@@ -245,12 +249,20 @@ class MockPIController(PIController):
 
         # Check if we are brand new
         if self.config is None:
-            self._config = PIConfiguration(
-                SN = config.SN,
-                model = config.model,
-                connection_type = config.connection_type
-            )
-
+            # ugly if then can't be bothered to streamline this
+            if config.connection_type != PIConnectionType.rs232:
+                self._config = PIConfiguration(
+                    SN = config.SN,
+                    model = config.model,
+                    connection_type = config.connection_type,
+                )
+            else:
+                self._config = PIConfiguration(
+                    SN=config.SN,
+                    model=config.model,
+                    connection_type=config.connection_type,
+                    comport=config.comport,
+                    baud_rate=config.baud_rate)
 
         # Go through each parameter step by step
         if not self.config.connected and config.connected:
@@ -269,14 +281,24 @@ class MockPIController(PIController):
         # TODO find a way to simulate this more closely
         self._config.ready = True
 
+        # refresh full status after changing config
+        await self.refreshFullStatus()
+
     def shutdown_and_cleanup(self):
         pass
 
     async def refreshFullStatus(self):
-        pass
+        # Send an info update, status is handled in pos on target
+        for info in self.stageInfos.values():
+            self.EA.event(info)
+
+        # also refresh pos on target since this is a full refresh
+        await self.refreshPosOnTarget()
 
     async def refreshPosOnTarget(self):
-        pass
+        # Send a status update
+        for status in self.stageStatuses.values():
+            self.EA.event(status)
 
     async def moveTo(self, channel:int, position: float):
         self.position[channel + 1] = position
@@ -284,32 +306,3 @@ class MockPIController(PIController):
     @property
     def config(self) -> PIConfiguration:
         return self._config
-
-    @property
-    def stageStatuses(self) -> list[StageStatus]:
-        res = []
-        for i in range(self.config.channel_amount):
-            res.append(StageStatus(
-                identifier =self.config.SN * 10 + (i + 1),
-                position=self.position[i],
-                ontarget=True,
-            ))
-
-        return res
-
-    @property
-    def stageInfos(self) -> list[PIStageInfo]:
-
-        res = []
-        for i in range(self.config.channel_amount):
-            res.append(PIStageInfo(
-                model = "mock stage",
-                identifier =self.config.SN * 10 + (i + 1),
-                kind = StageKind.linear,
-                minimum = 0,
-                maximum = 10,
-                channel = i+1,
-                controllerSN = self.config.SN
-            ))
-
-        return res
