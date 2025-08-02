@@ -62,7 +62,7 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
 
                     }
                 })
-                console.log("Updated current configuration state")
+                console.log("Updated current configuration state", res.data)
             }
         },
         async pushConfig(config: object) {
