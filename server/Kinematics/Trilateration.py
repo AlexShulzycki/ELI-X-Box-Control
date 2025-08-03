@@ -1,6 +1,5 @@
 import math
 import warnings
-
 import numpy as np
 from itertools import combinations
 
@@ -112,6 +111,7 @@ class Trilateration:
     def recalculate_estimates(self) -> None:
         """
         If 4 or more measurements are available, calculate all possible estimates and save to _estimates.
+        Ignores any NaN results.
         """
         res: list[XYZvector] = []
         # If we have less than 4 measurements, we cannot do any estimates
@@ -122,6 +122,8 @@ class Trilateration:
         combs = list(combinations(self._measurements, 4))
 
         for comb in combs:
-            res.append(trilaterate(comb))
+            tri = trilaterate(comb)
+            if not np.isnan(tri.xyz).any():
+                res.append(tri)
 
         self._estimates = res

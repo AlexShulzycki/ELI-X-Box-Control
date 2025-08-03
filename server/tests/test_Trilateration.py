@@ -73,5 +73,7 @@ class TestTrilateration(TestCase):
         tri.addMeasurement(XYZvector([1, 1, 0]), 1)
         tri.addMeasurement(XYZvector([2, 1, 0]), 2)
         tri.addMeasurement(XYZvector([-3, 1, 0]), 3)
+        tri.addMeasurement(XYZvector([0, 3, 0]), 2)
+        print(tri.estimates)
         print(tri.average)
         print(tri.std)

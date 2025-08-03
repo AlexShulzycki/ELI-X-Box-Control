@@ -4,11 +4,9 @@ from enum import Enum
 
 from pydantic import BaseModel, Field
 
-#TODO Fix circular import
-#from server.StageControl.Axis import Axis
-
 from scipy.spatial.transform import Rotation
 
+from server.Interface import toplevelinterface
 from server.Kinematics.DataTypes import XYZvector
 from server.StageControl.DataTypes import EventAnnouncer, StageStatus
 
@@ -133,7 +131,7 @@ class Structure(Component):
 
 
 class AxisComponent(Structure):
-    def __init__(self, axisdirection: XYZvector, axis: Axis, root, name: str = "unnamed axis", collisionbox = None):
+    def __init__(self, axisdirection: XYZvector, axis_identifier, root, name: str = "unnamed axis", collisionbox = None):
         """
         Axis component. Its position is the position of the axis in space.
         :param axis: Axis object that holds a reference to the physical stages
@@ -142,7 +140,7 @@ class AxisComponent(Structure):
         :param collisionbox: Collision box, this is on the moving axis!
         """
         super().__init__(root, name, collisionbox)
-        self.axis: Axis = axis
+        self.axis_identifier: int = axis_identifier
         self.axis_vector: XYZvector = axisdirection
         """Vector pointing to where the axis moves when you increase its position by 1"""
 
@@ -152,7 +150,11 @@ class AxisComponent(Structure):
         :return:
         """
         # Move vector to where the axis is right now
-        ax_pos = self.axis.getStatus().position
+        try:
+            ax_pos = toplevelinterface.StageStatus.get(self.axis_identifier)
+        except KeyError as e:
+            raise Exception(f"Could not find axis {self.axis_identifier} in the toplevelinterface")
+
         displacement_vector = XYZvector((self.axis_vector * ax_pos).xyz)
         currentXYZ += displacement_vector
 

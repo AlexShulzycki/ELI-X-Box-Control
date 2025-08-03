@@ -3,7 +3,6 @@ from typing import Awaitable
 
 from pipython import GCSDevice
 
-from .Kinematics.Assembly import AssemblyInterface
 from .StageControl.PI.Interface import PIControllerInterface
 from .StageControl.Virtual import VirtualControllerInterface
 from .StageControl.DataTypes import StageInfo, ControllerInterface, EventAnnouncer, StageStatus, StageRemoved
@@ -144,4 +143,3 @@ Virtualinterface = VirtualControllerInterface()
 
 # TODO Re-Add C884 interface once rewritten
 toplevelinterface = MainInterface(Virtualinterface, PIinterface)
-#toplevelAssemblyInterface = AssemblyInterface()
