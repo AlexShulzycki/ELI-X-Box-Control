@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from server.Kinematics.DataTypes import XYZvector
-from server.Kinematics.Trilateration import Trilateration
+from server.Kinematics.Trilateration import Trilateration, trilaterate
 
 
 class TestTrilateration(TestCase):
@@ -23,7 +23,7 @@ class TestTrilateration(TestCase):
         tri.addMeasurement(XYZvector([0, 1, 1]), 1)
         tri.addMeasurement(XYZvector([0, 1, -1]), 1)
 
-        res = tri.calculate(tri.measurements)
+        res = trilaterate(tri.measurements)
         print(res)
         assert res == XYZvector([0,1,0])
 
@@ -36,7 +36,6 @@ class TestTrilateration(TestCase):
     def test_2_estimates(self):
         tri = self.basic_trilat()
         tri.addMeasurement(XYZvector([0, 3, 0]), 2)
-        print([str(est) for est in tri.estimates])
         assert len(tri.estimates) == 5
 
         for est in tri.estimates:
@@ -65,3 +64,14 @@ class TestTrilateration(TestCase):
             assert round(x) == 0
             assert round(y) == 1
             assert round(z) == 0
+
+    def test_errors(self):
+        tri = Trilateration()
+        tri.addMeasurement(XYZvector([0, 0, 0]), 1)
+        tri.addMeasurement(XYZvector([0, 2, 0]), 1)
+        tri.addMeasurement(XYZvector([0, 1, 1]), 1)
+        tri.addMeasurement(XYZvector([1, 1, 0]), 1)
+        tri.addMeasurement(XYZvector([2, 1, 0]), 2)
+        tri.addMeasurement(XYZvector([-3, 1, 0]), 3)
+        print(tri.average)
+        print(tri.std)

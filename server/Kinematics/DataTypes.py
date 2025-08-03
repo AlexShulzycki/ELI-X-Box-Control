@@ -9,11 +9,20 @@ class XYZvector:
         self.y = float(xyz[1])
         self.z = float(xyz[2])
 
-    def __add__(self, other: XYZvector):
+    def __add__(self, other: XYZvector) -> XYZvector:
         return XYZvector([self.x + other.x, self.y + other.y, self.z + other.z])
 
-    def __mul__(self, other: float):
+    def __sub__(self, other: XYZvector) -> XYZvector:
+        return XYZvector([self.x - other.x, self.y - other.y, self.z - other.z])
+
+    def __mul__(self, other: float) -> XYZvector:
         return XYZvector([self.x * other, self.y * other, self.z * other])
+
+    def __pow__(self, other: float) -> XYZvector:
+        return XYZvector([self.x ** 2, self.y ** 2, self.z ** 2])
+
+    def __truediv__(self, other: float) -> XYZvector:
+        return XYZvector([self.x / other, self.y / other, self.z / other])
 
     def __eq__(self, other: XYZvector):
         return self.x == other.x and self.y == other.y and self.z == other.z
