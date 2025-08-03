@@ -108,7 +108,27 @@ class Component:
         return self._root
     @root.setter
     def root(self, root: AttachmentPoint):
+
         self._root = root
+
+    @property
+    def JSON(self) -> dict:
+        """
+        Describes this object and its children in a dict
+        :return: json-ready dict
+        """
+
+        children = []
+        for child in self.attachments:
+            children.append(child.JSON)
+
+        res = {
+            "name": self.name,
+            "attachment_point": self.root.Point.xyz,
+            "attachment_rotation": self.root.RotationVector.xyz,
+            "children": children
+        }
+        return res
 
     def __del__(self):
         self.unattach()
@@ -129,9 +149,17 @@ class Structure(Component):
         if self.collision_box is None:
             self.collision_box = CollisionBox()
 
+    @property
+    def JSON(self) -> dict:
+        res = super().JSON
+        res["collision_box_dimensions"] = self.collision_box.BoxDimensions.xyz
+        res["collision_box_point"] = self.collision_box.BoxOffset.xyz
+
+        return res
+
 
 class AxisComponent(Structure):
-    def __init__(self, axisdirection: XYZvector, axis_identifier, root, name: str = "unnamed axis", collisionbox = None):
+    def __init__(self, axisdirection: XYZvector, axis_identifier: int, root, name: str = "unnamed axis", collisionbox = None):
         """
         Axis component. Its position is the position of the axis in space.
         :param axis: Axis object that holds a reference to the physical stages
@@ -161,6 +189,13 @@ class AxisComponent(Structure):
         # Continue calculations
         return super().getXYZ(currentXYZ)
 
+    @property
+    def JSON(self) -> dict:
+        res = super().JSON
+        res["axis_vector"] = self.axis_vector.xyz
+        res["axis_identifier"] = self.axis_identifier
+        return res
+
 
 
 # Set up the main interface
@@ -173,8 +208,18 @@ class AssemblyInterface:
     def root(self):
         return self._root
 
-    def traverseTree(self, name:str, root) -> Component|None:
+    @root.setter
+    def root(self, component: Component):
+        if component.name !="root":
+            raise Exception("Root component needs to be called root")
+        self._root = component
+        print("Root has been replaced!")
+
+
+    def traverseTree(self, name:str, root = None) -> Component|None:
         """Return a component with the given name"""
+        if root is None:
+            root = self.root
         # check if root
         if root.name == name:
             return root
@@ -214,3 +259,10 @@ class AssemblyInterface:
             raise Exception(f"No component with name {targetname} found")
         else:
             traverse.unattach()
+
+    def getJson(self) -> dict:
+        """
+        Describe the entire thing in JSON-ready dict
+        :return: what do you think
+        """
+        return self.root.JSON
