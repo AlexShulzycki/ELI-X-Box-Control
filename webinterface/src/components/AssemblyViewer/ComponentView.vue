@@ -3,7 +3,7 @@ import {type Component, ComponentType, type XYZ} from "@/stores/AssemblyStore.ts
 import {ref} from "vue";
 import ChildViewer from "@/components/AssemblyViewer/ChildViewer.vue";
 
-const {comp: component} = defineProps<{ component: Component }>()
+const {component} = defineProps<{ component: Component }>()
 
 let name = ref<string>(component.name)
 let type = ref<ComponentType>(component.type)
@@ -37,7 +37,7 @@ let children = ref<Component[]>(component.children)
   </table>
   <h2>Children:</h2>
   <div v-for="child in component.children" :key="child.name">
-      <ChildViewer v-bind:child="child"/>
+      <ChildViewer v-bind:child="child" v-bind:parent="component.name"/>
   </div>
 </template>
 

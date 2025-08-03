@@ -16,6 +16,9 @@ export const useAssemblyStore = defineStore('AssemblyState', {
             let data = {}
             const res = await axios.post("/get/kinematics/assemblies", data)
             console.log("updated server assembly", res.data)
+        },
+        async addComponent<type>(component:type){
+
         }
     },
     getters: {
