@@ -90,9 +90,12 @@ function updateToServer() {
           "clo": clo.value,
           "referenced": referenced.value,
           "min_max": min_max.value,
-          "baud_rate": baud_rate.value,
-          "comport": comport.value
         }]
+  }
+  // add fields for rs232
+  if(connection_type.value == "rs232"){
+    config.PI[0].baud_rate = baud_rate.value
+    config.PI[0].comport = comport.value
   }
   console.log("Sent config to server: ", config)
   configstore.pushConfig(config).then((res) => {
@@ -138,6 +141,7 @@ function updateToServer() {
         <select v-model="model">
           <option disabled value="">Please select one</option>
           <option>C884</option>
+          <option value="mock">Mock (debug only)</option>
           <!-For now only C884-/>
         </select>
       </td>

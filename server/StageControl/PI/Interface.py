@@ -79,7 +79,9 @@ class PISettings(ControllerSettings):
         elif config.model == PIControllerModel.mock:
             mock = MockPIController()
             await mock.updateFromConfig(config)
-            self.controllers[config.SN] = MockPIController()
+            self.subscribeTo(mock)
+            self.controllers[config.SN] = mock
+            await mock.refreshFullStatus()
         else:
             raise Exception("Unknown PI controller model")
 

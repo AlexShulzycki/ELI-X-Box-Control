@@ -116,7 +116,7 @@ class TestMockC884(IsolatedAsyncioTestCase):
     async def test_basic(self):
         assert self.intf.stageInfo == {}
 
-        await self.intf.settings.configurationChangeRequest(self.freshState)
+        await self.intf.settings.configurationChangeRequest([self.freshState])
         assert len(self.intf.settings.currentConfiguration) == 1
         assert self.intf.settings.currentConfiguration[0].connection_type == PIConnectionType.usb
 
@@ -124,7 +124,7 @@ class TestMockC884(IsolatedAsyncioTestCase):
         state = self.freshState
         state.channel_amount = 4
         state.stages = ["NOSTAGE"] * 4
-        await self.intf.settings.configurationChangeRequest(state)
+        await self.intf.settings.configurationChangeRequest([state])
         assert self.intf.settings.currentConfiguration[0].channel_amount == 4
         assert self.intf.settings.currentConfiguration[0].stages == state.stages
         print("weewewwe")
