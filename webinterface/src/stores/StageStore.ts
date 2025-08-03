@@ -6,39 +6,31 @@ import axios from "axios";
 export const useStageStore = defineStore('AxisState', {
     state: () => {
         return {
-            stageInfo: new Map<number, StageInfo>(),
-            stageStatus: new Map<number, StageStatus>()
+            serverStages: new Map<number, FullState>()
         }
     },
     actions: {
-        async syncStageStatus() {
-            const res = await axios.get("/stage/status")
+        async syncServerStageInformation() {
+            const res = await axios.get("/stage/fullstate")
             if(res.status === 200){
-                console.log("syncing stagestatus: ", res.data)
-                try{
-                    this.stageStatus = objectToMap<StageStatus>(res.data)
-                }catch(e){
-                    console.log(e)
-                    console.log("Received unusable data from server")
-                }
-            }
-        },
-        async syncStageInfo() {
-            const res = await axios.get("/stage/info")
-            if(res.status === 200){
-                console.log("syncing stageinfo: ", res.data)
-                try{
-                    this.stageInfo = objectToMap<StageInfo>(res.data)
-                }catch(e){
-                    console.log(e)
-                    console.log("Received unusable data from server")
-                }
+                const data = objectToMap<FullState>(res.data)
+                console.log("received new stage state: ", data)
+                // update existing and add new
+                data.forEach((stage: FullState) => {
+                    this.serverStages.set(stage.identifier, stage)
+                })
+                // remove non-existing
+                this.serverStages.forEach(stage => {
+                    if(data.get(stage.identifier) == undefined) {
+                        this.serverStages.delete(stage.identifier)
+                    }
+                })
 
             }
         },
         async syncAll(){
-            await this.syncStageInfo()
-            await this.syncStageStatus()
+            await this.updateStageInfo()
+            await this.updateStageStatus()
         },
         async updateStageStatus() {
             await axios.get("/stage/update/status")
@@ -57,70 +49,71 @@ export const useStageStore = defineStore('AxisState', {
             }
         },
         receiveStageStatus(status: StageStatus) {
-            // try to find an existing stagestatus
-            if(this.stageStatus.has(status.identifier)){
-                this.stageStatus.set(status.identifier, status)
-            }else{
-                // otherwise create a new one (completely redundant for now)
-                this.stageStatus.set(status.identifier, status)
+            // check if we need to initialize a new stage
+            if(this.serverStages.get(status.identifier) == undefined) {
+                this.serverStages.set(status.identifier, {identifier: status.identifier})
             }
+            // type assertion to make the editor shut up
+            let stage:FullState = <FullState>this.serverStages.get(status.identifier)
+
+            stage.connected = status.connected
+            stage.ready = status.ready
+            stage.position = status.position
+            stage.ontarget = status.ontarget
+
+            this.serverStages.set(stage.identifier, stage)
         },
         receiveStageInfo(info: StageInfo) {
-            // try to find an existing stagestatus
-            this.stageInfo.set(info.identifier, info)
-        },
-        receiveStageRemoved(removed: StageRemoved){
-            if(this.stageInfo.has(removed.identifier)){
-                this.stageInfo.delete(removed.identifier)
+            // check if we need to initialize a new stage
+            if(this.serverStages.get(info.identifier) == undefined){
+                this.serverStages.set(info.identifier, {identifier: info.identifier})
             }
-            if(this.stageStatus.has(removed.identifier)){
-                this.stageStatus.delete(removed.identifier)
+            // type assertion to make the editor shut up
+            let stage:FullState = <FullState>this.serverStages.get(info.identifier)
+            stage.model = info.model
+            stage.kind = info.kind
+            stage.minimum = info.minimum
+            stage.maximum = info.maximum
+        },
+
+        receiveStageRemoved(removed: StageRemoved){
+            if(this.serverStages.has(removed.identifier)){
+                this.serverStages.delete(removed.identifier)
+            }
+        },
+        async moveTo(identifier: number, position: number){
+            if(this.serverStages.has(identifier)){
+                const req = {identifier: identifier, position: position} as moveStageTo
+                const res = await axios.post("stage/move/", req)
+                if(res.status === 200) {
+                    return res.data as moveStageResponse
+                }else{
+                    console.log("Error moving stage: ", res.data)
+                }
+            }else{
+                console.log("Couldn't find stage", identifier)
             }
         }
     },
     getters: {
-        getStageInfo: (state) => {
-            return state.stageInfo
-        },
-        getStageStatus: (state) => {
-            return state.stageStatus
-        },
         getConnectedStages: (state) => {
             let res: Array<number> = []
-            state.stageStatus.forEach((e, i) => {
+            state.serverStages.forEach((e, key) => {
                 if(e.connected){
                     res.push(e.identifier)
                 }
             })
             return res
         },
-        getStatusInfoPairs: (state) => {
-            let res = new Map<number, stageStatusInfoPair>()
-            state.stageInfo.forEach((value, key) => {
-                if(res.has(key)){
-                    let ssi = res.get(key)
-                    ssi.info = value
-                    res.set(key, ssi)
-                }else{
-                    res.set(key, {info: value} as stageStatusInfoPair)
-                }
-            })
-            state.stageStatus.forEach((value, key) => {
-                if(res.has(key)){
-                    let ssi = res.get(key)
-                    ssi.status = value
-                    res.set(key, ssi)
-                }else{
-                    res.set(key, {status: value} as stageStatusInfoPair)
-                }
-            })
-            return res
-        }
 
     }
 })
 
 function objectToMap<type>(data:Object) {
+    // This object turns a map of number: type in Object form to proper typescript Map form.
+    // This is necessary because typecasting does not seem to work with maps somehow.
+    // I hate typescript I hate that I have to do this manually why the hell is this a problem
+    // in the first place that I have to deal with
     let res = new Map<number, type>
     Object.entries(data).forEach(([key, value]) => {
         res.set(Number(key), value as type)
@@ -134,7 +127,19 @@ enum StageKind{
     linear = "linear"
 }
 
-export interface StageInfo{
+export interface FullState{
+    identifier: number
+    model?: string
+    kind?: StageKind
+    minimum?: number
+    maximum?: number
+    connected?: boolean
+    ready?: boolean
+    position?: number
+    ontarget?: boolean
+}
+
+interface StageInfo {
     identifier: number
     model: string
     kind: StageKind
@@ -142,7 +147,7 @@ export interface StageInfo{
     maximum: number
 }
 
-export interface StageStatus{
+interface StageStatus{
     identifier: number
     connected: boolean
     ready: boolean
@@ -154,7 +159,12 @@ export interface StageRemoved {
     identifier: number
 }
 
-export interface stageStatusInfoPair{
-    status?: StageStatus
-    info?: StageInfo
+
+export interface moveStageTo{
+    identifier: number,
+    position: number
+}
+export interface moveStageResponse{
+    success: boolean,
+    error?: string
 }

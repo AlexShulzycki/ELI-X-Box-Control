@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, model_validator
 
 from server.Interface import toplevelinterface
-from server.StageControl.DataTypes import StageInfo, StageStatus
+from server.StageControl.DataTypes import StageInfo, StageStatus, StageKind
 
 router = APIRouter(tags=["control"])
 
@@ -35,6 +35,37 @@ async def updateStageInfo():
     Updates the info of all connected stages
     """
     await toplevelinterface.updateStageInfo()
+
+class FullState(BaseModel):
+    identifier: int
+    model: str
+    kind: StageKind
+    minimum: float
+    maximum: float
+    connected: bool
+    ready: bool
+    position: int
+    ontarget: bool
+
+
+@router.get("/stage/fullstate")
+async def getStageFullstate():
+    info = toplevelinterface.StageInfo
+    stat = toplevelinterface.StageStatus
+    res: dict[int, FullState] = {}
+    for key in info.keys():
+        res[key] = FullState(
+            identifier=info[key].identifier,
+            model=info[key].model,
+            kind=info[key].kind,
+            minimum=info[key].minimum,
+            maximum=info[key].maximum,
+            connected=stat[key].connected,
+            ready=stat[key].ready,
+            position=stat[key].position,
+            ontarget=stat[key].ontarget,
+        )
+    return res
 
 class MoveStageRequest(BaseModel):
     identifier: int = Field(description="The stage identifier of the stage you want to move")
