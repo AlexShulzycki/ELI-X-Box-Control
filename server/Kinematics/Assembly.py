@@ -124,6 +124,7 @@ class Component:
 
         res = {
             "name": self.name,
+            "type": "component",
             "attachment_point": self.root.Point.xyz,
             "attachment_rotation": self.root.RotationVector.xyz,
             "children": children
@@ -154,6 +155,7 @@ class Structure(Component):
         res = super().JSON
         res["collision_box_dimensions"] = self.collision_box.BoxDimensions.xyz
         res["collision_box_point"] = self.collision_box.BoxOffset.xyz
+        res["type"] = "structure"
 
         return res
 
@@ -194,6 +196,7 @@ class AxisComponent(Structure):
         res = super().JSON
         res["axis_vector"] = self.axis_vector.xyz
         res["axis_identifier"] = self.axis_identifier
+        res["type"] = "axis"
         return res
 
 

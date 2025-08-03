@@ -16,7 +16,7 @@ router = APIRouter(tags=["control", "kinematics"])
 tri: Trilateration = Trilateration()
 assembly: AssemblyInterface = AssemblyInterface()
 
-@router.get("/kinematics/assemblies")
+@router.get("/get/kinematics/assemblies")
 async def getassemblies():
     """
     Get configured assemblies
@@ -31,10 +31,10 @@ class ComponentType(Enum):
 
 class ComponentRequest(BaseModel):
     name: str = Field(description="Unique name for this component")
+    type: ComponentType
     attach_to: str = Field(description="Unique name of the component this is attached to.", default="root")
     attachment_point: list[float] = Field(min_length=3, max_length=3, default=[0, 0, 0])
     attachment_rotation: list[float] = Field(min_length=3, max_length=3, default=[0, 0, 0])
-    type: ComponentType
     collision_box_dimensions: list[float] = Field(min_length=3, max_length=3, default=[5,2,5])
     collision_box_point: list[float] = Field(min_length=3, max_length=3, default = [0,1,0])
     axis_vector: list[float] = Field(min_length=3, max_length=3, default=None)
@@ -51,7 +51,7 @@ class ComponentRequest(BaseModel):
 
 
 
-@router.post("/kinematics/updateAssembly")
+@router.post("/post/kinematics/updateAssembly")
 def addcomponent(root: ComponentRequest):
     # We traverse the component tree
     def attach(compreq: ComponentRequest, rootname: str):
@@ -89,15 +89,22 @@ def addcomponent(root: ComponentRequest):
         for child in compreq.children:
             attach(child, compreq.name)
 
+    # Let's kick it all off
+    attach(root, root.attach_to)
 
+
+@router.post("/post/kinematics/replaceRoot")
+def replaceRoot(root: ComponentRequest):
+    """dunno if we need this , nonfunctional for now"""
     # Let's kick off the recursion
     if root.type != ComponentType.Component:
         raise ValueError("Root component must be a component, not axis or structure etc")
     assembly.root = Component(name="root")
     for child in root.children:
-        attach(child, "root")
+        #attach(child, "root")
+        pass
 
-@router.get("/kinematics/saveassembly")
+@router.get("/get/kinematics/saveassembly")
 def saveassembly():
     raise NotImplementedError()
 
@@ -108,7 +115,7 @@ class TrilaterationRequest(BaseModel):
         arbitrary_types_allowed = True
 
 
-@router.post("/trilateration")
+@router.post("/post/trilateration")
 async def trilaterate(req: TrilaterationRequest):
     """
     {"restart":true,"measurements":[[[0,0,0],1],[[0,2,0],1],[[1,1,0],1],[[-1,1,0],1]]}
