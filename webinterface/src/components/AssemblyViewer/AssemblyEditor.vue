@@ -7,6 +7,8 @@ const astore = useAssemblyStore
 
 <template>
 
+  <if></if>
+
 </template>
 
 <style scoped>
