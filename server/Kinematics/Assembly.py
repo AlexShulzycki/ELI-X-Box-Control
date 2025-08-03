@@ -3,38 +3,14 @@ from __future__ import annotations
 from enum import Enum
 
 from pydantic import BaseModel, Field
-from scipy.optimize import root_scalar
 
 #TODO Fix circular import
 #from server.StageControl.Axis import Axis
 
 from scipy.spatial.transform import Rotation
 
+from server.Kinematics.DataTypes import XYZvector
 from server.StageControl.DataTypes import EventAnnouncer, StageStatus
-
-
-class XYZvector:
-    def __init__(self, xyz=None):
-        if xyz is None:
-            xyz = [0, 0, 0]
-        self.x = xyz[0]
-        self.y = xyz[1]
-        self.z = xyz[2]
-
-    def __add__(self, other: XYZvector):
-        return XYZvector([self.x + other.x, self.y + other.y, self.z + other.z])
-    def __mul__(self, other: float):
-        return XYZvector([self.x * other, self.y * other, self.z * other])
-
-    @property
-    def xyz(self):
-        return [self.x, self.y, self.z]
-
-    @xyz.setter
-    def xyz(self, xyz: list[float]):
-        self.x = xyz[0]
-        self.y = xyz[1]
-        self.z = xyz[2]
 
 
 class CollisionBox(BaseModel):
@@ -54,7 +30,7 @@ class AttachmentPoint(BaseModel):
     Point: XYZvector = Field(default= XYZvector(), description="Position of the attached comp relative to the parent's root position")
     RotationVector: XYZvector = Field(description="Rotation vector. "
                                                   "[0,0,pi] is a clockwise 180 degree rotation about the z axis",
-                                      default=XYZvector([0,0,0]))
+                                      default=XYZvector([0, 0, 0]))
     Attached_To_Component: Component = Field(description="Component this attaches to")
 
     class Config:

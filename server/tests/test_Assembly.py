@@ -3,7 +3,8 @@ from unittest import TestCase
 import numpy as np
 import scipy.constants
 from server.Interface import Virtualinterface as vinterface
-from server.Kinematics.Assembly import Component, AttachmentPoint, XYZvector, AxisComponent, AssemblyInterface
+from server.Kinematics.Assembly import Component, AttachmentPoint, AxisComponent, AssemblyInterface
+from server.Kinematics.DataTypes import XYZvector
 from server.StageControl.Axis import Axis
 from server.StageControl.DataTypes import StageInfo
 
