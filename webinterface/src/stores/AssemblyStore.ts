@@ -1,4 +1,5 @@
 import {defineStore} from "pinia"
+import {Euler, Quaternion, Vector3} from "three";
 import axios from "axios";
 
 export const useAssemblyStore = defineStore('AssemblyState', {
@@ -24,7 +25,7 @@ export const useAssemblyStore = defineStore('AssemblyState', {
             const req = this.editAssembly
             console.log("sending updated assembly", req)
             const res = await axios.post("/post/kinematics/replaceRoot", req)
-            if(res.status === 200) {
+            if (res.status === 200) {
                 console.log("Server received updated assembly", res.data)
                 this.serverAssembly = res.data as Component
                 this.overWriteEditAssembly()
@@ -34,7 +35,7 @@ export const useAssemblyStore = defineStore('AssemblyState', {
             // check if the name is actually unique
             if (this.getEditMap?.has(component.name)) {
                 console.error("Component with name", component.name, "already exists")
-                window.alert("Component with name '" + component.name +"' already exists")
+                window.alert("Component with name '" + component.name + "' already exists")
                 return
             } else {
                 this.getEditMap?.get(parent)?.children.push(component)
@@ -58,6 +59,16 @@ export const useAssemblyStore = defineStore('AssemblyState', {
         },
         hasUnsavedEdits: (state) => {
             return !(JSON.stringify(state.serverAssembly) === JSON.stringify(state.editAssembly))
+        },
+        server_computed_xyz_rotation: (state) => {
+            let res = transform_children((new Quaternion().identity()), (new Vector3(0,0,0)), state.serverAssembly)
+            res.set("root", [(new Quaternion().identity()), (new Vector3(0,0,0))])
+            return res
+        },
+        edits_computed_xyz_rotation: (state) => {
+            let res = transform_children((new Quaternion().identity()), (new Vector3(0,0,0)), state.editAssembly)
+            res.set("root", [(new Quaternion().identity()), (new Vector3(0,0,0))])
+            return res
         }
     }
 })
@@ -140,7 +151,7 @@ export function removeComponentByName(name: string, root: Component): boolean {
 }
 
 function returnMap(root: Component): Map<string, Component> {
-    // traverses a component tree and returns a map of name: component
+    // Traverses a component tree and returns a map of name: component
     let res = new Map<string, Component>()
     // add itself
     res.set(root.name, root)
@@ -156,6 +167,34 @@ function returnMap(root: Component): Map<string, Component> {
     return res
 }
 
+
+function transform_children(rotation: Quaternion, translation: Vector3, comp: Component): Map<string, [Quaternion, Vector3]> {
+    let res = new Map<string, [Quaternion, Vector3]>()
+    comp.children.forEach((child: Component) => {
+        // child rotation * parent rotation, new rotation * child attachment point + parent attachment point
+        const rot = rotation.multiply(new Quaternion().setFromEuler(new Euler(child.attachment_rotation[0], child.attachment_rotation[1], child.attachment_rotation[2])))
+        const xyz = new Vector3(child.attachment_point[0], child.attachment_point[1], child.attachment_point[2]).applyQuaternion(rot).add(translation)
+        res.set(child.name, [rot, xyz])
+
+        // recurse
+        const childRes = transform_children(rot, xyz, child)
+        // append recursed results
+        childRes.forEach((value, key) => {
+            res.set(key, value)
+        })
+    })
+    return res
+}
+
+function rotvec_to_quat(rotvec: [number, number, number]): Quaternion {
+    return new Quaternion().setFromEuler(new Euler(rotvec[0], rotvec[1], rotvec[2]))
+}
+
+function transformPoint() {
+    return
+}
+
+
 const defaultrootcomponent: Component = {
     attach_to: "",
     attachment_point: [0, 0, 0],
@@ -166,7 +205,7 @@ const defaultrootcomponent: Component = {
 
 }
 
-function parseJSONAssembly(root: Object): Component|null {
+function parseJSONAssembly(root: Object): Component | null {
     let res: Component = root as Component
 
     console.log("parseJSONAssembly", root)
