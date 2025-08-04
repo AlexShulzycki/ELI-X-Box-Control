@@ -1,6 +1,7 @@
 from unittest import TestCase
 
 import numpy as np
+from scipy.spatial.transform import Rotation as R
 import scipy.constants
 from server.Interface import Virtualinterface as vinterface
 from server.Kinematics.Assembly import Component, AttachmentPoint, AxisComponent, AssemblyInterface
@@ -72,7 +73,7 @@ class TestComponent(TestCase):
             Point=XYZvector([0, 1, 0]),
             Attached_To_Component=self.component3
         ))
-        self.component3.root.RotationVector = XYZvector([0, 0, scipy.constants.pi])
+        self.component3.root.Rotation = R.from_rotvec([0, 0, scipy.constants.pi])
         xyz = self.component4.getXYZ()
         print(np.round(xyz.xyz))
         assert list(np.round(xyz.xyz)) == [1, 0, 1]

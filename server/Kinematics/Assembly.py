@@ -4,7 +4,7 @@ from enum import Enum
 
 from pydantic import BaseModel, Field
 
-from scipy.spatial.transform import Rotation
+from scipy.spatial.transform import Rotation as R
 
 from server.Interface import toplevelinterface
 from server.Kinematics.DataTypes import XYZvector, ComponentType
@@ -21,9 +21,7 @@ class CollisionBox(BaseModel):
 
 class AttachmentPoint(BaseModel):
     Point: XYZvector = Field(default= XYZvector(), description="Position of the attached comp relative to the parent's root position")
-    RotationVector: XYZvector = Field(description="Rotation vector. "
-                                                  "[0,0,pi] is a clockwise 180 degree rotation about the z axis",
-                                      default=XYZvector([0, 0, 0]))
+    Rotation: R = Field(description="Rotation object translating world-space to component-space", default=R.from_quat([0, 0, 0, 1]))
     Attached_To_Component: Component = Field(description="Component this attaches to")
 
     class Config:
@@ -89,7 +87,7 @@ class Component:
 
         # Otherwise calculate
 
-        rotation = Rotation.from_rotvec(self.root.RotationVector.xyz)
+        rotation = self.root.Rotation
         currentXYZ = XYZvector(rotation.apply(currentXYZ.xyz))
         currentXYZ += self.root.Point
 
@@ -126,7 +124,7 @@ class Component:
         }
         if self.root is not None:
             res["attachment_point"] = self.root.Point.xyz
-            res["attachment_rotation"] = self.root.RotationVector.xyz
+            res["attachment_rotation"] = list(self.root.Rotation.as_quat())
 
         return res
 
@@ -160,7 +158,7 @@ class Structure(Component):
 
 
 class AxisComponent(Structure):
-    def __init__(self, axisdirection: XYZvector, axis_identifier: int, root, name: str = "unnamed axis", collisionbox = None):
+    def __init__(self, axisdirection: XYZvector | R, axis_identifier: int, root, name: str = "unnamed axis", collisionbox = None):
         """
         Axis component. Its position is the position of the axis in space.
         :param axis: Axis object that holds a reference to the physical stages
@@ -170,7 +168,7 @@ class AxisComponent(Structure):
         """
         super().__init__(root, name, collisionbox)
         self.axis_identifier: int = axis_identifier
-        self.axis_vector: XYZvector = axisdirection
+        self.axis_vector: XYZvector | R = axisdirection
         """Vector pointing to where the axis moves when you increase its position by 1"""
 
     def getXYZ(self, currentXYZ: XYZvector = XYZvector()) -> XYZvector:
@@ -184,8 +182,11 @@ class AxisComponent(Structure):
         except KeyError as e:
             raise Exception(f"Could not find axis {self.axis_identifier} in the toplevelinterface")
 
-        displacement_vector = XYZvector((self.axis_vector * ax_pos).xyz)
-        currentXYZ += displacement_vector
+        if type(self.axis_vector) == XYZvector:
+            displacement_vector = XYZvector((self.axis_vector * ax_pos).xyz)
+            currentXYZ += displacement_vector
+        elif type(self.axis_vector) == R:
+            currentXYZ = self.axis_vector.apply(currentXYZ.xyz)
 
         # Continue calculations
         return super().getXYZ(currentXYZ)
@@ -193,7 +194,15 @@ class AxisComponent(Structure):
     @property
     def JSON(self) -> dict:
         res = super().JSON
-        res["axis_vector"] = self.axis_vector.xyz
+
+        # handle the axis vector for linear, rotational, and other stages
+        if type(self.axis_vector) == XYZvector:
+            res["axis_vector"] = self.axis_vector.xyz
+        elif type(self.axis_vector) == R:
+            res["axis_vector"] = list(self.axis_vector.as_quat())
+        else:
+            res["axis_vector"] = None
+
         res["axis_identifier"] = self.axis_identifier
         res["type"] = ComponentType.Axis
         return res

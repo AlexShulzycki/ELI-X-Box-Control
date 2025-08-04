@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 from pydantic import BaseModel, Field, model_validator
+from scipy.spatial.transform import Rotation
 
 from server.Kinematics.Assembly import AssemblyInterface, AttachmentPoint, Component, Structure, CollisionBox, \
     AxisComponent
@@ -27,18 +28,16 @@ class ComponentRequest(BaseModel):
     type: ComponentType
     attach_to: str = Field(description="Unique name of the component this is attached to.", default="root")
     attachment_point: list[float] = Field(min_length=3, max_length=3, default=[0, 0, 0])
-    attachment_rotation: list[float] = Field(min_length=3, max_length=3, default=[0, 0, 0])
+    attachment_rotation: list[float] = Field(min_length=4, max_length=4, default=[0, 0, 0, 1])
     collision_box_dimensions: list[float] = Field(min_length=3, max_length=3, default=[5,2,5])
     collision_box_point: list[float] = Field(min_length=3, max_length=3, default = [0,1,0])
-    axis_vector: list[float] = Field(min_length=3, max_length=3, default=None)
+    axis_vector: list[float] = Field(min_length=3, max_length=4, default=None)
     axis_identifier: int = Field(default=None)
     children: list[ComponentRequest] = Field(default=[])
 
     @model_validator(mode= "after")
     def validate(self):
         if self.type == ComponentType.Axis:
-            if self.axis_vector is None:
-                raise ValueError("axis_vector must be set for axis components")
             if self.axis_identifier is None:
                 raise ValueError("axis_identifier must be set for axis components")
         return self
@@ -57,7 +56,7 @@ def addcomponent(root: ComponentRequest):
         attachmentPoint = AttachmentPoint(
             Attached_To_Component=assembly.traverseTree(rootname),
             Point= XYZvector(compreq.attachment_point),
-            RotationVector=XYZvector(compreq.attachment_rotation),
+            Rotation=Rotation.from_quat(compreq.attachment_rotation),
         )
         cbox = CollisionBox(
             BoxDimensions=XYZvector(compreq.collision_box_dimensions),
@@ -71,8 +70,17 @@ def addcomponent(root: ComponentRequest):
         elif root.type == ComponentType.Structure:
             comp = Structure(root=attachmentPoint, name=compreq.name, collisionbox=cbox)
         elif root.type == ComponentType.Axis:
+            ax_dir = None
+            if len(compreq.axis_vector) == 4: # Quaternion
+                ax_dir = Rotation.from_quat(compreq.axis_vector)
+            elif len(compreq.axis_vector) == 3: # Regular vector
+                ax_dir = XYZvector(compreq.axis_vector)
+
             comp = AxisComponent(root=attachmentPoint, name=compreq.name, collisionbox=cbox,
-                                 axisdirection=XYZvector(compreq.axis_vector), axis_identifier=compreq.axis_identifier)
+                             axisdirection=ax_dir, axis_identifier=compreq.axis_identifier)
+
+        # we don't need to attach anything manually, by passing the attachmentPoint to the constructor the
+        # component takes care of that automagically
 
         # recursive fun!
         for child in compreq.children:
