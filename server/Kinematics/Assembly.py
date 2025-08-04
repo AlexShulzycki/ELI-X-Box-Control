@@ -125,10 +125,14 @@ class Component:
         res = {
             "name": self.name,
             "type": "component",
-            "attachment_point": self.root.Point.xyz,
-            "attachment_rotation": self.root.RotationVector.xyz,
-            "children": children
+            "children": children,
+            "attachment_point": [0,0,0],
+            "attachment_rotation": [0,0,0]
         }
+        if self.root is not None:
+            res["attachment_point"] = self.root.Point.xyz
+            res["attachment_rotation"] = self.root.RotationVector.xyz
+
         return res
 
     def __del__(self):

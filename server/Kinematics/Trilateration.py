@@ -10,6 +10,7 @@ def trilaterate(measurements: list[tuple[XYZvector, float]]) -> XYZvector:
     Given the measurements, calculate an estimate of the position.
     Adapted from https://github.com/akshayb6/trilateration-in-3d/tree/
     Distance cannot be zero, and each point must be different
+    ALTERNATIVE: https://codepal.ai/code-generator/query/pRqSMaoM/python-trilateration-function
     :return: Trilaterated XYZVector
     """
     # points we measured from

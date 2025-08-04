@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="ts" xmlns="http://www.w3.org/1999/html">
 import {type Component, type Structure, ComponentType, type Axis, useAssemblyStore} from "@/stores/AssemblyStore.ts";
 import StructureView from "@/components/AssemblyViewer/StructureView.vue";
 import ComponentView from "@/components/AssemblyViewer/ComponentView.vue";
@@ -7,40 +7,75 @@ import {ref} from "vue";
 
 const astore = useAssemblyStore()
 
-const {child, parent} = defineProps<{
-  child: Object,
-  parent: string
+const {this_comp_name} = defineProps<{
+  this_comp_name: string
 }>()
 
-if (child.type == undefined) {
-  console.log("Invalid child component, cannot view", child)
+if (astore.serverAssembly == null) {
+  console.error("serverAssembly not initialized yet")
 }
 
-let newtype = ref<ComponentType>(ComponentType.Component)
+let addNewType = ref<ComponentType>(ComponentType.Component)
+let addNewName = ref("Unique Name Here")
 
-function addNew(name: string){
-  let comp = {
-    name: name,
-    type: newtype,
-    attach_to: child.name,
-    attachment_point: child.attachment_point,
-    attachment_rotation: child.attachment_rotation,
-    children: []
+function addAnother() {
+  let data: any = {
+    name: addNewName.value,
+    type: addNewType.value,
+    attach_to: this_comp_name,
+    attachment_point: [0, 0, 0],
+    attachment_rotation: [0, 0, 0],
+    children: [],
   }
-  if(comp.type.value == ComponentType.Component){
-    astore.addComponent<Component>(comp)
+
+  console.log("adding another: ", data)
+
+  if (addNewType.value == ComponentType.Component) {
+    astore.addChild(this_comp_name, data as Component)
+  } else if (addNewType.value == ComponentType.Structure) {
+    data.collision_box_dimensions = [0, 0, 0]
+    data.collision_box_point = [0, 0, 0]
+    astore.addChild(this_comp_name, data as Structure)
+  } else if (addNewType.value == ComponentType.Axis) {
+    data.axis_identifier = 0
+    data.axis_vector = [1, 0, 0]
+    astore.addChild(this_comp_name, data as Axis)
+  } else {
+    console.error("Error adding axis", addNewType.value, "unknown type")
   }
+}
+
+function submitEdits() {
+
 }
 </script>
 
 <template>
-  <div>
-    <ComponentView v-if="child.type == ComponentType.Component" v-bind:component="child as Component"/>
-    <StructureView v-else-if="child.type == ComponentType.Structure" v-bind:structure="child as Structure"/>
-    <AxisView v-else-if="child.type == ComponentType.Axis" v-bind:axis="child as Axis"/>
+  <div class="container">
+    <div v-for="editchild in astore.getEditMap?.get(this_comp_name)?.children" :key="editchild.name">
+      <ComponentView v-if="editchild.type == ComponentType.Component"
+                     v-bind:servercomponent="astore.getServerMap?.get(editchild.name) as Component"
+                     v-bind:editcomponent="editchild as Component"/>
+      <StructureView v-else-if="editchild.type == ComponentType.Structure"
+                     v-bind:serverstructure="astore.getServerMap?.get(editchild.name) as Structure"
+                     v-bind:editstructure="editchild as Structure"/>
+      <AxisView v-else-if="editchild.type == ComponentType.Axis"
+                v-bind:serveraxis="astore.getServerMap?.get(editchild.name) as Axis"
+                v-bind:editaxis="editchild as Axis"/>
+      <button @click="submitEdits()">Submit Edits</button>
+    </div>
+    <select v-model="addNewType">
+      <option v-for="comp in ComponentType">{{ comp }}</option>
+    </select>
+    <input v-model="addNewName"/>
+    <button @click="addAnother()">Add another</button>
   </div>
 </template>
 
 <style scoped>
-
+.container {
+  padding: 2vw;
+  border-radius: 5px;
+  border: medium solid black;
+}
 </style>

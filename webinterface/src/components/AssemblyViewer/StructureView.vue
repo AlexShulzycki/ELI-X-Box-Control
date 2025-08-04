@@ -1,25 +1,32 @@
 <script setup lang="ts">
+import type {Structure} from "@/stores/AssemblyStore.ts";
+import ComponentView from "@/components/AssemblyViewer/ComponentView.vue";
 
-import type {Component, Structure} from "@/stores/AssemblyStore.ts";
-import {ref} from "vue";
-
-const {structure} = defineProps<{structure: Structure}>()
-
-const comp = ref<Component>({
-  name: structure.name,
-  type: structure.type,
-  attach_to: structure.attach_to,
-  attachment_point: structure.attachment_point,
-  attachment_rotation: structure.attachment_rotation,
-  children: structure.children
-} as Component)
+const {serverstructure, editstructure} = defineProps<{
+  serverstructure?: Structure,
+  editstructure: Structure
+}>();
 
 </script>
 
 <template>
-  <p>Collisionbox: {{structure.collision_box_dimensions}}</p>
-  <p>Collisionpoint: {{structure.collision_box_point}}</p>
-<Component v-bind:comp="comp"/>
+  <table>
+    <tbody>
+    <tr>
+      <th>Collision Box Dimensions</th>
+      <th>Collision Box Center</th>
+    </tr>
+    <tr v-if="serverstructure != null">
+      <td>{{ serverstructure.collision_box_dimensions }}</td>
+      <td>{{ serverstructure.collision_box_point }}</td>
+    </tr>
+    <tr>
+      <td><input v-model="editstructure.collision_box_dimensions"/></td>
+      <td><input v-model="editstructure.collision_box_point"/></td>
+    </tr>
+    </tbody>
+  </table>
+  <ComponentView v-bind:servercomponent="serverstructure" v-bind:editcomponent="editstructure"/>
 </template>
 
 <style scoped>

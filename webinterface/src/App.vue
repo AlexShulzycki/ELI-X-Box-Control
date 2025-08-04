@@ -10,6 +10,7 @@ import Settings from "@/components/Settings.vue";
       <router-link to="/controllers">Setup controllers</router-link><br>
       <router-link to="/stages">Stages and their statuses</router-link><br>
       <router-link to="/Assembly3D">3D Assembly</router-link><br>
+      <router-link to="/AssemblyEditor">Assembly Editor</router-link><br>
     </h4>
   </header>
 

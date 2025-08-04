@@ -1,16 +1,14 @@
 <script setup lang="ts">
-import {type Component, ComponentType, type XYZ} from "@/stores/AssemblyStore.ts"
+import {type Component, ComponentType, useAssemblyStore} from "@/stores/AssemblyStore.ts"
 import {ref} from "vue";
 import ChildViewer from "@/components/AssemblyViewer/ChildViewer.vue";
 
-const {component} = defineProps<{ component: Component }>()
+const astore = useAssemblyStore()
 
-let name = ref<string>(component.name)
-let type = ref<ComponentType>(component.type)
-let attach_to = ref<string>(component.attach_to)
-let attachment_point = ref<XYZ>({x: 0, y: 0, z: 0})
-let attachment_rotation = ref<XYZ>({x: 0, y: 0, z: 0})
-let children = ref<Component[]>(component.children)
+const {servercomponent, editcomponent} = defineProps<{
+  servercomponent?: Component,
+  editcomponent: Component
+}>();
 
 </script>
 
@@ -19,26 +17,23 @@ let children = ref<Component[]>(component.children)
     <tbody>
     <tr>
       <th>Name</th>
-      <td>{{ name }}</td>
+      <td v-if="servercomponent != undefined">{{ servercomponent.name }}</td>
+      <td v-else><input v-model="editcomponent.name"/></td>
     </tr>
     <tr>
-      <th>Type</th>
-      <td>{{type}}</td>
-    </tr>
-    <tr>
-      <th>Attached at</th>
-      <td>{{attachment_point}}</td>
+      <th>Attachment Point</th>
+      <td v-if="servercomponent != undefined">{{ servercomponent.attachment_point }}</td>
+      <td><input v-model="editcomponent.attachment_point"/></td>
     </tr>
     <tr>
       <th>Rotation</th>
-      <td>{{attachment_rotation}}</td>
+      <td v-if="servercomponent != undefined">{{ servercomponent.attachment_rotation }}</td>
+      <td><input v-model="editcomponent.attachment_rotation"/></td>
     </tr>
     </tbody>
   </table>
   <h2>Children:</h2>
-  <div v-for="child in component.children" :key="child.name">
-      <ChildViewer v-bind:child="child" v-bind:parent="component.name"/>
-  </div>
+    <ChildViewer v-bind:this_comp_name="editcomponent.name"/>
 </template>
 
 <style scoped>

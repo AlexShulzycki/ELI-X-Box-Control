@@ -51,7 +51,7 @@ class ComponentRequest(BaseModel):
 
 
 
-@router.post("/post/kinematics/updateAssembly")
+@router.post("/post/kinematics/addComponent")
 def addcomponent(root: ComponentRequest):
     # We traverse the component tree
     def attach(compreq: ComponentRequest, rootname: str):
@@ -92,6 +92,9 @@ def addcomponent(root: ComponentRequest):
     # Let's kick it all off
     attach(root, root.attach_to)
 
+@router.get("get/kinematics/removeComponent")
+def removecomponent(name: str):
+    assembly.unattach(name)
 
 @router.post("/post/kinematics/replaceRoot")
 def replaceRoot(root: ComponentRequest):
