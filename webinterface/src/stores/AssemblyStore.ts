@@ -61,6 +61,7 @@ export const useAssemblyStore = defineStore('AssemblyState', {
             return !(JSON.stringify(state.serverAssembly) === JSON.stringify(state.editAssembly))
         },
         server_computed_xyz_rotation: (state) => {
+            // TODO fix up for new quaternion format
             let res = transform_children((new Quaternion().identity()), (new Vector3(0,0,0)), state.serverAssembly)
             res.set("root", [(new Quaternion().identity()), (new Vector3(0,0,0))])
             return res
@@ -85,7 +86,7 @@ export interface Component {
     type: ComponentType
     attach_to: string
     attachment_point: [number, number, number]
-    attachment_rotation: [number, number, number]
+    attachment_rotation: [number, number, number, number],
     children: Component[]
 }
 
@@ -95,7 +96,7 @@ export interface Structure extends Component {
 }
 
 export interface Axis extends Structure {
-    axis_vector: [number, number, number]
+    axis_vector: [number, number, number]|[number, number, number, number]|null
     axis_identifier: number
 }
 
