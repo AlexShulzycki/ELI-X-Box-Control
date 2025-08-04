@@ -40,7 +40,6 @@ serverstate.min_max.forEach((mm) => {
 
 //Force channel_amount to dictate length of stages, clo, referenced, min_max
 watch(channel_amount, (current, previous) => {
-
       // Check if lists are initialized
       if(stages == undefined || clo == undefined || referenced == undefined || min_max == undefined ){
           stages.value = []
@@ -192,7 +191,7 @@ function updateToServer() {
           <tr>
             <th>Stages</th>
 
-            <td v-for="(stage, index) in serverstate.stages" key="index">
+            <td v-for="(stage, index) in stages" :key="index">
               <p>{{ stage }}</p>
               <p>Change to:</p>
               <input v-model="stages[index]"/>
@@ -201,7 +200,7 @@ function updateToServer() {
           </tr>
           <tr>
             <th>Closed Loop Operation</th>
-            <td v-for="(_clo, index) in serverstate.clo">
+            <td v-for="(_clo, index) in clo" :key="index">
               <p>{{ _clo }}</p>
               <p>Change to:</p>
               <input v-model="clo[index]" type="checkbox"/>
@@ -210,7 +209,7 @@ function updateToServer() {
           <tr>
             <th>Referenced</th>
 
-            <td v-for="(refd, index) in serverstate.referenced" :key="index">
+            <td v-for="(refd, index) in referenced" :key="index">
               <p>{{ refd }}</p>
               <p>Change to:</p>
               <input v-model="referenced[index]" type="checkbox"/>
