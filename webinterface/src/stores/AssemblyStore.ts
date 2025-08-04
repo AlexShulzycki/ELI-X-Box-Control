@@ -26,7 +26,8 @@ export const useAssemblyStore = defineStore('AssemblyState', {
             const res = await axios.post("/post/kinematics/replaceRoot", req)
             if(res.status === 200) {
                 console.log("Server received updated assembly", res.data)
-                //const parsed: Component = parseJSONAssembly(res.data)
+                this.serverAssembly = res.data as Component
+                this.overWriteEditAssembly()
             }
         },
         async addChild(parent: string, component: Component) {
@@ -72,18 +73,18 @@ export interface Component {
     name: string
     type: ComponentType
     attach_to: string
-    attachment_point: number[]
-    attachment_rotation: number[]
+    attachment_point: [number, number, number]
+    attachment_rotation: [number, number, number]
     children: Component[]
 }
 
 export interface Structure extends Component {
-    collision_box_dimensions: number[]
-    collision_box_point: number[]
+    collision_box_dimensions: [number, number, number]
+    collision_box_point: [number, number, number]
 }
 
 export interface Axis extends Structure {
-    axis_vector: number[]
+    axis_vector: [number, number, number]
     axis_identifier: number
 }
 

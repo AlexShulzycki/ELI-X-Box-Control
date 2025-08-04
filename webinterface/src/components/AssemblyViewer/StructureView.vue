@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type {Structure} from "@/stores/AssemblyStore.ts";
 import ComponentView from "@/components/AssemblyViewer/ComponentView.vue";
+import XYZCoordinate from "@/components/3D/XYZCoordinate.vue";
 
 const {serverstructure, editstructure} = defineProps<{
   serverstructure?: Structure,
@@ -17,12 +18,12 @@ const {serverstructure, editstructure} = defineProps<{
       <th>Collision Box Center</th>
     </tr>
     <tr v-if="serverstructure != null">
-      <td>{{ serverstructure.collision_box_dimensions }}</td>
-      <td>{{ serverstructure.collision_box_point }}</td>
+      <td><XYZCoordinate v-bind:xyz="serverstructure.collision_box_dimensions" v-bind:writable="false"/></td>
+      <td><XYZCoordinate v-bind:xyz="serverstructure.collision_box_point" v-bind:writable="false"/></td>
     </tr>
     <tr>
-      <td><input v-model="editstructure.collision_box_dimensions"/></td>
-      <td><input v-model="editstructure.collision_box_point"/></td>
+      <td><XYZCoordinate v-bind:xyz="editstructure.collision_box_dimensions"/></td>
+      <td><XYZCoordinate v-bind:xyz="editstructure.collision_box_point"/></td>
     </tr>
     </tbody>
   </table>

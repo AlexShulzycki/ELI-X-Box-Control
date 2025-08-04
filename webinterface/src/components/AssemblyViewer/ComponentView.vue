@@ -2,6 +2,7 @@
 import {type Component, ComponentType, useAssemblyStore} from "@/stores/AssemblyStore.ts"
 import {ref} from "vue";
 import ChildViewer from "@/components/AssemblyViewer/ChildViewer.vue";
+import XYZCoordinate from "@/components/3D/XYZCoordinate.vue";
 
 const astore = useAssemblyStore()
 
@@ -22,13 +23,13 @@ const {servercomponent, editcomponent} = defineProps<{
     </tr>
     <tr>
       <th>Attachment Point</th>
-      <td v-if="servercomponent != undefined">{{ servercomponent.attachment_point }}</td>
-      <td><input v-model="editcomponent.attachment_point"/></td>
+      <td v-if="servercomponent != undefined"><XYZCoordinate v-bind:xyz="servercomponent.attachment_point" v-bind:writable="false"/></td>
+      <td><XYZCoordinate v-bind:xyz="editcomponent.attachment_point"/></td>
     </tr>
     <tr>
       <th>Rotation</th>
-      <td v-if="servercomponent != undefined">{{ servercomponent.attachment_rotation }}</td>
-      <td><input v-model="editcomponent.attachment_rotation"/></td>
+      <td v-if="servercomponent != undefined"><XYZCoordinate v-bind:xyz="servercomponent.attachment_rotation" v-bind:writable="false"/></td>
+      <td><XYZCoordinate v-bind:xyz="editcomponent.attachment_rotation"/></td>
     </tr>
     </tbody>
   </table>
