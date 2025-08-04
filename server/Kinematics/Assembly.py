@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from scipy.spatial.transform import Rotation
 
 from server.Interface import toplevelinterface
-from server.Kinematics.DataTypes import XYZvector
+from server.Kinematics.DataTypes import XYZvector, ComponentType
 from server.StageControl.DataTypes import EventAnnouncer, StageStatus
 
 
@@ -18,11 +18,6 @@ class CollisionBox(BaseModel):
     class Config:
         arbitrary_types_allowed = True
 
-
-class ComponentType(Enum):
-    Structure = "Structure"
-    Axis = "Axis"
-    Payload = "Payload"
 
 class AttachmentPoint(BaseModel):
     Point: XYZvector = Field(default= XYZvector(), description="Position of the attached comp relative to the parent's root position")
@@ -124,7 +119,7 @@ class Component:
 
         res = {
             "name": self.name,
-            "type": "component",
+            "type": ComponentType.Component,
             "children": children,
             "attachment_point": [0,0,0],
             "attachment_rotation": [0,0,0]
@@ -159,7 +154,7 @@ class Structure(Component):
         res = super().JSON
         res["collision_box_dimensions"] = self.collision_box.BoxDimensions.xyz
         res["collision_box_point"] = self.collision_box.BoxOffset.xyz
-        res["type"] = "structure"
+        res["type"] = ComponentType.Structure
 
         return res
 
@@ -200,7 +195,7 @@ class AxisComponent(Structure):
         res = super().JSON
         res["axis_vector"] = self.axis_vector.xyz
         res["axis_identifier"] = self.axis_identifier
-        res["type"] = "axis"
+        res["type"] = ComponentType.Axis
         return res
 
 

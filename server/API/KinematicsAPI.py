@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from enum import Enum
-
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from pydantic import BaseModel, Field, model_validator
 
 from server.Kinematics.Assembly import AssemblyInterface, AttachmentPoint, Component, Structure, CollisionBox, \
     AxisComponent
-from server.Kinematics.DataTypes import XYZvector
+from server.Kinematics.DataTypes import XYZvector, ComponentType
 from server.Kinematics.Trilateration import Trilateration
 
 
@@ -21,13 +19,8 @@ async def getassemblies():
     """
     Get configured assemblies
     """
-    global assembly
     return assembly.getJson()
 
-class ComponentType(Enum):
-    Component = "component"
-    Structure = "structure"
-    Axis = "axis"
 
 class ComponentRequest(BaseModel):
     name: str = Field(description="Unique name for this component")
@@ -48,7 +41,7 @@ class ComponentRequest(BaseModel):
                 raise ValueError("axis_vector must be set for axis components")
             if self.axis_identifier is None:
                 raise ValueError("axis_identifier must be set for axis components")
-
+        return self
 
 
 @router.post("/post/kinematics/addComponent")
@@ -80,10 +73,6 @@ def addcomponent(root: ComponentRequest):
         elif root.type == ComponentType.Axis:
             comp = AxisComponent(root=attachmentPoint, name=compreq.name, collisionbox=cbox,
                                  axisdirection=XYZvector(compreq.axis_vector), axis_identifier=compreq.axis_identifier)
-        if comp is not None:
-            assembly.attach(comp, attachmentPoint)
-        else:
-            raise Exception(f"Component  type {rootname} doesn't exist")
 
         # recursive fun!
         for child in compreq.children:
@@ -98,14 +87,15 @@ def removecomponent(name: str):
 
 @router.post("/post/kinematics/replaceRoot")
 def replaceRoot(root: ComponentRequest):
-    """dunno if we need this , nonfunctional for now"""
+    """Replace the entire assembly"""
     # Let's kick off the recursion
     if root.type != ComponentType.Component:
         raise ValueError("Root component must be a component, not axis or structure etc")
     assembly.root = Component(name="root")
     for child in root.children:
-        #attach(child, "root")
-        pass
+        addcomponent(child)
+
+    return assembly.getJson()
 
 @router.get("/get/kinematics/saveassembly")
 def saveassembly():

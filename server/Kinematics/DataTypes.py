@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from enum import Enum
+
 
 class XYZvector:
     def __init__(self, xyz=None):
@@ -39,3 +41,9 @@ class XYZvector:
         self.x = xyz[0]
         self.y = xyz[1]
         self.z = xyz[2]
+
+
+class ComponentType(Enum):
+    Component = "Component"
+    Structure = "Structure"
+    Axis = "Axis"

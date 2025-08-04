@@ -10,28 +10,33 @@ export const useAssemblyStore = defineStore('AssemblyState', {
     },
     actions: {
         async syncServerAssembly() {
-            const res = await axios.get("/get/kinematics/assemblies")
+            const res = await axios.get<Component>("/get/kinematics/assemblies")
             console.log("received server assembly", res.data)
-            return
+            this.serverAssembly = res.data as Component
             this.overWriteEditAssembly()
         },
         overWriteEditAssembly() {
-            this.editAssembly = this.serverAssembly
+            // double make sure we are making a new copy
+            this.editAssembly = JSON.parse(JSON.stringify(this.serverAssembly)) as Component
         },
-        async updateAssembly() {
-            const data = JSON.stringify(this.editAssembly)
-            console.log("updating server assembly", data)
-            const res = await axios.post("/get/kinematics/assemblies", data)
-            console.log("received response to assembly update", res.data)
+        async submitEditAssembly() {
+            //const req = JSON.stringify(this.editAssembly)
+            const req = this.editAssembly
+            console.log("sending updated assembly", req)
+            const res = await axios.post("/post/kinematics/replaceRoot", req)
+            if(res.status === 200) {
+                console.log("Server received updated assembly", res.data)
+                //const parsed: Component = parseJSONAssembly(res.data)
+            }
         },
         async addChild(parent: string, component: Component) {
             // check if the name is actually unique
             if (this.getEditMap?.has(component.name)) {
                 console.error("Component with name", component.name, "already exists")
+                window.alert("Component with name '" + component.name +"' already exists")
                 return
             } else {
                 this.getEditMap?.get(parent)?.children.push(component)
-                console.log("Added new editable component: ", component)
             }
         }
     },
@@ -49,6 +54,9 @@ export const useAssemblyStore = defineStore('AssemblyState', {
             } else {
                 return null
             }
+        },
+        hasUnsavedEdits: (state) => {
+            return !(JSON.stringify(state.serverAssembly) === JSON.stringify(state.editAssembly))
         }
     }
 })
@@ -155,4 +163,12 @@ const defaultrootcomponent: Component = {
     name: "root",
     type: ComponentType.Component
 
+}
+
+function parseJSONAssembly(root: Object): Component|null {
+    let res: Component = root as Component
+
+    console.log("parseJSONAssembly", root)
+
+    return res
 }

@@ -19,6 +19,7 @@ let addNewType = ref<ComponentType>(ComponentType.Component)
 let addNewName = ref("Unique Name Here")
 
 function addAnother() {
+  // Append a new child component
   let data: any = {
     name: addNewName.value,
     type: addNewType.value,
@@ -28,8 +29,7 @@ function addAnother() {
     children: [],
   }
 
-  console.log("adding another: ", data)
-
+  // populate default values for different types
   if (addNewType.value == ComponentType.Component) {
     astore.addChild(this_comp_name, data as Component)
   } else if (addNewType.value == ComponentType.Structure) {
@@ -45,9 +45,6 @@ function addAnother() {
   }
 }
 
-function submitEdits() {
-
-}
 </script>
 
 <template>
@@ -62,8 +59,8 @@ function submitEdits() {
       <AxisView v-else-if="editchild.type == ComponentType.Axis"
                 v-bind:serveraxis="astore.getServerMap?.get(editchild.name) as Axis"
                 v-bind:editaxis="editchild as Axis"/>
-      <button @click="submitEdits()">Submit Edits</button>
     </div>
+    <br/>
     <select v-model="addNewType">
       <option v-for="comp in ComponentType">{{ comp }}</option>
     </select>
