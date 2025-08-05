@@ -190,8 +190,8 @@ class PIController:
         res = {}
         for i in range(self.config.channel_amount):
 
-            # only add if its an actual stage
-            if self.config.stages[i] == "NOSTAGE":
+            # only add if it's an actual stage (and referenced)
+            if (self.config.stages[i] == "NOSTAGE") or (not self.config.referenced[i]):
                 continue
             stat = (StageStatus(
                 identifier =self.config.SN * 10 + (i + 1),

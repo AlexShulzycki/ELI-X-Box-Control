@@ -48,9 +48,9 @@ function processResponse(res: moveStageResponse){
           <th></th>
         </tr>
         <tr>
-          <td><button @click="moveBy(-1)">Decrease</button></td>
+          <td><button @click="moveBy(-40)">Decrease</button></td>
           <td>{{state.position}}</td>
-          <td><button @click="moveBy(1)">Increase</button></td>
+          <td><button @click="moveBy(40)">Increase</button></td>
         </tr>
         </tbody>
       </table>

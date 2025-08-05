@@ -169,7 +169,11 @@ class PIControllerInterface(ControllerInterface):
         return sns
 
     def getRelevantControllerSNs(self, identifiers: list[int] = None) -> list[int]:
-        # tease out the serial number of the relevant controllers
+        """
+        Grabs all identifiers of relevant controllers for the given identifier list. If no list provided, returns all controllers.
+        :param identifiers: Identifiers we want the controllers for
+        :return:
+        """
         controller_sn: list[int] = []
         if identifiers is None:
             # grab all serial numbers if none

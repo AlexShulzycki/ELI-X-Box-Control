@@ -54,30 +54,6 @@ class C884(PIController):
         """GCSDevice instance, DO NOT ACESS/MODIFY OUTSIDE OF THE C884 CLASS"""
         super().__init__()
 
-        self.refresh_pos_ont_timer:Timer = None
-
-    def schedulePosOntRefresh(self, fromWorker = False):
-        if (self.refresh_pos_ont_timer is None) or (not self.refresh_pos_ont_timer.is_alive()) or fromWorker:
-            self.refresh_pos_ont_timer = Timer(0.2, self.PosOntRefresh)
-            self.refresh_pos_ont_timer.start()
-
-    async def PosOntRefresh(self):
-        """
-        Waits for an interval and then rechecks ontarget status. If not on target, wait some more
-        """
-        print("hello this is the worker")
-        # refresh
-        await self.refreshPosOnTarget()
-        # Check if we need to reschedule an ontarget check
-        refresh = False
-        for ont in self.config.on_target:
-            if not ont:
-                refresh = True
-                break
-
-        if refresh:
-            self.schedulePosOntRefresh()
-
     async def updateFromConfig(self, config: PIConfiguration):
         """
         Compares given status with current status of controller, and changes settings if necessary. If a new valid stage
@@ -272,8 +248,7 @@ class C884(PIController):
         self.checkReady()
         if axes is None:
             self.device.FRF(self.device.axes)
-            # Start the background refresh task
-            self.schedulePosOntRefresh()
+
         else:
             # we need a list of the axes we want to reference
             req = []
@@ -284,8 +259,6 @@ class C884(PIController):
             if len(req) != 0:
                 # reference
                 self.device.FRF(req)
-                # Start the background refresh task
-                self.schedulePosOntRefresh()
 
 
     async def refreshFullStatus(self):
@@ -365,9 +338,6 @@ class C884(PIController):
 
         self.device.MOV(channel, target)
 
-        # Start the background refresh task
-        self.schedulePosOntRefresh()
-
 
     async def moveBy(self, channel, step):
         self.checkReady("Cannot move axis.")
@@ -376,9 +346,6 @@ class C884(PIController):
         # target position, not current position.
         position = self.dict2list(self.device.qPOS())
         self.device.MOV(channel, position[channel-1] + step)
-
-        # Start the background refresh task
-        self.schedulePosOntRefresh()
 
     async def update_onTarget(self):
         """

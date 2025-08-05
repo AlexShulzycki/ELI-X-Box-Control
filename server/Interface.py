@@ -154,6 +154,14 @@ class MainInterface:
             res[intf.name] = intf.settings.configurationFormat.model_json_schema()
         return res
 
+    @property
+    def allIdentifiers(self) -> list[int]:
+        """Returns list of all identifiers"""
+        res = []
+        for intf in self.interfaces:
+            res.extend(intf.stages)
+        return res
+
 # INIT ALL INTERFACES TOGETHER
 PIinterface = PIControllerInterface()
 Virtualinterface = VirtualControllerInterface()
