@@ -29,7 +29,7 @@ const {servercomponent, editcomponent} = defineProps<{
     </tr>
     <tr>
       <th>Rotation</th>
-      <td v-if="servercomponent != undefined"><XYZCoordinate v-bind:xyz="servercomponent.attachment_rotation" v-bind:writable="false"/></td>
+      <td v-if="servercomponent != undefined"><Quaternion v-bind:xyzw="servercomponent.attachment_rotation" v-bind:writable="false"/></td>
       <td><Quaternion v-bind:xyzw="editcomponent.attachment_rotation"/></td>
     </tr>
     </tbody>
