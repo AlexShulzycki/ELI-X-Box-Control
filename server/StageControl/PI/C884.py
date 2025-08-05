@@ -1,9 +1,10 @@
 import asyncio
+import time
+from threading import Thread, Timer
 from typing import Coroutine, Awaitable, Any
 
 from pipython import GCSDevice
 
-from server.StageControl.DataTypes import EventAnnouncer, StageInfo, StageStatus
 from server.StageControl.PI.DataTypes import PIController, PIConfiguration, PIConnectionType, PIStageInfo
 
 
@@ -53,7 +54,29 @@ class C884(PIController):
         """GCSDevice instance, DO NOT ACESS/MODIFY OUTSIDE OF THE C884 CLASS"""
         super().__init__()
 
+        self.refresh_pos_ont_timer:Timer = None
 
+    def schedulePosOntRefresh(self, fromWorker = False):
+        if (self.refresh_pos_ont_timer is None) or (not self.refresh_pos_ont_timer.is_alive()) or fromWorker:
+            self.refresh_pos_ont_timer = Timer(0.2, self.PosOntRefresh)
+            self.refresh_pos_ont_timer.start()
+
+    async def PosOntRefresh(self):
+        """
+        Waits for an interval and then rechecks ontarget status. If not on target, wait some more
+        """
+        print("hello this is the worker")
+        # refresh
+        await self.refreshPosOnTarget()
+        # Check if we need to reschedule an ontarget check
+        refresh = False
+        for ont in self.config.on_target:
+            if not ont:
+                refresh = True
+                break
+
+        if refresh:
+            self.schedulePosOntRefresh()
 
     async def updateFromConfig(self, config: PIConfiguration):
         """
@@ -126,7 +149,7 @@ class C884(PIController):
         res = [None] * len(self.device.allaxes)
         # The returned dict will not contain keys of stages which are not connected
         for i in self.device.axes:
-            res[int(i) - 1] = fromController[f"{i}"]
+                res[int(i) - 1] = fromController[f"{i}"]
 
         return res
 
@@ -249,6 +272,8 @@ class C884(PIController):
         self.checkReady()
         if axes is None:
             self.device.FRF(self.device.axes)
+            # Start the background refresh task
+            self.schedulePosOntRefresh()
         else:
             # we need a list of the axes we want to reference
             req = []
@@ -257,7 +282,10 @@ class C884(PIController):
                 if ax and not self.config.referenced[i]:
                     req.append(i+1)
             if len(req) != 0:
+                # reference
                 self.device.FRF(req)
+                # Start the background refresh task
+                self.schedulePosOntRefresh()
 
 
     async def refreshFullStatus(self):
@@ -318,7 +346,14 @@ class C884(PIController):
         :return:
         """
         self.checkReady("Cannot get position.")
-        self._config.position = self.dict2list(self.device.qPOS())
+        positions =  self.dict2list(self.device.qPOS())
+        self._config.position = [None] * self.config.channel_amount
+        # ensure float type
+        for index, pos in enumerate(positions):
+            if pos is not None:
+                self._config.position[index] = float(pos)
+            else:
+                self._config.position[index] = pos
 
     async def moveTo(self, channel: int, target: float):
         """
@@ -330,6 +365,9 @@ class C884(PIController):
 
         self.device.MOV(channel, target)
 
+        # Start the background refresh task
+        self.schedulePosOntRefresh()
+
 
     async def moveBy(self, channel, step):
         self.checkReady("Cannot move axis.")
@@ -338,6 +376,9 @@ class C884(PIController):
         # target position, not current position.
         position = self.dict2list(self.device.qPOS())
         self.device.MOV(channel, position[channel-1] + step)
+
+        # Start the background refresh task
+        self.schedulePosOntRefresh()
 
     async def update_onTarget(self):
         """

@@ -166,7 +166,7 @@ class PIController:
         res = {}
         for i in range(self.config.channel_amount):
             # Check if valid stage
-            if self.config.stages[i] == "NOSTAGE":
+            if (self.config.stages[i] == "NOSTAGE") or (not self.config.referenced[i]):
                 continue
 
             stat = PIStageInfo(

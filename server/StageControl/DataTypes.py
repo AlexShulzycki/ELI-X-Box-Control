@@ -252,4 +252,3 @@ class ControllerSettings:
 
     async def fullRefreshAllSettings(self):
         raise NotImplementedError
-
