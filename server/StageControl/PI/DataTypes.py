@@ -150,6 +150,10 @@ class PIController:
     async def moveTo(self, channel, position: float):
         raise NotImplementedError
 
+    async def moveBy(self, channel, step):
+        raise NotImplementedError
+
+
     @property
     def config(self) -> PIConfiguration:
         """
@@ -203,6 +207,7 @@ class MockPIController(PIController):
     """
     PI controller that's not real, used for testing, doesn't connect to anything, but acts like one.
     """
+
     def __init__(self):
         super().__init__()
         self.position = None
@@ -302,6 +307,9 @@ class MockPIController(PIController):
 
     async def moveTo(self, channel:int, position: float):
         self.position[channel + 1] = position
+
+    async def moveBy(self, channel, step):
+        self.position[channel + 1] += step
 
     @property
     def config(self) -> PIConfiguration:

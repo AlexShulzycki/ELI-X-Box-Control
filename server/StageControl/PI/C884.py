@@ -32,8 +32,6 @@ class C884(PIController):
     Remember to close the connection once you are done with the controller to avoid blocking the com port - especially
     during setup.
 
-    # TODO RECOGNIZE HOW MANY CHANNELS A CONTROLLER HAS AND THUS MITIGATE USER IDIOCY
-
     AXIS SETUP PROCESS:
     1 Connect the controller, run openConnection(), make sure its plugged in and you have the right com port etc etc
     2 Tell the controller what stages are connected with CST
@@ -332,6 +330,15 @@ class C884(PIController):
 
         self.device.MOV(channel, target)
 
+
+    async def moveBy(self, channel, step):
+        self.checkReady("Cannot move axis.")
+
+        # MVR is for relative, but it is relative to the last commanded
+        # target position, not current position.
+        position = self.dict2list(self.device.qPOS())
+        self.device.MOV(channel, position[channel-1] + step)
+
     async def update_onTarget(self):
         """
         Returns boolean of whether the axis/axes are on target.
@@ -418,6 +425,10 @@ class C884(PIController):
 
     def shutdown_and_cleanup(self):
         self.__exit__()
+
+    # adding a bunch of exit handlers to triple make sure it disconnects gracefully
+    # and doesn't keep hogging the com port (for rs232 mainly, and no i'm not gonna
+    # check which connection type is being used to save 1 * 10^-100 seconds).
 
     def __exit__(self):
         self.closeConnection()

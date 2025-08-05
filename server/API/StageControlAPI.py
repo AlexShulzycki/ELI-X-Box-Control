@@ -6,7 +6,7 @@ from server.StageControl.DataTypes import StageInfo, StageStatus, StageKind
 
 router = APIRouter(tags=["control"])
 
-@router.get("/stage/info")
+@router.get("/get/stage/info")
 def getAllStageInfo() -> dict[int, StageInfo]:
     """
     Gets the stage info of connected stages
@@ -14,7 +14,7 @@ def getAllStageInfo() -> dict[int, StageInfo]:
     """
     return toplevelinterface.StageInfo
 
-@router.get("/stage/status")
+@router.get("/get/stage/status")
 def getAllStageStatus() -> dict[int, StageStatus]:
     """
     Gets the status of connected stages
@@ -22,14 +22,14 @@ def getAllStageStatus() -> dict[int, StageStatus]:
     """
     return toplevelinterface.StageStatus
 
-@router.get("/stage/update/status/")
+@router.get("/get/stage/update/status/")
 async def updateStageStatus():
     """
     Updates the status of all connected stages
     """
     await toplevelinterface.updateStageStatus()
 
-@router.get("/stage/update/info/")
+@router.get("/get/stage/update/info/")
 async def updateStageInfo():
     """
     Updates the info of all connected stages
@@ -48,7 +48,7 @@ class FullState(BaseModel):
     ontarget: bool
 
 
-@router.get("/stage/fullstate")
+@router.get("/get/stage/fullstate")
 async def getStageFullstate():
     info = toplevelinterface.StageInfo
     stat = toplevelinterface.StageStatus
@@ -75,7 +75,7 @@ class MoveStageResponse(BaseModel):
     success: bool = Field(description="Whether the stage successfully received the move command")
     error: str = Field(description="The error message in case of failure", default=None)
 
-@router.post("/stage/move/")
+@router.post("/post/stage/move/")
 async def moveStage(request: MoveStageRequest) -> MoveStageResponse:
     """
     Moves the indicated stage
@@ -87,3 +87,11 @@ async def moveStage(request: MoveStageRequest) -> MoveStageResponse:
         return MoveStageResponse(success=True)
     except Exception as error:
         return MoveStageResponse(success=False, error=str(error))
+
+class StepStageRequest(BaseModel):
+    identifier: int = Field(description="The stage identifier of the stage you want to step")
+    step: float = Field(description="amount by which you want to move (negative for going the other way)")
+
+@router.post("/get/stage/step/")
+async def stepStage(request: StepStageRequest) -> MoveStageResponse:
+    pass

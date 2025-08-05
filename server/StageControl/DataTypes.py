@@ -157,8 +157,12 @@ class ControllerInterface:
         """Returns unique integer identifiers for each stage"""
         raise NotImplementedError
 
-    def moveTo(self, identifier: int, position: float):
+    async def moveTo(self, identifier: int, position: float):
         """Move stage to position"""
+        raise NotImplementedError
+
+    async def moveBy(self, identifier: int, step: float):
+        """Move stage by offset"""
         raise NotImplementedError
 
     @property
@@ -166,7 +170,7 @@ class ControllerInterface:
         """Returns StageInfo of connected stages"""
         raise NotImplementedError
 
-    def updateStageInfo(self, identifiers: list[int] = None):
+    async def updateStageInfo(self, identifiers: list[int] = None):
         """Updates StageInfo for the given stages or all if identifier list is empty"""
         raise NotImplementedError
 
@@ -175,7 +179,7 @@ class ControllerInterface:
         """Return StageStatus objects for the given stages"""
         raise NotImplementedError
 
-    def updateStageStatus(self, identifiers: list[int] = None):
+    async def updateStageStatus(self, identifiers: list[int] = None):
         """Updates stageStatus for the given stages or all if identifier list is empty."""
         raise NotImplementedError
 

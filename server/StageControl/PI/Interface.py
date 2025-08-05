@@ -133,6 +133,10 @@ def deconstruct_SN_Channel(sn_channel):
 
 class PIControllerInterface(ControllerInterface):
 
+    async def moveBy(self, identifier: int, step: float):
+        sn, channel = deconstruct_SN_Channel(identifier)
+        await self.settings.controllers[sn].moveBy(channel, step)
+
     def __init__(self):
         super().__init__()
         self.settings:PISettings = PISettings()

@@ -143,8 +143,8 @@ interface StageInfo {
     identifier: number
     model: string
     kind: StageKind
-    minimum: number
-    maximum: number
+    minimum?: number
+    maximum?: number
 }
 
 interface StageStatus{
