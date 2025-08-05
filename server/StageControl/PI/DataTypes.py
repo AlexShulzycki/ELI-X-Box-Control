@@ -162,7 +162,7 @@ class PIController:
         raise NotImplementedError
 
     @property
-    def stageInfos(self) -> dict[str, PIStageInfo]:
+    def stageInfos(self) -> dict[int, PIStageInfo]:
         res = {}
         for i in range(self.config.channel_amount):
             # Check if valid stage
@@ -186,7 +186,7 @@ class PIController:
 
 
     @property
-    def stageStatuses(self) -> dict[str, StageStatus]:
+    def stageStatuses(self) -> dict[int, StageStatus]:
         res = {}
         for i in range(self.config.channel_amount):
 
@@ -306,10 +306,14 @@ class MockPIController(PIController):
             self.EA.event(status)
 
     async def moveTo(self, channel:int, position: float):
-        self.position[channel + 1] = position
+        self._config.position[channel-1] = position
+        self._config.on_target[channel-1] = True
+        self.EA.event(self.stageStatuses[self.config.SN*10 +channel])
 
-    async def moveBy(self, channel, step):
-        self.position[channel + 1] += step
+    async def moveBy(self, channel, step: float):
+        self._config.position[channel-1] += step
+        self._config.on_target[channel-1] = True
+        self.EA.event(self.stageStatuses[self.config.SN*10 +channel])
 
     @property
     def config(self) -> PIConfiguration:

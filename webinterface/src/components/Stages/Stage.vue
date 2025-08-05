@@ -23,6 +23,11 @@ function moveTo(target: number){
   })
 }
 
+function processResponse(res: moveStageResponse){
+  if(!res.success){
+    window.alert(res.error)
+  }
+}
 
 </script>
 
