@@ -25,7 +25,7 @@ function addAnother() {
     type: addNewType.value,
     attach_to: this_comp_name,
     attachment_point: [0, 0, 0],
-    attachment_rotation: [0, 0, 0],
+    attachment_rotation: [0, 0, 0, 1],
     children: [],
   }
 

@@ -3,6 +3,7 @@ import {type Component, ComponentType, useAssemblyStore} from "@/stores/Assembly
 import {ref} from "vue";
 import ChildViewer from "@/components/AssemblyViewer/ChildViewer.vue";
 import XYZCoordinate from "@/components/3D/XYZCoordinate.vue";
+import Quaternion from "@/components/3D/Quaternion.vue";
 
 const astore = useAssemblyStore()
 
@@ -29,7 +30,7 @@ const {servercomponent, editcomponent} = defineProps<{
     <tr>
       <th>Rotation</th>
       <td v-if="servercomponent != undefined"><XYZCoordinate v-bind:xyz="servercomponent.attachment_rotation" v-bind:writable="false"/></td>
-      <td><XYZCoordinate v-bind:xyz="editcomponent.attachment_rotation"/></td>
+      <td><Quaternion v-bind:xyzw="editcomponent.attachment_rotation"/></td>
     </tr>
     </tbody>
   </table>

@@ -1,5 +1,5 @@
 import {defineStore} from "pinia"
-import {Euler, Quaternion, Vector3} from "three";
+import {Euler, Quaternion, type QuaternionTuple, Vector3, type Vector3Tuple} from "three";
 import axios from "axios";
 
 export const useAssemblyStore = defineStore('AssemblyState', {
@@ -61,14 +61,13 @@ export const useAssemblyStore = defineStore('AssemblyState', {
             return !(JSON.stringify(state.serverAssembly) === JSON.stringify(state.editAssembly))
         },
         server_computed_xyz_rotation: (state) => {
-            // TODO fix up for new quaternion format
             let res = transform_children((new Quaternion().identity()), (new Vector3(0,0,0)), state.serverAssembly)
-            res.set("root", [(new Quaternion().identity()), (new Vector3(0,0,0))])
+            res.set("root", [(new Quaternion().identity().toArray()), (new Vector3(0,0,0).toArray())])
             return res
         },
         edits_computed_xyz_rotation: (state) => {
             let res = transform_children((new Quaternion().identity()), (new Vector3(0,0,0)), state.editAssembly)
-            res.set("root", [(new Quaternion().identity()), (new Vector3(0,0,0))])
+            res.set("root", [(new Quaternion().identity()).toArray(), (new Vector3(0,0,0).toArray())])
             return res
         }
     }
@@ -169,13 +168,22 @@ function returnMap(root: Component): Map<string, Component> {
 }
 
 
-function transform_children(rotation: Quaternion, translation: Vector3, comp: Component): Map<string, [Quaternion, Vector3]> {
-    let res = new Map<string, [Quaternion, Vector3]>()
+function transform_children(rotation_: Quaternion, translation_: Vector3, comp: Component): Map<string, [QuaternionTuple, Vector3Tuple]> {
+    let res = new Map<string, [QuaternionTuple, Vector3Tuple]>()
+    // create new objects so we dont modify the passed in objects
+    const rotation = new Quaternion().copy(rotation_)
+    const translation = new Vector3().copy(translation_)
+
     comp.children.forEach((child: Component) => {
-        // child rotation * parent rotation, new rotation * child attachment point + parent attachment point
-        const rot = rotation.multiply(new Quaternion().setFromEuler(new Euler(child.attachment_rotation[0], child.attachment_rotation[1], child.attachment_rotation[2])))
+        // child rotation * parent rotation, new rotation * child attachment point + parent attachment point(which is already in world-space)
+        const crot = child.attachment_rotation
+        console.log("crot", crot)
+        console.log("parent rotation", rotation)
+        const rot = rotation.multiply(new Quaternion(crot[0], crot[1], crot[2], crot[3]))
+        console.log("rot", rot)
         const xyz = new Vector3(child.attachment_point[0], child.attachment_point[1], child.attachment_point[2]).applyQuaternion(rot).add(translation)
-        res.set(child.name, [rot, xyz])
+        res.set(child.name, [rot.toArray(),xyz.toArray()])
+        console.log("appending", [rot, xyz])
 
         // recurse
         const childRes = transform_children(rot, xyz, child)
@@ -199,7 +207,7 @@ function transformPoint() {
 const defaultrootcomponent: Component = {
     attach_to: "",
     attachment_point: [0, 0, 0],
-    attachment_rotation: [0, 0, 0],
+    attachment_rotation: [0, 0, 0, 1],
     children: [],
     name: "root",
     type: ComponentType.Component
