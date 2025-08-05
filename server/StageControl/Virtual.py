@@ -65,7 +65,7 @@ class VirtualControllerInterface(ControllerInterface):
     async def moveBy(self, identifier: int, step: float):
         self.settings.virtualstages[identifier].stageStatus.position += step
         self.settings.virtualstages[identifier].stageStatus.ontarget = True
-        self.EventAnnouncer.event(self.stageStatus)
+        self.EventAnnouncer.event(self.stageStatus[identifier])
 
     def __init__(self):
         super().__init__()
@@ -88,7 +88,7 @@ class VirtualControllerInterface(ControllerInterface):
         """Move stage to position"""
         self.settings.virtualstages[serial_number].stageStatus.position = position
         self.settings.virtualstages[serial_number].stageStatus.ontarget = True
-        self.EventAnnouncer.event(self.stageStatus)
+        self.EventAnnouncer.event(self.stageStatus[serial_number])
 
     async def updateStageInfo(self, identifiers: list[int] = None):
         """Update stage info objects"""
