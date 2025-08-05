@@ -1,22 +1,27 @@
 <script setup lang="ts">
 
-import {type FullState, useStageStore} from "@/stores/StageStore.ts";
+import {type FullState, type moveStageResponse, useStageStore} from "@/stores/StageStore.ts";
 import {ref} from "vue";
 
-const {identifier} = defineProps<{ identifier:number }>()
+const {state} = defineProps<{ state:FullState }>()
 const stageStore = useStageStore()
 
-const state = ref<FullState|undefined>(stageStore.serverStages.get(identifier))
-
-if(identifier != state.value?.identifier){
-  throw Error("key does not match value identifier, something went horribly wrong")
-}
-
+let res = ref<moveStageResponse>({success: true})
 
 function moveBy(offset: number){
-
+  stageStore.stepStage(state.identifier, offset).then((value)=>{
+    if(value != undefined){
+      res.value = value
+    }
+  })
 }
-function moveTo(target: number){}
+function moveTo(target: number){
+  stageStore.moveStage(state.identifier, target).then((value)=>{
+    if(value != undefined){
+      res.value = value
+    }
+  })
+}
 
 
 </script>
@@ -47,7 +52,6 @@ function moveTo(target: number){}
 
     </div>
   </div>
-  <h5 v-else>Unknown Stage with ID {{identifier}}</h5>
 </template>
 
 <style scoped>

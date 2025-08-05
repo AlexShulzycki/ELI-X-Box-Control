@@ -11,7 +11,7 @@ export const useStageStore = defineStore('AxisState', {
     },
     actions: {
         async syncServerStageInformation() {
-            const res = await axios.get("/stage/fullstate")
+            const res = await axios.get("/get/stage/fullstate")
             if(res.status === 200){
                 const data = objectToMap<FullState>(res.data)
                 console.log("received new stage state: ", data)
@@ -33,19 +33,29 @@ export const useStageStore = defineStore('AxisState', {
             await this.updateStageStatus()
         },
         async updateStageStatus() {
-            await axios.get("/stage/update/status")
+            await axios.get("/get/stage/update/status")
         },
         async updateStageInfo() {
-            await axios.get("/stage/update/info")
+            await axios.get("/get/stage/update/info")
         },
         async moveStage(id: number, position: number){
             let data = {
                 "identifier": id,
                 "position": position
             }
-            const res = await axios.post("/stage/move/", data)
+            const res = await axios.get("/get/stage/move/", {params: data})
             if(res.status === 200){
-                console.log("moving stage: "+id+" to "+position, res.data)
+                return res.data as moveStageResponse
+            }
+        },
+        async stepStage(id: number, step: number){
+            let data = {
+                "identifier": id,
+                "step": step
+            }
+            const res = await axios.get("/get/stage/step/", {params: data})
+            if(res.status === 200){
+                return res.data as moveStageResponse
             }
         },
         receiveStageStatus(status: StageStatus) {
@@ -80,28 +90,13 @@ export const useStageStore = defineStore('AxisState', {
             if(this.serverStages.has(removed.identifier)){
                 this.serverStages.delete(removed.identifier)
             }
-        },
-        async moveTo(identifier: number, position: number){
-            if(this.serverStages.has(identifier)){
-                const req = {identifier: identifier, position: position} as moveStageTo
-                const res = await axios.post("stage/move/", req)
-                if(res.status === 200) {
-                    return res.data as moveStageResponse
-                }else{
-                    console.log("Error moving stage: ", res.data)
-                }
-            }else{
-                console.log("Couldn't find stage", identifier)
-            }
         }
     },
     getters: {
-        getConnectedStages: (state) => {
+        getStageIDs: (state) => {
             let res: Array<number> = []
             state.serverStages.forEach((e, key) => {
-                if(e.connected){
                     res.push(e.identifier)
-                }
             })
             return res
         },

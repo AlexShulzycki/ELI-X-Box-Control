@@ -67,31 +67,27 @@ async def getStageFullstate():
         )
     return res
 
-class MoveStageRequest(BaseModel):
-    identifier: int = Field(description="The stage identifier of the stage you want to move")
-    position: float = Field(description="The position to which you want to move")
-
 class MoveStageResponse(BaseModel):
     success: bool = Field(description="Whether the stage successfully received the move command")
     error: str = Field(description="The error message in case of failure", default=None)
 
-@router.post("/post/stage/move/")
-async def moveStage(request: MoveStageRequest) -> MoveStageResponse:
+@router.get("/get/stage/move/")
+async def moveStage(identifier: int, position: int) -> MoveStageResponse:
     """
     Moves the indicated stage
     :param request: Request
     :return: Response
     """
     try:
-        await toplevelinterface.moveStage(request.identifier, request.position)
+        await toplevelinterface.moveStage(identifier, position)
         return MoveStageResponse(success=True)
     except Exception as error:
         return MoveStageResponse(success=False, error=str(error))
 
-class StepStageRequest(BaseModel):
-    identifier: int = Field(description="The stage identifier of the stage you want to step")
-    step: float = Field(description="amount by which you want to move (negative for going the other way)")
-
-@router.post("/get/stage/step/")
-async def stepStage(request: StepStageRequest) -> MoveStageResponse:
-    pass
+@router.get("/get/stage/step/")
+async def stepStage(identifier: int, step:int) -> MoveStageResponse:
+    try:
+        await toplevelinterface.stepStage(identifier, step)
+        return MoveStageResponse(success=True)
+    except Exception as error:
+        return MoveStageResponse(success=False, error=str(error))

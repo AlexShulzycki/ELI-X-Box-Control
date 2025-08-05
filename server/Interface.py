@@ -129,6 +129,23 @@ class MainInterface:
         # if we're here, no exception was thrown, so it worked.
         return True
 
+    async def stepStage(self, identifier: int, position: float) -> bool:
+        """
+        Move the stage to the given position. Returns True if the stage was moved, raises and
+        exception in all other cases.
+        :param identifier: identifier of the stage.
+        :param position: position to move to
+        :return: True, or exception.
+        """
+        interface = self.getRelevantInterface(identifier)
+        if interface is None:
+            raise Exception(f"Stage {identifier} doesn't exist")
+
+        await interface.moveBy( identifier, position)
+
+        # if we're here, no exception was thrown, so it worked.
+        return True
+
     @property
     def configSchema(self):
         """Returns list of JSON schemas of configuration objects"""
