@@ -30,4 +30,8 @@ function save_default(value){
 
 <style scoped>
 
+  WindowGrid{
+    width:100vw;
+    flex-grow: 1;
+  }
 </style>

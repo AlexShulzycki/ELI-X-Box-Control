@@ -62,25 +62,25 @@ watch(windowgrid.components, (old, newvalue) => {
 
   </div>
   <div class="windowgrid" :class="{horizontal : isHorizontal, vertical: !isHorizontal}">
-    <div v-if="windowgrid.components[0][0] != 'empty'" class="one">
+    <div v-if="windowgrid.components[0][0] != 'empty'" class="item">
       <button @click="removeSelf(0)">Remove</button>
       <component v-if="windowgrid.components[0][0] != 'WindowGrid'" v-bind:is="windowgrid.components[0][0]" v-model="windowgrid.components[0][1]"/>
       <WindowGrid v-else-if="windowgrid.components[0][0] == 'WindowGrid'" v-model:windowgrid="WGprop1"
       @changetree="receiveChildConfig1"/>
     </div>
-    <div v-else>
+    <div v-else class="item">
       <select v-model="windowgrid.components[0][0]">
         <option v-for="op in WindowGridPayloads" v-bind:value="op">{{op}}</option>
       </select>
     </div>
-    <div v-if="windowgrid.components[1][0] != 'empty'" class="two">
+    <div v-if="windowgrid.components[1][0] != 'empty'" class="item">
       <button @click="removeSelf(1)">Remove</button>
       <component v-if="windowgrid.components[1][0] != 'WindowGrid'"
                  v-bind:is="windowgrid.components[1][0]" v-model="windowgrid.components[0][1]"/>
       <WindowGrid v-else-if="windowgrid.components[1][0] == 'WindowGrid'" v-model:windowgrid="WGprop2"
       @changetree="receiveChildConfig2"/>
     </div>
-    <div v-else>
+    <div v-else class="item">
       <select v-model="windowgrid.components[1][0]">
         <option v-for="op in WindowGridPayloads" v-bind:value="op">{{op}}</option>
       </select>
@@ -91,20 +91,23 @@ watch(windowgrid.components, (old, newvalue) => {
 <style scoped>
 
 template {
-  width: 100%;
+  flex-grow: 1;
   height: 100%;
 }
 
 .windowgrid {
   display: flex;
-  width: 100%;
   height: 100%;
+  background-color: lavenderblush;
 }
 .horizontal{
   flex-direction: row;
 }
 .vertical{
   flex-direction: column;
+}
+.item{
+  width: 50%;
 }
 
 </style>

@@ -25,7 +25,7 @@ TresCanvas {
   flex-direction: column;
 }
 #trescontainer {
-  height: 50vh;
+  width: 100%;
   aspect-ratio: 1;
 }
 </style>

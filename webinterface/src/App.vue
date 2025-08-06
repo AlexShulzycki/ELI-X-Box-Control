@@ -20,7 +20,7 @@ import Settings from "@/components/Settings.vue";
     <Settings/>
   </div>
   <main>
-    <div style="flex:0.7">
+    <div style="flex-grow: 1">
       <RouterView/>
     </div>
 
