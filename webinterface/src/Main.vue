@@ -16,12 +16,16 @@ function debug(){
   deflayout.components[1] = ["Assembly3D", {}]
 }
 
+function save_default(value){
+  lstore.layouts.set("default", value)
+}
+
 </script>
 
 <template>
   <button @click="debug()">Debug</button>
 <h1>This is the main page</h1>
-    <WindowGrid v-if="deflayout != undefined" v-bind:windowgrid="deflayout" @changetree="console.log"/>
+    <WindowGrid v-if="deflayout != undefined" v-bind:windowgrid="deflayout" @changetree="save_default"/>
 </template>
 
 <style scoped>

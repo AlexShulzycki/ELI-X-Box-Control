@@ -31,7 +31,7 @@ function removeSelf(which: number) {
 let knownTree = ref(windowgrid)
 
 function emitChildConfigs(){
-  emit("changetree", knownTree)
+  emit("changetree", knownTree.value)
 }
 
 function receiveChildConfig1(value){
