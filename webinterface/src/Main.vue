@@ -21,7 +21,7 @@ function debug(){
 <template>
   <button @click="debug()">Debug</button>
 <h1>This is the main page</h1>
-    <WindowGrid v-if="deflayout != undefined" v-bind:windowgrid="deflayout"/>
+    <WindowGrid v-if="deflayout != undefined" v-bind:windowgrid="deflayout" @changetree="console.log"/>
 </template>
 
 <style scoped>
