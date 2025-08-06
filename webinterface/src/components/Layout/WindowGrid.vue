@@ -20,15 +20,12 @@ function saveLayout() {
   window.alert('implement pls')
 }
 
-function switchOrientation() {
-  console.log("switchOrientation")
-}
+let isHorizontal = ref(true) // toggles orientation
+let knownTree = ref(windowgrid) // stores what we know about this state and any child window grids
 
 function removeSelf(which: number) {
   windowgrid.components[which] = ["empty", {}]
 }
-
-let knownTree = ref(windowgrid)
 
 function emitChildConfigs(){
   emit("changetree", knownTree.value)
@@ -61,10 +58,10 @@ watch(windowgrid.components, (old, newvalue) => {
 <template>
   <div class="options">
     <button @click="saveLayout()">Save Layout</button>
-    <button @click="switchOrientation()">Switch Orientation</button>
+    <button @click="isHorizontal = !isHorizontal">Switch Orientation</button>
 
   </div>
-  <div class="windowgrid">
+  <div class="windowgrid" :class="{horizontal : isHorizontal, vertical: !isHorizontal}">
     <div v-if="windowgrid.components[0][0] != 'empty'" class="one">
       <button @click="removeSelf(0)">Remove</button>
       <component v-if="windowgrid.components[0][0] != 'WindowGrid'" v-bind:is="windowgrid.components[0][0]" v-model="windowgrid.components[0][1]"/>
@@ -99,9 +96,15 @@ template {
 }
 
 .windowgrid {
-  display: grid;
+  display: flex;
   width: 100%;
   height: 100%;
+}
+.horizontal{
+  flex-direction: row;
+}
+.vertical{
+  flex-direction: column;
 }
 
 </style>
