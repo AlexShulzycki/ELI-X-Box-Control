@@ -20,7 +20,7 @@ const {servercomponent, editcomponent} = defineProps<{
     <tr>
       <th>Name</th>
       <td v-if="servercomponent != undefined">{{ servercomponent.name }}</td>
-      <td v-else><input v-model="editcomponent.name"/></td>
+      <td v-else>{{editcomponent.name}}</td>
     </tr>
     <tr>
       <th>Attachment Point</th>
@@ -34,6 +34,7 @@ const {servercomponent, editcomponent} = defineProps<{
     </tr>
     </tbody>
   </table>
+  <button @click="astore.removeComponent(editcomponent.name)">Delete {{editcomponent.name}}</button>
   <h2>Children:</h2>
     <ChildViewer v-bind:this_comp_name="editcomponent.name"/>
 </template>

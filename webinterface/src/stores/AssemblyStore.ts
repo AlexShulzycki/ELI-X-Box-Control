@@ -31,7 +31,7 @@ export const useAssemblyStore = defineStore('AssemblyState', {
                 this.overWriteEditAssembly()
             }
         },
-        async addChild(parent: string, component: Component) {
+        addChild(parent: string, component: Component) {
             // check if the name is actually unique
             if (this.getEditMap?.has(component.name)) {
                 console.error("Component with name", component.name, "already exists")
@@ -40,7 +40,11 @@ export const useAssemblyStore = defineStore('AssemblyState', {
             } else {
                 this.getEditMap?.get(parent)?.children.push(component)
             }
+        },
+        removeComponent(name: string) {
+            removeComponentByName(name, this.editAssembly)
         }
+
     },
     getters: {
         getServerMap: (state) => {

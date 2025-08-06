@@ -156,7 +156,7 @@ async def getSaveCurrentConfiguration(name: str):
     try:
         SV = SettingsVault()
         await SV.saveToDisk("configuration", to_save)
-        return SettingsResponse(success=True)
+        return SettingsResponse(success=True, configuration = to_save)
     except Exception as e:
         return SettingsResponse(success=False, error=str(e))
 

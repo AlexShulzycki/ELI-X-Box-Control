@@ -134,7 +134,7 @@ export interface FullState{
     ontarget?: boolean
 }
 
-interface StageInfo {
+export interface StageInfo {
     identifier: number
     model: string
     kind: StageKind
@@ -142,7 +142,7 @@ interface StageInfo {
     maximum?: number
 }
 
-interface StageStatus{
+export interface StageStatus{
     identifier: number
     connected: boolean
     ready: boolean
