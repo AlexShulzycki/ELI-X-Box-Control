@@ -16,6 +16,12 @@ export const useLayoutStore = defineStore("LayoutStore", {
     }
 })
 
+export enum WindowGridPayloads{
+    WindowGrid = "WindowGrid",
+    Stage = "Stage",
+    Assembly3D = "Assembly3D",
+}
+
 
 export enum WindowGridOrientation{
     vertical = "vertical",

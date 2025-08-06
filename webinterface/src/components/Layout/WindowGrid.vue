@@ -1,20 +1,20 @@
 <script setup lang="ts">
 
 
-import {type WindowGrid} from "@/stores/LayoutStore.ts";
+import {type WindowGrid, WindowGridPayloads} from "@/stores/LayoutStore.ts";
 
 const {windowgrid} = defineProps<{ windowgrid: WindowGrid }>();
 
 
-function saveLayout(){
+function saveLayout() {
   window.alert('implement pls')
 }
 
-function switchOrientation(){
+function switchOrientation() {
   console.log("switchOrientation")
 }
 
-function removeSelf(which: number){
+function removeSelf(which: number) {
   windowgrid.components[which] = ["empty", {}]
 }
 
@@ -29,11 +29,21 @@ function removeSelf(which: number){
   <div class="windowgrid">
     <div v-if="windowgrid.components[0][0] != 'empty'" class="one">
       <button @click="removeSelf(0)">Remove</button>
-      <component v-bind:is="windowgrid.components[0][0]" v-bind="windowgrid.components[0][1]"/>
+      <component v-bind:is="windowgrid.components[0][0]" v-model="windowgrid.components[0][1]"/>
+    </div>
+    <div v-else>
+      <select v-model="windowgrid.components[0][0]">
+        <option v-for="op in WindowGridPayloads" value="op">{{op}}</option>
+      </select>
     </div>
     <div v-if="windowgrid.components[1][0] != 'empty'" class="two">
       <button @click="removeSelf(1)">Remove</button>
-      <component v-bind:is="windowgrid.components[1][0]" v-bind="windowgrid.components[0][1]"/>
+      <component v-bind:is="windowgrid.components[1][0]" v-model="windowgrid.components[0][1]"/>
+    </div>
+    <div v-else>
+      <select v-model="windowgrid.components[1][0]">
+        <option v-for="op in WindowGridPayloads" v-bind:value="op">{{op}}</option>
+      </select>
     </div>
   </div>
 </template>
