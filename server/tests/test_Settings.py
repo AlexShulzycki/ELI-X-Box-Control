@@ -55,6 +55,11 @@ class TestSettingsVault(IsolatedAsyncioTestCase):
         # assert the purged store is not there
         assert not self.SV.stores.keys().__contains__("test2")
 
+    def test_unjsonable(self):
+        unjsonable_data = {"cigarette": [type(int)]}
+        with self.assertRaises(Exception):
+            self.SV.updateStore("nicotine", unjsonable_data)
+
     @classmethod
     def tearDown(self):
         # remove everything
