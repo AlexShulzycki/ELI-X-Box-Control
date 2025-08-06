@@ -2,14 +2,8 @@
 
 
 import {type WindowGrid} from "@/stores/LayoutStore.ts";
-import {ref, resolveComponent} from "vue";
 
 const {windowgrid} = defineProps<{ windowgrid: WindowGrid }>();
-
-// Initialize the components in this window grid
-
-const one = (windowgrid.components[0][0] != "empty")? ref(resolveComponent(windowgrid.components[0][0])): ref("empty")
-const two = (windowgrid.components[1][0] != "empty")? ref(resolveComponent(windowgrid.components[1][0])): ref("empty")
 
 
 function saveLayout(){
@@ -20,8 +14,8 @@ function switchOrientation(){
   console.log("switchOrientation")
 }
 
-function removeSelf(){
-  console.log("removeSelf")
+function removeSelf(which: number){
+  windowgrid.components[which] = ["empty", {}]
 }
 
 </script>
@@ -30,14 +24,16 @@ function removeSelf(){
   <div class="options">
     <button @click="saveLayout()">Save Layout</button>
     <button @click="switchOrientation()">Switch Orientation</button>
-    <button @click="removeSelf()">Remove</button>
+
   </div>
   <div class="windowgrid">
-    <div v-if="one == 'empty'" class="one">
-      <one v-bind="windowgrid.components[0][1]"/>
+    <div v-if="windowgrid.components[0][0] != 'empty'" class="one">
+      <button @click="removeSelf(0)">Remove</button>
+      <component v-bind:is="windowgrid.components[0][0]" v-bind="windowgrid.components[0][1]"/>
     </div>
-    <div v-if="two == 'empty'" class="two">
-      <two v-bind="windowgrid.components[1][1]"/>
+    <div v-if="windowgrid.components[1][0] != 'empty'" class="two">
+      <button @click="removeSelf(1)">Remove</button>
+      <component v-bind:is="windowgrid.components[1][0]" v-bind="windowgrid.components[0][1]"/>
     </div>
   </div>
 </template>

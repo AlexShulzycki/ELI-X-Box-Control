@@ -2,20 +2,24 @@
 
 import {useLayoutStore, WindowGridOrientation} from "@/stores/LayoutStore.ts";
 import WindowGrid from "@/components/Layout/WindowGrid.vue";
-import {ref} from "vue";
 
 const lstore = useLayoutStore()
 
 lstore.layouts.set("default", {
   orientation: WindowGridOrientation.horizontal,
-  components: [["empty", {}], ["empty", {}]]
+  components: [["Assembly3D", {}], ["empty", {}]]
 })
 
 const deflayout = lstore.layouts.get('default')
 
+function debug(){
+  deflayout.components[1] = ["Assembly3D", {}]
+}
+
 </script>
 
 <template>
+  <button @click="debug()">Debug</button>
 <h1>This is the main page</h1>
     <WindowGrid v-if="deflayout != undefined" v-bind:windowgrid="deflayout"/>
 </template>
