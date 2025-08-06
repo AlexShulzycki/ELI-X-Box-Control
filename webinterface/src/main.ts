@@ -1,15 +1,22 @@
 import './assets/main.css'
-
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-
 import router from './router'
 import App from './App.vue'
+
+import Stage from "@/components/Stages/Stage.vue";
+import Assembly3D from "@/components/3D/Assembly3D.vue";
+import WindowGrid from "@/components/Layout/WindowGrid.vue";
 
 const pinia = createPinia()
 const app = createApp(App)
 app.use(router)
 app.use(pinia)
+
+// Registering components for the windowgrid
+app.component("WindowGrid", WindowGrid)
+app.component("Stage", Stage)
+app.component("Assembly3D", Assembly3D)
 
 app.mount('#app')
 
@@ -23,6 +30,8 @@ import {
     type StageInfo,
     type StageRemoved
 } from "@/stores/StageStore.ts";
+
+
 const stagestore = useStageStore();
 
 class WSClient {

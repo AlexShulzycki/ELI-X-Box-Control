@@ -8,8 +8,6 @@ import Settings from "@/components/Settings.vue";
     <h4 style="float: left;">
       <router-link to="/">Go Home</router-link>
       <br>
-      <router-link to="/controllers">Setup controllers</router-link>
-      <br>
       <router-link to="/stages">Stages and their statuses</router-link>
       <br>
       <router-link to="/Assembly3D">3D Assembly</router-link>
