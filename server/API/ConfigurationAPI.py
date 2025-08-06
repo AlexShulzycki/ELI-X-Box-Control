@@ -128,7 +128,7 @@ async def getRemoveConfiguration(controllername:str, identifier:int):
 class SettingsResponse(BaseModel):
     success: bool
     error: str = None
-    configuration: dict[str, Any] = None
+    configuration: dict[str, Any] = {}
 
 @router.get("/get/savedConfigurations")
 async def getSavedConfigurations():
@@ -150,11 +150,12 @@ async def getSaveCurrentConfiguration(name: str):
         return loaded
 
     # if we are here its loaded correctly
-    loaded[name] = getCurrentConfig()
+    to_save = loaded.configuration
+    to_save[name] = getCurrentConfig()
     # save to disk
     try:
         SV = SettingsVault()
-        await SV.saveToDisk("configuration", loaded)
+        await SV.saveToDisk("configuration", to_save)
         return SettingsResponse(success=True)
     except Exception as e:
         return SettingsResponse(success=False, error=str(e))
@@ -167,13 +168,13 @@ async def getRemoveSavedConfiguration(name: str):
     if not loaded.success:
         return loaded
 
-    if not loaded.keys().__contains__(name):
+    if not loaded.configuration.keys().__contains__(name):
         return SettingsResponse(success=False, error=f"No saved configuration under name {name} found")
 
     try:
-        del loaded[name]
+        del loaded.configuration[name]
         SV = SettingsVault()
-        await SV.saveToDisk("configuration", loaded)
-        return SettingsResponse(success=True)
+        await SV.saveToDisk("configuration", loaded.configuration)
+        return SettingsResponse(success=True, configuration=loaded.configuration)
     except Exception as e:
         return SettingsResponse(success=False, error=str(e))
