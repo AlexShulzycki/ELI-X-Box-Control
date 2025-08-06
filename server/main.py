@@ -1,7 +1,7 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.openapi.utils import get_openapi
 
-from .API import StageControlAPI, WebSocketAPI, GeometryAPI, KinematicsAPI, SettingsAPI
+from .API import StageControlAPI, WebSocketAPI, GeometryAPI, KinematicsAPI, ConfigurationAPI
 
 tags_metadata = [
     {

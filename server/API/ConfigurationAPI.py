@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field, ValidationError
 from server.Interface import toplevelinterface
 from server.StageControl.DataTypes import updateResponse
 
-router = APIRouter(tags=["settings"])
+router = APIRouter(tags=["configuration"])
 
 
 @router.get("/get/comports")
