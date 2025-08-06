@@ -24,7 +24,7 @@ tags_metadata = [
 app = FastAPI(openapi_tags = tags_metadata)
 
 # settings routers
-app.include_router(SettingsAPI.router)
+app.include_router(ConfigurationAPI.router)
 
 # Geometry and stage control routers
 app.include_router(GeometryAPI.router)

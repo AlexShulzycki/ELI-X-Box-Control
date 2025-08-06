@@ -15,9 +15,6 @@ class SettingsVault:
         #Ensure the settings directory exists
         self.dir_path.mkdir(exist_ok=True)
 
-        # load all files, give it five seconds max. Shield it so it actually completes
-        shield(asyncio.wait_for(self.load_all(), 5))
-
     @property
     def stores(self) -> dict[str, object]:
         return self._stores

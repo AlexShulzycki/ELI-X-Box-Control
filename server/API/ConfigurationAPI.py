@@ -12,6 +12,7 @@ import json
 from pydantic import BaseModel, Field, ValidationError
 
 from server.Interface import toplevelinterface
+from server.Settings import SettingsVault
 from server.StageControl.DataTypes import updateResponse
 
 router = APIRouter(tags=["configuration"])
@@ -46,19 +47,6 @@ def getComPorts() -> list[int]:
             pass
     return result
 
-
-@router.get("/get/SavedStageConfig")
-def getSavedStageSettings() -> None:
-    """
-    Does nothing
-    @return: nothing
-    """
-    # Load from file
-    with open("../settings/StageConfig.json") as f:
-#        settings: StageConfig = json.load(f)
-        f.close()
-
-    return None
 
 @router.get("/get/ConfigState")
 def getCurrentConfig():
@@ -122,20 +110,6 @@ async def updateConfiguration(configuration: dict[str, list[Any]]) -> list[updat
                     raise HTTPException(status_code=500, detail=str(e))
     return res
 
-@router.get("/get/SaveCurrentStageConfig")
-async def getSaveCurrentStageConfig():
-    """
-    Does nothing right now.
-    Saves current stage configuration on the server to settings/StageConfig.json
-    """
-    # Grab configuration data from the interfaces TODO FIX
-    #config = await getCurrentConfig()
-    #config = config.model_dump_json()
-
-    with open("../settings/StageConfig.json", "w") as f:
-        #f.write(config)
-        f.close()
-
 @router.get("/get/RemoveConfiguration")
 async def getRemoveConfiguration(controllername:str, identifier:int):
     """
@@ -149,3 +123,57 @@ async def getRemoveConfiguration(controllername:str, identifier:int):
 
     # if we are here, we haven't found anything
     raise HTTPException(status_code=404, detail=f"Controller interface {controllername} cannot be found")
+
+
+class SettingsResponse(BaseModel):
+    success: bool
+    error: str = None
+    configuration: dict[str, Any] = None
+
+@router.get("/get/savedConfigurations")
+async def getSavedConfigurations():
+    """Returns saved configurations (as from /get/ConfigState) saved on disk"""
+    SV = SettingsVault()
+    await SV.load_all()
+    if SV.stores.keys().__contains__("configuration"):
+        config = SV.stores["configuration"]
+        return SettingsResponse(success=True, configuration=config)
+    else:
+        return SettingsResponse(success=False, error="No configurations saved")
+
+@router.get("/get/saveCurrentConfiguration")
+async def getSaveCurrentConfiguration(name: str):
+    """Saves the current configuration (as from /get/ConfigState) to disk under the given name"""
+    # load in the saved configuration
+    loaded = await getSavedConfigurations()
+    if not loaded.success and loaded.error != "No configurations saved":
+        return loaded
+
+    # if we are here its loaded correctly
+    loaded[name] = getCurrentConfig()
+    # save to disk
+    try:
+        SV = SettingsVault()
+        await SV.saveToDisk("configuration", loaded)
+        return SettingsResponse(success=True)
+    except Exception as e:
+        return SettingsResponse(success=False, error=str(e))
+
+@router.get("/get/removeSavedConfiguration")
+async def getRemoveSavedConfiguration(name: str):
+    """Removes a saved configuration from disk"""
+    # load in the saved configuration
+    loaded = await getSavedConfigurations()
+    if not loaded.success:
+        return loaded
+
+    if not loaded.keys().__contains__(name):
+        return SettingsResponse(success=False, error=f"No saved configuration under name {name} found")
+
+    try:
+        del loaded[name]
+        SV = SettingsVault()
+        await SV.saveToDisk("configuration", loaded)
+        return SettingsResponse(success=True)
+    except Exception as e:
+        return SettingsResponse(success=False, error=str(e))
