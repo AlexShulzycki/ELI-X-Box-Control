@@ -4,11 +4,13 @@ import glob
 import sys
 from typing import Any, Awaitable
 
+import pydantic
 import serial
 
 from fastapi import APIRouter, HTTPException
 import json
 
+from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel, Field, ValidationError
 
 from server.Interface import toplevelinterface
@@ -130,16 +132,19 @@ class SettingsResponse(BaseModel):
     error: str = None
     configuration: dict[str, Any] = {}
 
-@router.get("/get/savedConfigurations")
-async def getSavedConfigurations():
-    """Returns saved configurations (as from /get/ConfigState) saved on disk"""
+async def getStore(storename: str):
     SV = SettingsVault()
     await SV.load_all()
-    if SV.stores.keys().__contains__("configuration"):
-        config = SV.stores["configuration"]
+    if SV.stores.keys().__contains__(storename):
+        config = SV.stores[storename]
         return SettingsResponse(success=True, configuration=config)
     else:
         return SettingsResponse(success=False, error="No configurations saved")
+
+@router.get("/get/savedConfigurations")
+async def getSavedConfigurations():
+    """Returns saved configurations (as from /get/ConfigState) saved on disk"""
+    return await getStore("configuration")
 
 @router.get("/get/saveCurrentConfiguration")
 async def getSaveCurrentConfiguration(name: str):
@@ -151,7 +156,7 @@ async def getSaveCurrentConfiguration(name: str):
 
     # if we are here its loaded correctly
     to_save = loaded.configuration
-    to_save[name] = getCurrentConfig()
+    to_save[name] = jsonable_encoder(getCurrentConfig())
     # save to disk
     try:
         SV = SettingsVault()
@@ -178,3 +183,9 @@ async def getRemoveSavedConfiguration(name: str):
         return SettingsResponse(success=True, configuration=loaded.configuration)
     except Exception as e:
         return SettingsResponse(success=False, error=str(e))
+
+@router.get("/get/loadConfiguration")
+async def getloadConfiguration(name: str):
+    """load a configuration from disk"""
+    saved = (await getSavedConfigurations()).configuration
+    return await updateConfiguration(saved[name])

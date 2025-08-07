@@ -222,7 +222,8 @@ function updateToServer() {
     </tbody>
   </table>
 
-  <button @click="updateToServer()">Sent to server for update</button>
+  <button @click="response = {identifier:-1, success:true}; updateToServer()">Sent to server for update</button>
+  <button @click="configstore.removeConfig('PI', serverstate.SN); configstore.syncServerConfigState()">Remove from server</button>
 </template>
 
 <style scoped>

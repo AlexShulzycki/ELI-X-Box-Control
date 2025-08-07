@@ -12,8 +12,8 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
             // Configuration on the server
             configSchemas: new Map<string, SchemaNode>(),
             // Configuration object schemas (from the server)
-            updateConfigs: new Map<string, Array<object>>(),
-            // Configurations we want to push to the server.
+            loadedConfigSet: new Map<string, Array<object>>(),
+            // Configuration set loaded from server settings
         }
     },
     actions: {
@@ -36,33 +36,31 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
             if (res.status == 200) {
 
                 // clear the current state TODO have it only edit it, so we dont mess up any front end stuff
-                this.serverConfigs.clear()
-
-                // iterate through each config type
-                Object.entries(res.data).forEach(([key, value]) => {
-                    let schema = this.configSchemas.get(key)
-                    if(schema != undefined) {
-
-                        // result array
-                        let res: Object[] = []
-
-                        // try to parse the list of configs according to the schema
-                        try {
-                            (value as Array<object>).forEach((configState) => {
-                                const dat = schema.getData(configState)
-                                res.push(dat)
-                            })
-
-                            // all done, save the parsed settings
-                            this.serverConfigs.set(key, res)
-
-                        } catch (e) {
-                            console.log("Error parsing data for " + key)
-                        }
-
-                    }
-                })
+                this.serverConfigs = parseConfigs(res.data, this.configSchemas)
                 console.log("Updated current configuration state", res.data)
+            }
+        },
+        // convoluted way to load, we are basically copying code above
+        async loadConfigSet(name:string){
+            // We sync the configs from the server
+            const res = await axios.get("get/loadConfiguration", {params:{name: name}})
+            if (res.status == 200 && res.data.success) {
+                console.log("loaded config:", res.data)
+                await this.syncServerConfigState()
+            }
+        },
+        async saveCurrentConfigSet(name: string){
+            const res = await axios.get("get/saveCurrentConfiguration", {params:{name: name}})
+            if(res.status == 200) {
+                // Successful request, lets read the response
+                console.log("received save configr response", res.data)
+                console.log(res.data)
+            }
+        },
+        async listConfigSets(){
+            const res = await axios.get("get/savedConfigurations")
+            if(res.status == 200) {
+                return res.data.keys()
             }
         },
         async pushConfig(config: object) {
@@ -70,24 +68,13 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
             let responseArray: object[] = []
             if(res.status == 200) {
                 // Successful request, lets read the response
-                console.log("received update response")
-                console.log(res.data)
+                console.log("received update response to update request", res.data, config)
                 // format the data into an array explicitly
                 res.data.forEach((item: object) => {
                     responseArray.push(item)
                 })
                 await this.syncServerConfigState()
                 return responseArray
-            }
-        },
-
-        async pushUpdateConfigState() {
-            // Pushes contents of updateConfigs to the server TODO think if this is even necessary
-            const res = await axios.post("post/UpdateConfiguration", this.updateConfigs)
-            if (res.status == 200) {
-                // Successful request, lets read the response
-                console.log("received update response: " + res.data)
-                // Iterate through the data
             }
         },
         async removeConfig(controllerKey: string, identifier:number){
@@ -131,10 +118,10 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
     }
 })
 
-function objectToMap<type>(data:Object) {
-    let res = new Map<number, type>
+function objectToMap<type1, type2>(data:Object) {
+    let res = new Map<type1, type2>
     Object.entries(data).forEach(([key, value]) => {
-        res.set(Number(key), value as type)
+        res.set(key as type1 , value as type2)
     })
     return res
 }
@@ -144,4 +131,44 @@ export interface responseinterface {
   identifier: number;
   success: boolean;
   error?: string;
+}
+
+export interface settingsresponseinterface {
+    success: boolean
+    error: string
+    configuration: Map<string, object>
+}
+
+function parseConfigs(data:object, schemas:Map<string, any>) {
+// We sync the configs from the server
+
+        // clear the current state TODO have it only edit it, so we dont mess up any front end stuff
+        let finalres = new Map<string, Array<object>>()
+
+        // iterate through each config type
+        Object.entries(data).forEach(([key, value]) => {
+            let schema = schemas.get(key)
+            if (schema != undefined) {
+
+                // result array
+                let res: Object[] = []
+
+                // try to parse the list of configs according to the schema
+                try {
+                    (value as Array<object>).forEach((configState) => {
+                        const dat = schema.getData(configState)
+                        res.push(dat)
+                    })
+
+                    // all done, save the parsed settings
+                    finalres.set(key, res)
+
+                } catch (e) {
+                    console.log("Error parsing data for " + key)
+                }
+
+            }
+        })
+        return finalres
+
 }
