@@ -64,7 +64,8 @@ watch(windowgrid.components, (old, newvalue) => {
   <div class="windowgrid" :class="{horizontal : isHorizontal, vertical: !isHorizontal}">
     <div v-if="windowgrid.components[0][0] != 'empty'" class="item">
       <button @click="removeSelf(0)">Remove</button>
-      <component v-if="windowgrid.components[0][0] != 'WindowGrid'" v-bind:is="windowgrid.components[0][0]" v-model="windowgrid.components[0][1]"/>
+      <component v-if="windowgrid.components[0][0] != 'WindowGrid'" v-bind:is="windowgrid.components[0][0]"
+                 v-model="windowgrid.components[0][1]" @changetree="receiveChildConfig1"/>
       <WindowGrid v-else-if="windowgrid.components[0][0] == 'WindowGrid'" v-model:windowgrid="WGprop1"
       @changetree="receiveChildConfig1"/>
     </div>
@@ -76,7 +77,7 @@ watch(windowgrid.components, (old, newvalue) => {
     <div v-if="windowgrid.components[1][0] != 'empty'" class="item">
       <button @click="removeSelf(1)">Remove</button>
       <component v-if="windowgrid.components[1][0] != 'WindowGrid'"
-                 v-bind:is="windowgrid.components[1][0]" v-model="windowgrid.components[0][1]"/>
+                 v-bind:is="windowgrid.components[1][0]" v-model="windowgrid.components[0][1]" @changetree="receiveChildConfig2"/>
       <WindowGrid v-else-if="windowgrid.components[1][0] == 'WindowGrid'" v-model:windowgrid="WGprop2"
       @changetree="receiveChildConfig2"/>
     </div>

@@ -1,22 +1,24 @@
 <script setup lang="ts">
 
 import {type FullState, type moveStageResponse, useStageStore} from "@/stores/StageStore.ts";
-import {ref} from "vue";
+import {computed, ref} from "vue";
 
-const {state} = defineProps<{ state:FullState }>()
+const {id} = defineProps<{ id?:number }>()
+const emit = defineEmits(['changetree'])
+
 const stageStore = useStageStore()
-
 let res = ref<moveStageResponse>({success: true})
+const idselect = ref(id)
 
 function moveBy(offset: number){
-  stageStore.stepStage(state.identifier, offset).then((value)=>{
+  stageStore.stepStage(idselect.value, offset).then((value)=>{
     if(value != undefined){
       res.value = value
     }
   })
 }
 function moveTo(target: number){
-  stageStore.moveStage(state.identifier, target).then((value)=>{
+  stageStore.moveStage(idselect.value, target).then((value)=>{
     if(value != undefined){
       res.value = value
     }
@@ -29,10 +31,17 @@ function processResponse(res: moveStageResponse){
   }
 }
 
+const state = computed(()=>{
+
+  if(idselect.value != undefined){
+    return stageStore.serverStages.get(parseInt(idselect.value))
+  }
+})
+
 </script>
 
 <template>
-  <div v-if="state !== undefined">
+  <div v-if="state !== undefined" >
     <h5>ID: {{state.identifier}}</h5>
     <p>Connected: {{state.connected}}</p>
     <p>Ready: {{state.ready}}</p>
@@ -56,6 +65,9 @@ function processResponse(res: moveStageResponse){
       </table>
 
     </div>
+  </div>
+  <div v-else>
+    ID: <select v-model="idselect" @change="$emit('changetree', {id: idselect})"> <option v-for="ident in stageStore.getStageIDs">{{ident}}</option> </select>
   </div>
 </template>
 
