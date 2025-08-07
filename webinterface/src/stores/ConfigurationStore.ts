@@ -46,7 +46,6 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
             const res = await axios.get("get/loadConfiguration", {params:{name: name}})
             if (res.status == 200 && res.data.success) {
                 console.log("loaded config:", res.data)
-                await this.syncServerConfigState()
             }
         },
         async saveCurrentConfigSet(name: string){

@@ -259,6 +259,7 @@ class C884(PIController):
             if len(req) != 0:
                 # reference
                 self.device.FRF(req)
+                await self.refreshFullStatus() # do this because sometimes it shows as not ref'd.
 
 
     async def refreshFullStatus(self):

@@ -21,8 +21,7 @@ function refresh() {
     <div class="content" :class="{slideout: !hidden, closed: hidden}">
       <h1>Beautiful settings tab (in progress)</h1>
       <button @click="refresh()">Server Refresh</button>
-      <button @click="StageInterface.syncServerStageInformation()">Sync stage status from server</button>
-      <button @click="StageInterface.updateStageInfo()">Tell the server to refresh stages</button>
+      <button @click="StageInterface.fullRefresh()">Sync stage status from server</button>
       <button @click="config.loadConfigSet('default')">Load defaults</button>
       <button @click="config.saveCurrentConfigSet('default')">Save current config as default</button>
       <div v-for="key in config.configSchemas.keys()">

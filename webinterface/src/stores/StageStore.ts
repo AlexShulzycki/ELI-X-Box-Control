@@ -28,9 +28,10 @@ export const useStageStore = defineStore('AxisState', {
 
             }
         },
-        async syncAll(){
+        async fullRefresh(){
             await this.updateStageInfo()
             await this.updateStageStatus()
+            await this.syncServerStageInformation()
         },
         async updateStageStatus() {
             await axios.get("/get/stage/update/status")
