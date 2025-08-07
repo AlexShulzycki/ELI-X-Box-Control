@@ -192,7 +192,7 @@ function updateToServer() {
             <th>Stages</th>
 
             <td v-for="(stage, index) in stages" :key="index">
-              <p>{{ stage }}</p>
+              <p>{{ serverstate.stages[index] }}</p>
               <p>Change to:</p>
               <input v-model="stages[index]"/>
             </td>
@@ -201,7 +201,7 @@ function updateToServer() {
           <tr>
             <th>Closed Loop Operation</th>
             <td v-for="(_clo, index) in clo" :key="index">
-              <p>{{ _clo }}</p>
+              <p>{{ serverstate.clo[index] }}</p>
               <p>Change to:</p>
               <input v-model="clo[index]" type="checkbox"/>
             </td>
@@ -210,7 +210,7 @@ function updateToServer() {
             <th>Referenced</th>
 
             <td v-for="(refd, index) in referenced" :key="index">
-              <p>{{ refd }}</p>
+              <p>{{ serverstate.referenced[index] }}</p>
               <p>Change to:</p>
               <input v-model="referenced[index]" type="checkbox"/>
             </td>

@@ -3,8 +3,10 @@ import VirtualConfigBrowser from "@/components/ConfigComponents/Virtual/VirtualC
 import PIConfigBrowser from "@/components/ConfigComponents/PI/PIConfigBrowser.vue";
 import {useConfigurationStore} from "@/stores/ConfigurationStore.ts";
 import {ref} from "vue";
+import {useStageStore} from "@/stores/StageStore.ts";
 
 const config = useConfigurationStore()
+const StageInterface = useStageStore()
 
 const hidden = ref(false)
 
@@ -19,13 +21,15 @@ function refresh() {
     <div class="content" :class="{slideout: !hidden, closed: hidden}">
       <h1>Beautiful settings tab (in progress)</h1>
       <button @click="refresh()">Server Refresh</button>
+      <button @click="StageInterface.syncServerStageInformation()">Sync stage status from server</button>
+      <button @click="StageInterface.updateStageInfo()">Tell the server to refresh stages</button>
       <div v-for="key in config.configSchemas.keys()">
         <VirtualConfigBrowser v-if="key == 'Virtual'"/>
         <PIConfigBrowser v-else-if="key == 'PI'"/>
         <h4 v-else>Schema {{ key }} does not have a settings page implemented yet.</h4>
       </div>
     </div>
-    <button class="slidebutton" @click="hidden = !hidden"> < </button>
+    <button class="slidebutton" @click="hidden = !hidden"> <</button>
   </div>
 </template>
 
@@ -59,6 +63,8 @@ template {
   width: 0;
   padding: 0;
   margin: 0;
+  display: none;
+  grid-column:1
 }
 
 .slidebutton {

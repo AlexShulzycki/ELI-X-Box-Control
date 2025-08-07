@@ -5,19 +5,22 @@ import WindowGrid from "@/components/Layout/WindowGrid.vue";
 
 const lstore = useLayoutStore()
 
-lstore.layouts.set("default", {
+if(lstore.layouts.get("default") == undefined){
+  lstore.layouts.set("default", {
   orientation: WindowGridOrientation.horizontal,
   components: [["Assembly3D", {}], ["empty", {}]]
 })
+}
+
 
 const deflayout = lstore.layouts.get('default')
 
-function debug(){
-  deflayout.components[1] = ["Assembly3D", {}]
-}
-
 function save_default(value){
   lstore.layouts.set("default", value)
+}
+
+function debug(){
+  console.log("debug does nothing :)")
 }
 
 </script>

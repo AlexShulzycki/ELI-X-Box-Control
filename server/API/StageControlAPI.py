@@ -77,7 +77,7 @@ class FullState(BaseModel):
     maximum: float
     connected: bool
     ready: bool
-    position: int
+    position: float
     ontarget: bool
 
 

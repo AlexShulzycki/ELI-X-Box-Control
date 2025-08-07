@@ -191,7 +191,7 @@ class PIController:
         for i in range(self.config.channel_amount):
 
             # only add if it's an actual stage (and referenced)
-            if (self.config.stages[i] == "NOSTAGE") or (not self.config.referenced[i]):
+            if (self.config.stages[i] == "NOSTAGE") or (not self.config.referenced[i]) or (not self.config.ready):
                 continue
             stat = (StageStatus(
                 identifier =self.config.SN * 10 + (i + 1),

@@ -180,7 +180,7 @@ class C884(PIController):
 
     @property
     def ready(self) -> bool:
-        return self.isavailable # for now just isavailables
+        return self.isavailable # for now just isavailable
 
     def checkReady(self, message: str = ""):
         """ Raises ControllerNotReady exception if controller is not ready"""
@@ -326,7 +326,7 @@ class C884(PIController):
             if pos is not None:
                 self._config.position[index] = float(pos)
             else:
-                self._config.position[index] = pos
+                self._config.position[index] = None
 
     async def moveTo(self, channel: int, target: float):
         """

@@ -42,6 +42,9 @@ const state = computed(()=>{
 
 <template>
   <div v-if="state !== undefined" >
+    <div v-if="!res.success">
+      Error: {{res.error}}
+    </div>
     <h5>ID: {{state.identifier}}</h5>
     <p>Connected: {{state.connected}}</p>
     <p>Ready: {{state.ready}}</p>

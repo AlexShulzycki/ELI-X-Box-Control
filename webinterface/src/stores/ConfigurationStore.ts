@@ -76,6 +76,7 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
                 res.data.forEach((item: object) => {
                     responseArray.push(item)
                 })
+                await this.syncServerConfigState()
                 return responseArray
             }
         },
