@@ -51,7 +51,7 @@ class SettingsVault:
                 f.write(value)
             else:
                 # if object, dump to string and write that
-                f.write(json.dumps(value))
+                f.write(json.dumps(jsonable_encoder(value)))
             f.close() # politely close the file
 
     async def reload_all(self):

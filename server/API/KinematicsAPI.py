@@ -96,7 +96,7 @@ def removecomponent(name: str):
 
 @router.post("/post/kinematics/replaceRoot")
 def replaceRoot(root: ComponentRequest):
-    """Replace the entire assembly"""
+    """Replace the entire assembly from a given root"""
     # Let's kick off the recursion
     if root.type != ComponentType.Component:
         raise ValueError("Root component must be a component, not axis or structure etc")
@@ -106,15 +106,32 @@ def replaceRoot(root: ComponentRequest):
 
     return assembly.getJson()
 
+
 @router.get("/get/kinematics/saveCurrentAssembly")
 async def savecurrentassembly(name: str):
+    """
+    Saves the current assembly on the server to disk under the given name
+    :param name: Name to save under
+    :return:
+    """
     SV = SettingsVault()
+    await SV.load_all()
     jason = assembly.getJson()
-    SV.updateStore(name, jason)
+    if SV.stores.__contains__("assemblies"):
+        currentAssembly = SV.stores["assemblies"]
+        currentAssembly[name] = jason
+        await SV.saveToDisk("assemblies", currentAssembly)
+    else:
+        await SV.saveToDisk("assemblies", {name: jason})
     return jason
 
-@router.get("/get/kinematics/getAssembly")
-async def getassembly(name: str):
+@router.get("/get/kinematics/loadAssembly")
+async def loadAssembly(name: str):
+    """
+    Loads the assembly with the given name from disk and replaces current assembly
+    :param name: name of the assembly saved on disk
+    :return:
+    """
     SV = SettingsVault()
     await SV.load_all()
     if SV.stores.keys().__contains__("assemblies"):
@@ -131,9 +148,9 @@ async def getsavedassemblies():
     SV = SettingsVault()
     await SV.load_all()
     if SV.stores.keys().__contains__("assemblies"):
-        return SV.stores["assemblies"].keys()
+        return SV.stores["assemblies"]
     else:
-        raise HTTPException(status_code=500, detail="No assemblies saved")
+        return {}
 
 class TrilaterationRequest(BaseModel):
     restart: bool = Field(default=False, examples=[True, False], description="If you want to restart the trilateration process")

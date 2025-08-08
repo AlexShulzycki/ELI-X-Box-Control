@@ -7,6 +7,7 @@ export const useAssemblyStore = defineStore('AssemblyState', {
         return {
             serverAssembly: structuredClone(defaultrootcomponent) as Component,
             editAssembly: structuredClone(defaultrootcomponent) as Component,
+            serverSavedAssemblies: new Map<string, Component>()
         }
     },
     actions: {
@@ -14,11 +15,11 @@ export const useAssemblyStore = defineStore('AssemblyState', {
             const res = await axios.get<Component>("/get/kinematics/assemblies")
             console.log("received server assembly", res.data)
             this.serverAssembly = res.data as Component
-            this.overWriteEditAssembly()
+            this.overWriteEditAssembly(this.serverAssembly)
         },
-        overWriteEditAssembly() {
+        overWriteEditAssembly(component:Component) {
             // double make sure we are making a new copy
-            this.editAssembly = JSON.parse(JSON.stringify(this.serverAssembly)) as Component
+            this.editAssembly = JSON.parse(JSON.stringify(component)) as Component
         },
         async submitEditAssembly() {
             //const req = JSON.stringify(this.editAssembly)
@@ -28,7 +29,23 @@ export const useAssemblyStore = defineStore('AssemblyState', {
             if (res.status === 200) {
                 console.log("Server received updated assembly", res.data)
                 this.serverAssembly = res.data as Component
-                this.overWriteEditAssembly()
+                this.overWriteEditAssembly(this.serverAssembly)
+            }
+        },
+        async fetchSavedSeverAssemblies(){
+            const res = await axios.get("/get/kinematics/getSavedAssemblies")
+            if(res.status == 200){
+                Object.entries(res.data).forEach(([key, value])=>{
+                    this.serverSavedAssemblies.set(key, value as Component)
+                })
+            }
+        },
+        async saveCurrentAssembly(name: string){
+            const res = await axios.get("/get/kinematics/saveCurrentAssembly", {params:{name: name}})
+            if (res.status === 200) {
+                console.log("Server received updated assembly", res.data)
+                this.serverAssembly = res.data as Component
+                this.overWriteEditAssembly(this.serverAssembly)
             }
         },
         addChild(parent: string, component: Component) {
