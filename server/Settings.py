@@ -3,6 +3,8 @@ from asyncio import shield
 from pathlib import Path
 import asyncio
 
+from fastapi.encoders import jsonable_encoder
+
 
 class SettingsVault:
     """Object that handles saving/loading JSON-formatted settings on disk"""
@@ -21,7 +23,7 @@ class SettingsVault:
 
     def updateStore(self, name: str, value: object):
         try:
-            json.dumps(value)
+            json.dumps(jsonable_encoder(value))
         except Exception as e:
             raise Exception("Given object is not JSON serializable")
 

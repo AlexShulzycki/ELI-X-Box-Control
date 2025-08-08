@@ -120,7 +120,7 @@ class Component:
             "type": ComponentType.Component,
             "children": children,
             "attachment_point": [0,0,0],
-            "attachment_rotation": [0,0,0]
+            "attachment_rotation": [0,0,0,1]
         }
         if self.root is not None:
             res["attachment_point"] = self.root.Point.xyz

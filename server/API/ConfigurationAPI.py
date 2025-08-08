@@ -156,7 +156,7 @@ async def getSaveCurrentConfiguration(name: str):
 
     # if we are here its loaded correctly
     to_save = loaded.configuration
-    to_save[name] = jsonable_encoder(getCurrentConfig())
+    to_save[name] = getCurrentConfig()
     # save to disk
     try:
         SV = SettingsVault()

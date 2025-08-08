@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import {type Component, ComponentType, useAssemblyStore} from "@/stores/AssemblyStore.ts"
-import {ref} from "vue";
 import ChildViewer from "@/components/AssemblyViewer/ChildViewer.vue";
 import XYZCoordinate from "@/components/3D/XYZCoordinate.vue";
 import Quaternion from "@/components/3D/Quaternion.vue";

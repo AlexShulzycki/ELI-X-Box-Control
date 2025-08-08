@@ -27,18 +27,18 @@ function addAnother() {
     attachment_point: [0, 0, 0],
     attachment_rotation: [0, 0, 0, 1],
     children: [],
+    collision_box_dimensions: [0, 0, 0],
+    collision_box_point: [0, 0, 0],
+    axis_identifier : 0,
+    axis_vector : [1, 0, 0]
   }
 
   // populate default values for different types
   if (addNewType.value == ComponentType.Component) {
     astore.addChild(this_comp_name, data as Component)
-  } else if (addNewType.value == ComponentType.Structure) {
-    data.collision_box_dimensions = [0, 0, 0]
-    data.collision_box_point = [0, 0, 0]
+  } else if (addNewType.value == ComponentType.Structure){
     astore.addChild(this_comp_name, data as Structure)
   } else if (addNewType.value == ComponentType.Axis) {
-    data.axis_identifier = 0
-    data.axis_vector = [1, 0, 0]
     astore.addChild(this_comp_name, data as Axis)
   } else {
     console.error("Error adding axis", addNewType.value, "unknown type")

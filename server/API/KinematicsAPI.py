@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel, Field, model_validator
 from scipy.spatial.transform import Rotation
 
@@ -8,7 +9,7 @@ from server.Kinematics.Assembly import AssemblyInterface, AttachmentPoint, Compo
     AxisComponent
 from server.Kinematics.DataTypes import XYZvector, ComponentType
 from server.Kinematics.Trilateration import Trilateration
-
+from server.Settings import SettingsVault
 
 router = APIRouter(tags=["control", "kinematics"])
 
@@ -105,9 +106,34 @@ def replaceRoot(root: ComponentRequest):
 
     return assembly.getJson()
 
-@router.get("/get/kinematics/saveassembly")
-def saveassembly():
-    raise NotImplementedError()
+@router.get("/get/kinematics/saveCurrentAssembly")
+async def savecurrentassembly(name: str):
+    SV = SettingsVault()
+    jason = assembly.getJson()
+    SV.updateStore(name, jason)
+    return jason
+
+@router.get("/get/kinematics/getAssembly")
+async def getassembly(name: str):
+    SV = SettingsVault()
+    await SV.load_all()
+    if SV.stores.keys().__contains__("assemblies"):
+        if SV.stores["assemblies"].__contains__(name):
+            config = SV.stores["assemblies"][name]
+            replaceRoot(ComponentRequest.model_validate(config))
+        else:
+            raise HTTPException(status_code=500, detail=f"cannot find configuration for the name {name}")
+    else:
+        raise Exception("No assemblies saved")
+
+@router.get("/get/kinematics/getSavedAssemblies")
+async def getsavedassemblies():
+    SV = SettingsVault()
+    await SV.load_all()
+    if SV.stores.keys().__contains__("assemblies"):
+        return SV.stores["assemblies"].keys()
+    else:
+        raise HTTPException(status_code=500, detail="No assemblies saved")
 
 class TrilaterationRequest(BaseModel):
     restart: bool = Field(default=False, examples=[True, False], description="If you want to restart the trilateration process")
