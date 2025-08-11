@@ -203,9 +203,13 @@ class ControllerInterface:
         raise NotImplementedError
 
     @property
-    async def configurationFormat(self) -> dict:
+    def configurationType(self) -> BaseModel:
+        raise NotImplementedError
+
+    @property
+    async def configurationSchema(self) -> dict:
         """
-        Return the configuration object type
+        Return the configuration object json schema
         :return:
         """
         raise NotImplementedError

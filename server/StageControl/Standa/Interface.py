@@ -1,6 +1,5 @@
 import asyncio
 from typing import Awaitable
-from pydantic import BaseModel
 
 import libximc.highlevel as ximc
 
@@ -69,11 +68,14 @@ class StandaInterface(ControllerInterface):
         :return:
         """
         device = self.ximcs[request.SN]
-        config = self._configs[request.sn]
+        config = self._configs[request.SN]
         status = None
         try:
             device.open_device()
             status = device.get_status()
+            config.connected = True
+            device.set_calb(self.StandaSettings[request.model].Calibration, device.get_engine_settings().MicrostepMode)
+            config.homed = True
         except:
             config.connected = False
             return updateResponse(
@@ -82,9 +84,8 @@ class StandaInterface(ControllerInterface):
                 error=f"Unable to connect to Standa device, SN {config.SN}"
             )
         # we have not failed to connect
-        # minmax or stage type is not sent to the controller
-        self._configs[request.sn].min_max = request.min_max
-        self._configs[request.sn].kind = request.kind
+        # minmax is not sent to the controller
+        self._configs[request.SN].min_max = request.min_max
 
         # Check if homed and if we want it homed
         if not status.Flags.__contains__(ximc.StateFlags.STATE_IS_HOMED) and request.homed:
@@ -98,11 +99,15 @@ class StandaInterface(ControllerInterface):
         for dev in devices:
             if dev["device_serial"] == SN:
                 self.ximcs[SN] = ximc.Axis(dev["uri"])
-        self._configs[SN] = StandaConfiguration(
-            SN=SN,
-            model=model,
-            min_max=self.StandaSettings[model].MinMax,  # for now
-        )
+                self._configs[SN] = StandaConfiguration(
+                    SN=SN,
+                    model=model,
+                    min_max=self.StandaSettings[model].MinMax,  # for now
+                )
+                return
+
+        # if we are here, no such serial number was found.
+        raise Exception(f"No Standa device found under serial number {SN}")
 
     async def configurationChangeRequest(self, request: list[StandaConfiguration]) -> list[updateResponse]:
         # Check if this is the first config request, if so then make use of the async status
@@ -114,12 +119,20 @@ class StandaInterface(ControllerInterface):
         devices = ximc.enumerate_devices(ximc.EnumerateFlags.ENUMERATE_PROBE)
         awaiters: list[Awaitable[updateResponse]] = []
         # handle config change requests
+        res: list[updateResponse] = []
         for req in request:
             if req.SN not in self.ximcs.keys():
-                self.addNewDevice(req.SN, req.calibration, devices)
+                try:
+                    self.addNewDevice(req.SN, req.model, devices)
+                except Exception as e:
+                    res.append(updateResponse(identifier=req.SN, success=False, error=str(e)))
+                    continue
             awaiters.append(self.handleConfig(req))
+        res = res + (await asyncio.gather(*awaiters))
 
-        return await asyncio.gather(*awaiters)
+        # let's now do a full refresh before returning results
+        await self.fullRefreshAllSettings()
+        return res
 
     async def removeConfiguration(self, SN: int):
         if self.ximcs.keys().__contains__(SN):
@@ -150,18 +163,31 @@ class StandaInterface(ControllerInterface):
             res[c.SN] = StageInfo(
                 model=c.model,
                 identifier=c.SN,
-                kind=c.kind,
+                kind=self.StandaSettings[c.model].Kind,
                 minimum=c.min_max[0],
                 maximum=c.min_max[1]
             )
         return res
 
     @property
-    async def configurationFormat(self):
+    def configurationType(self):
+        return StandaConfiguration
+
+    @property
+    async def configurationSchema(self):
         # modify the generated schema by enum-ing the model field
         schema =  StandaConfiguration.model_json_schema()
         await self.loadStandaSettings()
         schema["properties"]["model"]["enum"] = list(self.StandaSettings.keys())
+        # now we check which serial numbers are available
+        sns = []
+        for dev in ximc.enumerate_devices(ximc.EnumerateFlags.ENUMERATE_PROBE):
+            print(dev)
+            sns.append({
+                "const": dev['device_serial'],
+                "title": dev['ControllerName']})
+
+        schema["properties"]["SN"]["anyOf"] = sns
         return schema
 
     async def refreshConfig(self, SN: int):

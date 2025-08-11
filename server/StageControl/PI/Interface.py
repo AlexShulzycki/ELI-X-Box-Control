@@ -147,8 +147,12 @@ class PIControllerInterface(ControllerInterface):
         return self.settings.currentConfiguration
 
     @property
-    async def configurationFormat(self):
-        return self.settings.configurationFormat.model_json_schema()
+    def configurationType(self) -> BaseModel:
+        return PIConfiguration
+
+    @property
+    async def configurationSchema(self):
+        return self.configurationType.model_json_schema()
 
     async def fullRefreshAllSettings(self):
         return await self.settings.fullRefreshAllSettings()

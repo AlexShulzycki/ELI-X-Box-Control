@@ -70,7 +70,11 @@ class VirtualControllerInterface(ControllerInterface):
         return await self.settings.removeConfiguration(id)
 
     @property
-    async def configurationFormat(self):
+    def configurationType(self):
+        return StageInfo
+
+    @property
+    async def configurationSchema(self):
         return self.settings.configurationFormat.model_json_schema()
 
     async def fullRefreshAllSettings(self):

@@ -152,7 +152,7 @@ class MainInterface:
         """Returns list of JSON schemas of configuration objects"""
         res = {}
         for intf in self.interfaces:
-            res[intf.name] = await intf.configurationFormat
+            res[intf.name] = await intf.configurationSchema
         return res
 
     @property

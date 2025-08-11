@@ -82,7 +82,7 @@ async def updateConfiguration(configuration: dict[str, list[Any]]) -> list[updat
                     try:
                         # try to validate the input into the relevant configuration format
                         try:
-                            valid_model = interface.configurationFormat.model_validate(item)
+                            valid_model = interface.configurationType.model_validate(item)
                             toConfig.append(valid_model)
                         except ValidationError as e:
                             print("Issue parsing config: ", e)
