@@ -191,6 +191,10 @@ class StandaInterface(ControllerInterface):
         return schema
 
     async def refreshConfig(self, SN: int):
+
+        initialstageinfo = self.stageInfo[SN]
+        initialstagestatus = self.stageStatus[SN]
+
         status = None
         newconfig = self._configs[SN]
         try:
@@ -206,9 +210,16 @@ class StandaInterface(ControllerInterface):
 
         except:
             newconfig.connected = False
-            newconfig.ready = False
+            newconfig.homed = False
+            newconfig.ontarget = True # to prevent infinite loop continuously checking for updates
 
         self._configs[SN] = newconfig
+
+        # event announcing
+        if self.stageInfo[SN] != initialstageinfo:
+            self.EventAnnouncer.event(self.stageInfo[SN])
+        if self.stageStatus[SN] != initialstagestatus:
+            self.EventAnnouncer.event(self.stageStatus[SN])
 
     async def fullRefreshAllSettings(self):
         """All we do is check the position and on target status"""
