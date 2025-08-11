@@ -4,7 +4,7 @@ from typing import Any, Awaitable
 from pydantic import BaseModel
 
 from server.StageControl.DataTypes import ControllerInterface, StageStatus, StageInfo, \
-    updateResponse, StageRemoved, EventAnnouncer
+    updateResponse, StageRemoved, EventAnnouncer, Notice
 from server.StageControl.PI.C884 import C884
 from server.StageControl.PI.DataTypes import PIConfiguration, PIController, PIStageInfo, PIControllerModel, \
     MockPIController
@@ -13,7 +13,7 @@ from server.StageControl.PI.DataTypes import PIConfiguration, PIController, PISt
 class PISettings:
 #TODO IMPLEMENT STAGEREMOVED self.EventAnnouncer.event(StageRemoved(identifier = identifier))
     def __init__(self):
-        self.EventAnnouncer = EventAnnouncer(StageStatus, StageInfo, StageRemoved)
+        self.EventAnnouncer = EventAnnouncer(StageStatus, StageInfo, StageRemoved, Notice)
         self._controllerStatuses = []
         # type hint, this is where we store controller statuses
         self.controllers: dict[int, PIController] = {}

@@ -6,7 +6,7 @@ from fastapi import WebSocket
 from pydantic import BaseModel, Field
 
 from server.Interface import toplevelinterface
-from server.StageControl.DataTypes import EventAnnouncer, StageStatus, StageInfo, StageRemoved
+from server.StageControl.DataTypes import EventAnnouncer, StageStatus, StageInfo, StageRemoved, Notice
 
 
 class ReqTypes(Enum):
@@ -75,12 +75,9 @@ class WebSocketAPI:
 
     def __init__(self):
         self.active_connections: list[WebSocket] = []
-        self.EA: EventAnnouncer = EventAnnouncer(StageStatus)
+        self.EA: EventAnnouncer = EventAnnouncer(StageStatus, StageInfo, StageRemoved, Notice)
         # Subscribe to stage status changes
-        sub = toplevelinterface.EventAnnouncer.subscribe(StageStatus, StageInfo, StageRemoved)
-        sub.deliverTo(StageStatus,self.broadcastStageStatus)
-        sub.deliverTo(StageInfo,self.broadcastStageInfo)
-        sub.deliverTo(StageRemoved, self.broadcastStageRemoved)
+        self.EA.patch_through_from([StageStatus, StageInfo, StageRemoved, Notice], toplevelinterface.EventAnnouncer)
 
     async def receive(self, msg: Req, websocket: WebSocket) -> None:
         """
@@ -128,6 +125,12 @@ class WebSocketAPI:
     def broadcastStageInfo(self, message: StageInfo):
         asyncio.create_task(self.broadcast({
             "event": "StageInfo",
+            "data": message.model_dump_json()
+        }))
+
+    def broadcastNotice(self, message: Notice):
+        asyncio.create_task(self.broadcast({
+            "event": "Notice",
             "data": message.model_dump_json()
         }))
 

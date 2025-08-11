@@ -52,6 +52,11 @@ class StageRemoved(BaseModel):
     """Indicates that the stage has been removed."""
     identifier: int = Field(description='Unique identifier for the stage')
 
+class Notice(BaseModel):
+    """This is a class that can send any miscellaneous string up the chain"""
+    identifier:int = None
+    message: str
+
 class EventAnnouncer:
     def __init__(self, *availableDataTypes: type):
         self.subs: list[Subscription] = []
@@ -149,7 +154,7 @@ class ControllerInterface:
     """
 
     def __init__(self):
-        self.EventAnnouncer = EventAnnouncer(StageStatus, StageInfo, StageRemoved)
+        self.EventAnnouncer = EventAnnouncer(StageStatus, StageInfo, StageRemoved, Notice)
 
     @property
     def stages(self) -> list[int]:

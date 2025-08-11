@@ -5,7 +5,7 @@ import libximc.highlevel as ximc
 
 from server.Settings import SettingsVault
 from server.StageControl.DataTypes import ControllerInterface, StageStatus, StageInfo, \
-    updateResponse, StageKind
+    updateResponse
 from server.StageControl.Standa.DataTypes import StandaStage, StandaConfiguration
 
 
