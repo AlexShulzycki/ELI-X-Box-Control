@@ -70,8 +70,8 @@ class VirtualControllerInterface(ControllerInterface):
         return await self.settings.removeConfiguration(id)
 
     @property
-    def configurationFormat(self) -> BaseModel:
-        return self.settings.configurationFormat
+    async def configurationFormat(self):
+        return self.settings.configurationFormat.model_json_schema()
 
     async def fullRefreshAllSettings(self):
         pass

@@ -55,9 +55,9 @@ class StandaInterface(ControllerInterface):
         for key, item in dict(SV.readonly["StandaStages"]).items():
             stageconfigs[key] = StandaStage(
                 Name=key,
-                Calibration=item.Calibration,
-                MinMax=item.MinMax,
-                Kind=StageKind(item.Kind)
+                Calibration=item["Calibration"],
+                MinMax=item["MinMax"],
+                Kind=item["Kind"]
             )
 
         self.StandaSettings = stageconfigs
@@ -157,8 +157,12 @@ class StandaInterface(ControllerInterface):
         return res
 
     @property
-    def configurationFormat(self) -> BaseModel:
-        return StandaConfiguration
+    async def configurationFormat(self):
+        # modify the generated schema by enum-ing the model field
+        schema =  StandaConfiguration.model_json_schema()
+        await self.loadStandaSettings()
+        schema["properties"]["model"]["enum"] = list(self.StandaSettings.keys())
+        return schema
 
     async def refreshConfig(self, SN: int):
         status = None

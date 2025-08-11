@@ -148,11 +148,11 @@ class MainInterface:
         return True
 
     @property
-    def configSchema(self):
+    async def configSchema(self):
         """Returns list of JSON schemas of configuration objects"""
         res = {}
         for intf in self.interfaces:
-            res[intf.name] = intf.configurationFormat.model_json_schema()
+            res[intf.name] = await intf.configurationFormat
         return res
 
     @property

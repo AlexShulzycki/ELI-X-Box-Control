@@ -203,7 +203,7 @@ class ControllerInterface:
         raise NotImplementedError
 
     @property
-    def configurationFormat(self) -> BaseModel:
+    async def configurationFormat(self) -> dict:
         """
         Return the configuration object type
         :return:

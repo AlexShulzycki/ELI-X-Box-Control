@@ -60,13 +60,13 @@ def getCurrentConfig():
     return res
 
 @router.get("/get/ConfigSchema")
-def getConfigSchema():
+async def getConfigSchema():
     """
     Returns the schema of congfiguration objects.
     key = controller name (eg pi, virtual, etc), value = its json schema.
     """
     try:
-        return toplevelinterface.configSchema
+        return await toplevelinterface.configSchema
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
