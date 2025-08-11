@@ -1,11 +1,12 @@
 import asyncio
+import time
 from typing import Awaitable
 
 import libximc.highlevel as ximc
 
 from server.Settings import SettingsVault
 from server.StageControl.DataTypes import ControllerInterface, StageStatus, StageInfo, \
-    updateResponse
+    updateResponse, Notice
 from server.StageControl.Standa.DataTypes import StandaStage, StandaConfiguration
 
 
@@ -67,6 +68,7 @@ class StandaInterface(ControllerInterface):
         :param request: Config to handle
         :return:
         """
+
         device = self.ximcs[request.SN]
         config = self._configs[request.SN]
         status = None
@@ -74,6 +76,11 @@ class StandaInterface(ControllerInterface):
             device.open_device()
             status = device.get_status()
             config.connected = True
+            self.EventAnnouncer.event(Notice(
+                identifier=request.SN,
+                message="Connected, homing to zero position..."
+            ))
+            await asyncio.sleep(0.1) # give some time for the request to send
             device.set_calb(self.StandaSettings[request.model].Calibration, device.get_engine_settings().MicrostepMode)
             config.homed = True
         except:
@@ -91,7 +98,6 @@ class StandaInterface(ControllerInterface):
         if not status.Flags.__contains__(ximc.StateFlags.STATE_IS_HOMED) and request.homed:
             device.command_homezero()
 
-        # return update response
         return updateResponse(success=True, identifier=request.SN)
 
     def addNewDevice(self, SN: int, model: str, devices: list[dict]):
