@@ -31,6 +31,7 @@ class StandaInterface(ControllerInterface):
     async def updateStageInfo(self, identifiers: list[int] = None):
         if identifiers is None:
             await self.fullRefreshAllSettings()
+            return
 
         awaiters = []
         for ident in identifiers:

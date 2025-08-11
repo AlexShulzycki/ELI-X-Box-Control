@@ -56,7 +56,7 @@ def getCurrentConfig():
 
     res = {}
     for interface in toplevelinterface.interfaces:
-        res[interface.name] = interface.settings.currentConfiguration
+        res[interface.name] = interface.currentConfiguration
     return res
 
 @router.get("/get/ConfigSchema")
@@ -82,7 +82,7 @@ async def updateConfiguration(configuration: dict[str, list[Any]]) -> list[updat
                     try:
                         # try to validate the input into the relevant configuration format
                         try:
-                            valid_model = interface.settings.configurationFormat.model_validate(item)
+                            valid_model = interface.configurationFormat.model_validate(item)
                             toConfig.append(valid_model)
                         except ValidationError as e:
                             print("Issue parsing config: ", e)
@@ -99,7 +99,7 @@ async def updateConfiguration(configuration: dict[str, list[Any]]) -> list[updat
                         continue
                 try:
                     # Try configuring the objects, and collect their update responses to the response list
-                    awaiters = await asyncio.gather(interface.settings.configurationChangeRequest(toConfig))
+                    awaiters = await asyncio.gather(interface.configurationChangeRequest(toConfig))
                     for a in awaiters:
                         res.extend(a)
 
@@ -118,7 +118,7 @@ async def getRemoveConfiguration(controllername:str, identifier:int):
     for cntr in toplevelinterface.interfaces:
         if cntr.name == controllername:
             # we found the correct controller, run the command
-            return await cntr.settings.removeConfiguration(identifier)
+            return await cntr.removeConfiguration(identifier)
 
     # if we are here, we haven't found anything
     raise HTTPException(status_code=404, detail=f"Controller interface {controllername} cannot be found")

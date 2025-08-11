@@ -143,6 +143,10 @@ class PIControllerInterface(ControllerInterface):
         return await self.settings.removeConfiguration(id)
 
     @property
+    def currentConfiguration(self) -> list[PIConfiguration]:
+        return self.settings.currentConfiguration
+
+    @property
     def configurationFormat(self) -> BaseModel:
         return self.settings.configurationFormat
 

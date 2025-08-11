@@ -95,7 +95,6 @@ class SettingsVault:
         # now for readonly settings
         if self.dir_path.joinpath("readonly").exists():
             for file in self.dir_path.joinpath("readonly").glob("*.json"):
-                print(file)
                 awaiters.append(ld_readonly(file))
 
         await asyncio.gather(*awaiters)

@@ -90,6 +90,10 @@ class VirtualControllerInterface(ControllerInterface):
         sub.deliverTo(StageRemoved, self.EventAnnouncer.event)
 
     @property
+    def currentConfiguration(self):
+        return self.settings.currentConfiguration
+
+    @property
     def settings(self) -> VirtualSettings:
         return self._settings
 

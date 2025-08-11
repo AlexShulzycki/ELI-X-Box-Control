@@ -4,6 +4,7 @@ import PIConfigBrowser from "@/components/ConfigComponents/PI/PIConfigBrowser.vu
 import {useConfigurationStore} from "@/stores/ConfigurationStore.ts";
 import {ref} from "vue";
 import {useStageStore} from "@/stores/StageStore.ts";
+import StandaConfigBrowser from "@/components/ConfigComponents/Standa/StandaConfigBrowser.vue";
 
 const config = useConfigurationStore()
 const StageInterface = useStageStore()
@@ -27,6 +28,7 @@ function refresh() {
       <div v-for="key in config.configSchemas.keys()">
         <VirtualConfigBrowser v-if="key == 'Virtual'"/>
         <PIConfigBrowser v-else-if="key == 'PI'"/>
+        <StandaConfigBrowser v-else-if="key == 'Standa'"/>
         <h4 v-else>Schema {{ key }} does not have a settings page implemented yet.</h4>
       </div>
     </div>

@@ -46,7 +46,10 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
             const res = await axios.get("get/loadConfiguration", {params:{name: name}})
             if (res.status == 200 && res.data.success) {
                 console.log("loaded config:", res.data)
+            }else if(res.status == 200 && !res.data.success){
+                console.log("Error: ", res.data)
             }
+
         },
         async saveCurrentConfigSet(name: string){
             const res = await axios.get("get/saveCurrentConfiguration", {params:{name: name}})

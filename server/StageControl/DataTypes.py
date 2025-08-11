@@ -210,6 +210,10 @@ class ControllerInterface:
         """
         raise NotImplementedError
 
+    @property
+    def currentConfiguration(self):
+        raise NotImplementedError
+
     async def fullRefreshAllSettings(self):
         raise NotImplementedError
 

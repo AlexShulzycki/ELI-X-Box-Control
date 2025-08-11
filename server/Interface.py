@@ -4,6 +4,7 @@ from typing import Awaitable
 from pipython import GCSDevice
 
 from .StageControl.PI.Interface import PIControllerInterface
+from .StageControl.Standa.Interface import StandaInterface
 from .StageControl.Virtual import VirtualControllerInterface
 from .StageControl.DataTypes import StageInfo, ControllerInterface, EventAnnouncer, StageStatus, StageRemoved
 
@@ -165,6 +166,7 @@ class MainInterface:
 # INIT ALL INTERFACES TOGETHER
 PIinterface = PIControllerInterface()
 Virtualinterface = VirtualControllerInterface()
+Standainterface = StandaInterface()
 
 # TODO Re-Add C884 interface once rewritten
-toplevelinterface = MainInterface(Virtualinterface, PIinterface)
+toplevelinterface = MainInterface(Virtualinterface, PIinterface, Standainterface)
