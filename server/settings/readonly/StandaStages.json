@@ -1,0 +1,18 @@
+{
+  "8MT195, 340mm": {
+    "Calibration": 0.0125,
+    "MinMax": [
+      0,
+      340
+    ],
+    "Kind": "Linear"
+  },
+  "8MT195, 540mm": {
+    "Calibration": 0.02,
+    "MinMax": [
+      0,
+      540
+    ],
+    "Kind": "Linear"
+  }
+}

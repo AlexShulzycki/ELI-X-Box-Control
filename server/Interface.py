@@ -151,7 +151,7 @@ class MainInterface:
         """Returns list of JSON schemas of configuration objects"""
         res = {}
         for intf in self.interfaces:
-            res[intf.name] = intf.settings.configurationFormat.model_json_schema()
+            res[intf.name] = intf.configurationFormat.model_json_schema()
         return res
 
     @property

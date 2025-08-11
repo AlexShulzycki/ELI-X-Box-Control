@@ -1,6 +1,4 @@
 import asyncio
-import time
-from threading import Thread, Timer
 from typing import Coroutine, Awaitable, Any
 
 from pipython import GCSDevice

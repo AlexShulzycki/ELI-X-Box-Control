@@ -147,7 +147,6 @@ class ControllerInterface:
     Base class of controller interfaces. Make sure you pass on any updates to the event announcer.
 
     """
-    settings: ControllerSettings
 
     def __init__(self):
         self.EventAnnouncer = EventAnnouncer(StageStatus, StageInfo, StageRemoved)
@@ -187,29 +186,6 @@ class ControllerInterface:
     def name(self) -> str:
         raise NotImplementedError
 
-class updateResponse(BaseModel):
-    identifier: int
-    success: bool
-    error: str|None = Field(default=None)
-
-class ControllerSettings:
-
-    def __init__(self):
-        self.EventAnnouncer = EventAnnouncer(StageStatus, StageInfo, StageRemoved)
-        self._controllerStatuses = []
-        pass
-
-    @property
-    def currentConfiguration(self) -> list[Any]:
-        """List of configuration objects describing this controller.
-        These status objects should describe all that is going on with the
-        controller(s)"""
-        raise NotImplementedError
-
-    def getDataTypes(self) -> list[type]:
-        """ Some way of sending over the formatting of the settings """
-        raise NotImplementedError
-
     async def configurationChangeRequest(self, request: list[Any]) -> list[updateResponse]:
         """
         Upon receiving a configuration object, tries to turn it into reality.
@@ -227,22 +203,6 @@ class ControllerSettings:
         raise NotImplementedError
 
     @property
-    def stageStatus(self) -> dict[int, StageStatus]:
-        """
-        Returns StageStatus objects for configured stages.
-        :return:
-        """
-        raise NotImplementedError
-
-    @property
-    def stageInfo(self) -> dict[int, StageInfo]:
-        """
-        Returns StageInfo objects for configured stages.
-        :return:
-        """
-        raise NotImplementedError
-
-    @property
     def configurationFormat(self) -> BaseModel:
         """
         Return the configuration object type
@@ -252,3 +212,8 @@ class ControllerSettings:
 
     async def fullRefreshAllSettings(self):
         raise NotImplementedError
+
+class updateResponse(BaseModel):
+    identifier: int
+    success: bool
+    error: str|None = Field(default=None)

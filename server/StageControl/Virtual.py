@@ -2,14 +2,15 @@ from typing import Any
 
 from pydantic import Field, BaseModel
 
-from .DataTypes import StageKind, StageInfo, StageStatus, ControllerInterface, ControllerSettings, updateResponse, \
-    StageRemoved
+from .DataTypes import StageKind, StageInfo, StageStatus, ControllerInterface, updateResponse, \
+    StageRemoved, EventAnnouncer
 
 
-class VirtualSettings(ControllerSettings):
+class VirtualSettings:
 
     def __init__(self):
-        super().__init__()
+        self.EventAnnouncer = EventAnnouncer(StageStatus, StageInfo, StageRemoved)
+        self._controllerStatuses = []
         self.virtualstages: dict[int, VirtualStage] = {}
 
     @property
@@ -62,6 +63,19 @@ class VirtualStage:
 
 class VirtualControllerInterface(ControllerInterface):
 
+    async def configurationChangeRequest(self, request: list[Any]) -> list[updateResponse]:
+        return await self.settings.configurationChangeRequest(request)
+
+    async def removeConfiguration(self, id: int):
+        return await self.settings.removeConfiguration(id)
+
+    @property
+    def configurationFormat(self) -> BaseModel:
+        return self.settings.configurationFormat
+
+    async def fullRefreshAllSettings(self):
+        pass
+
     async def moveBy(self, identifier: int, step: float):
         self.settings.virtualstages[identifier].stageStatus.position += step
         self.settings.virtualstages[identifier].stageStatus.ontarget = True
@@ -69,11 +83,15 @@ class VirtualControllerInterface(ControllerInterface):
 
     def __init__(self):
         super().__init__()
-        self.settings:VirtualSettings = VirtualSettings()
+        self._settings:VirtualSettings = VirtualSettings()
         # forward events
         sub = self.settings.EventAnnouncer.subscribe(StageInfo, StageRemoved)
         sub.deliverTo(StageInfo, self.EventAnnouncer.event)
         sub.deliverTo(StageRemoved, self.EventAnnouncer.event)
+
+    @property
+    def settings(self) -> VirtualSettings:
+        return self._settings
 
     @property
     def name(self) -> str:

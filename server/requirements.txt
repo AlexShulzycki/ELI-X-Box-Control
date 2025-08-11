@@ -1,8 +1,12 @@
-fastapi
+fastapi>=0.115.12
 uvicorn
 websockets
-PIPython
-pydantic
-pyserial
-scipy
+PIPython>=2.11.0.6
+pydantic>=2.11.4
+pyserial>=3.5
+scipy>=1.16.1
 httpx
+numpy>=2.3.2
+pydantic_core>=2.33.2
+typing_extensions>=4.13.2
+libximc>=2.14.30

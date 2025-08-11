@@ -1,5 +1,4 @@
 import json
-from asyncio import shield
 from pathlib import Path
 import asyncio
 
@@ -14,12 +13,19 @@ class SettingsVault:
         """Directory for settings files"""
         self._stores: dict[str, object] = {}
         """Dictionary of loaded settings python object representation"""
+        self._readonly: dict[str, bool] = {}
+        """Dictionary of read only settings, stored in the subfolder 'readonly'"""
         #Ensure the settings directory exists
         self.dir_path.mkdir(exist_ok=True)
 
     @property
     def stores(self) -> dict[str, object]:
         return self._stores
+
+    @property
+    def readonly(self) -> dict[str, object]:
+        """Read only settings. Updated when load_all is called"""
+        return self._readonly
 
     def updateStore(self, name: str, value: object):
         try:
@@ -72,10 +78,25 @@ class SettingsVault:
             except Exception as e:
                 print(f"Failed to load {fl}: {e}")
 
+        # i know i don't need to copy the whole thing, but i cannot be bothered to debug it
+        async def ld_readonly(fl: Path):
+            try:
+                with open(fl) as f:
+                    data = json.load(f)
+                    f.close()
+                self._readonly[fl.name[:-5]] = data
+            except Exception as e:
+                print(f"Failed to load {fl}: {e}")
+
         # Foreach start off the async reading process and then gather
         awaiters = []
         for file in self.dir_path.glob("*.json"):
             awaiters.append(ld(file))
+        # now for readonly settings
+        if self.dir_path.joinpath("readonly").exists():
+            for file in self.dir_path.joinpath("readonly").glob("*.json"):
+                print(file)
+                awaiters.append(ld_readonly(file))
 
         await asyncio.gather(*awaiters)
 

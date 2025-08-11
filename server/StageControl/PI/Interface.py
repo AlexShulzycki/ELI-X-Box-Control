@@ -1,17 +1,20 @@
 import asyncio
 from typing import Any, Awaitable
 
-from server.StageControl.DataTypes import ControllerInterface, StageStatus, StageInfo, ControllerSettings, \
-    updateResponse, StageRemoved
+from pydantic import BaseModel
+
+from server.StageControl.DataTypes import ControllerInterface, StageStatus, StageInfo, \
+    updateResponse, StageRemoved, EventAnnouncer
 from server.StageControl.PI.C884 import C884
 from server.StageControl.PI.DataTypes import PIConfiguration, PIController, PIStageInfo, PIControllerModel, \
     MockPIController
 
 
-class PISettings(ControllerSettings):
+class PISettings:
 #TODO IMPLEMENT STAGEREMOVED self.EventAnnouncer.event(StageRemoved(identifier = identifier))
     def __init__(self):
-        super().__init__()
+        self.EventAnnouncer = EventAnnouncer(StageStatus, StageInfo, StageRemoved)
+        self._controllerStatuses = []
         # type hint, this is where we store controller statuses
         self.controllers: dict[int, PIController] = {}
 
@@ -133,15 +136,32 @@ def deconstruct_SN_Channel(sn_channel):
 
 class PIControllerInterface(ControllerInterface):
 
+    async def configurationChangeRequest(self, request: list[Any]) -> list[updateResponse]:
+        return await self.settings.configurationChangeRequest(request)
+
+    async def removeConfiguration(self, id: int):
+        return await self.settings.removeConfiguration(id)
+
+    @property
+    def configurationFormat(self) -> BaseModel:
+        return self.settings.configurationFormat
+
+    async def fullRefreshAllSettings(self):
+        return await self.settings.fullRefreshAllSettings()
+
     async def moveBy(self, identifier: int, step: float):
         sn, channel = deconstruct_SN_Channel(identifier)
         await self.settings.controllers[sn].moveBy(channel, step)
 
     def __init__(self):
         super().__init__()
-        self.settings:PISettings = PISettings()
+        self._settings:PISettings = PISettings()
         """The PISettings is handling basically everything for us"""
         self.EventAnnouncer.patch_through_from(self.EventAnnouncer.availableDataTypes, self.settings.EventAnnouncer)
+
+    @property
+    def settings(self) -> PISettings:
+        return self._settings
 
     @property
     def stages(self) -> list[int]:

@@ -2,16 +2,13 @@
 import asyncio
 import glob
 import sys
-from typing import Any, Awaitable
+from typing import Any
 
-import pydantic
 import serial
 
 from fastapi import APIRouter, HTTPException
-import json
 
-from fastapi.encoders import jsonable_encoder
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, ValidationError
 
 from server.Interface import toplevelinterface
 from server.Settings import SettingsVault
