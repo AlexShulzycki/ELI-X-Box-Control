@@ -24,7 +24,7 @@ export enum WindowGridPayloads{
 
 
 export enum WindowGridOrientation{
-    vertical = "vertical",
+     vertical = "vertical",
     horizontal = "horizontal",
 }
 
