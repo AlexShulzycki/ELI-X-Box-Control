@@ -1,8 +1,12 @@
 import {defineStore} from "pinia"
 import {Euler, Quaternion, type QuaternionTuple, Vector3, type Vector3Tuple} from "three";
 import axios from "axios";
+import {useStageStore} from "@/stores/StageStore.ts";
+
+
 
 export const useAssemblyStore = defineStore('AssemblyState', {
+
     state: () => {
         return {
             serverAssembly: structuredClone(defaultrootcomponent) as Component,
@@ -194,6 +198,25 @@ function transform_children(rotation_: Quaternion, translation_: Vector3, comp: 
     // create new objects so we dont modify the passed in objects
     const rotation = new Quaternion().copy(rotation_)
     const translation = new Vector3().copy(translation_)
+
+    // Check if we are an axis
+    if(comp.axis_vector != undefined){
+        const stageStore = useStageStore()
+        // we are an axis! check if we have a position
+        const ax = (comp as Axis)
+        if(ax.axis_identifier != undefined && stageStore.serverStages.get(ax.axis_identifier) != undefined){
+            // check if linear
+            if(ax.axis_vector != null && ax.axis_vector.length == 3){
+                // add the current axis vector * position (rotated to our fram of reference) to the translation
+                translation.add(new Vector3().fromArray(ax.axis_vector).multiplyScalar(stageStore.serverStages.get(ax.axis_identifier).position).applyQuaternion(rotation))
+            }else if(ax.axis_vector != null && ax.axis_vector.length == 4){
+                // Rotate the rotation by the position (in degrees)
+                //TODO do multiplication before slerping if the position is beyond 360
+                rotation.slerp(new Quaternion().fromArray(ax.axis_vector),stageStore.serverStages.get(ax.axis_identifier).position/360)
+            }
+        }
+
+    }
 
     comp.children.forEach((child: Component) => {
         // child rotation * parent rotation, new rotation * child attachment point + parent attachment point(which is already in world-space)

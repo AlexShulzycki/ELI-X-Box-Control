@@ -28,7 +28,6 @@ const stagestore = useStageStore()
 const context = useTresContext()
 
 const posRef = shallowRef()
-const axisLine = shallowRef()
 
 
 const comp = ref()
@@ -60,7 +59,6 @@ onBeforeRender(({delta}) => {
 
   if (comp.value.axis_identifier != undefined) {
     if (stagestore.serverStages.get(comp.value.axis_identifier)?.position != undefined) {
-      console.log(stagestore.serverStages.get(comp.value.axis_identifier)?.position)
       const points = []
       points.push(new Vector3().fromArray(vec));
       points.push(new Vector3().fromArray(vec).add(new Vector3().fromArray(comp.value.axis_vector).multiplyScalar(stagestore.serverStages.get(comp.value.axis_identifier).position).applyQuaternion(new Quaternion().fromArray(rot))));
