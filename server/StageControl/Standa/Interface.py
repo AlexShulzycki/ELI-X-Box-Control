@@ -35,7 +35,10 @@ class StandaInterface(ControllerInterface):
 
         awaiters = []
         for ident in identifiers:
-            awaiters.append(self.refreshConfig(ident))
+            if self.stages.__contains__(ident):
+                awaiters.append(self.refreshConfig(ident))
+
+        await asyncio.gather(*awaiters)
 
     async def updateStageStatus(self, identifiers: list[int] = None):
         await self.updateStageInfo(identifiers)
@@ -68,27 +71,31 @@ class StandaInterface(ControllerInterface):
         :param request: Config to handle
         :return:
         """
-
         device = self.ximcs[request.SN]
         config = self._configs[request.SN]
         status = None
         try:
-            device.open_device()
+            config.connected = False
+            # we have no way to check if we are currently connected (yippee)
+            # so we try to get status, if we can't, then we are probably not connected.
+            # incredible implementation by the team at ximc
+            try:
+                device.get_status()
+            except:
+                # error, probably not connected
+                device.open_device()
+
             status = device.get_status()
+            # if we make it here we are connected
             config.connected = True
-            self.EventAnnouncer.event(Notice(
-                identifier=request.SN,
-                message="Connected, homing to zero position..."
-            ))
-            await asyncio.sleep(0.1) # give some time for the request to send
+            # set calibration
             device.set_calb(self.StandaSettings[request.model].Calibration, device.get_engine_settings().MicrostepMode)
-            config.homed = True
-        except:
+        except Exception as e:
             config.connected = False
             return updateResponse(
                 identifier=request.SN,
                 success=False,
-                error=f"Unable to connect to Standa device, SN {config.SN}"
+                error=f"Unable to connect to Standa device, SN {config.SN}, error: {e}"
             )
         # we have not failed to connect
         # minmax is not sent to the controller
@@ -96,7 +103,18 @@ class StandaInterface(ControllerInterface):
 
         # Check if homed and if we want it homed
         if not status.Flags.__contains__(ximc.StateFlags.STATE_IS_HOMED) and request.homed:
-            device.command_homezero()
+            # let the user know we're homing
+            self.EventAnnouncer.event(Notice(
+                identifier=request.SN,
+                message="Connected, homing to zero position..."
+            ))
+            await asyncio.sleep(0.1)  # give some time for the request to send
+            try:
+                device.command_homezero()
+                config.homed = True
+            except:
+                # TODO error handling
+                config.homed = False
 
         return updateResponse(success=True, identifier=request.SN)
 
@@ -187,11 +205,22 @@ class StandaInterface(ControllerInterface):
         schema["properties"]["model"]["enum"] = list(self.StandaSettings.keys())
         # now we check which serial numbers are available
         sns = []
+
+        # WE HAVE TO PUT THIS AS THE FIRST ENTRY IN THE ARRAY
+        # append a type: integer catch-all schema in case the server returns a serial number
+        # not in the rest of the anyOf array and causes a schema validator to have a fit, like when
+        # the currently connected stage does not show up in the anyOf due to the virtue of
+        # it already being connected.
+        sns.append({
+            "type": "integer",
+        })
+
+
         for dev in ximc.enumerate_devices(ximc.EnumerateFlags.ENUMERATE_PROBE):
-            print(dev)
             sns.append({
                 "const": dev['device_serial'],
                 "title": dev['ControllerName']})
+
 
         schema["properties"]["SN"]["anyOf"] = sns
         return schema

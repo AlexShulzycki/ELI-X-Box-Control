@@ -3,7 +3,7 @@
 import StandaConfigViewer from "@/components/ConfigComponents/Standa/StandaConfigViewer.vue";
 import {useConfigurationStore} from "@/stores/ConfigurationStore.ts";
 import {ref} from "vue";
-import PIConfigViewer from "@/components/ConfigComponents/PI/PIConfigViewer.vue";
+
 
 const config = useConfigurationStore();
 
@@ -27,7 +27,7 @@ function toggleHidden() {
   <button @click="toggleHidden()" v-if="hidden">Add another configuration</button>
   <div v-else>
     <button @click="toggleHidden()">Close new config edit</button>
-    <StandaConfigViewer v-bind:brand-new="true"/>
+    <StandaConfigViewer v-bind:brand-new="true" @success="toggleHidden()"/>
   </div>
 
 

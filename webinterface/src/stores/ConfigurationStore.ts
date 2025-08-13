@@ -158,7 +158,7 @@ function parseConfigs(data:object, schemas:Map<string, any>) {
                 // try to parse the list of configs according to the schema
                 try {
                     (value as Array<object>).forEach((configState) => {
-                        const dat = schema.getData(configState)
+                        const dat = schema.getData(configState, { extendDefaults: false })
                         res.push(dat)
                     })
 

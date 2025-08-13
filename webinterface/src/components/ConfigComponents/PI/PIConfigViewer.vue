@@ -4,7 +4,7 @@ import {ref, watch} from "vue";
 import {useConfigurationStore, type responseinterface} from "@/stores/ConfigurationStore.ts";
 
 const configstore = useConfigurationStore();
-
+const emit = defineEmits(['success'])
 const { brandNew = false, serverstate = {stages: [], clo: [], referenced: [], min_max: []} } = defineProps<{ serverstate?: Object, brandNew?: boolean }>();
 
 // -1 is used as a flag here, if its -1 then don't display the message
@@ -103,6 +103,7 @@ function updateToServer() {
 
       // set the flag back to -1 to hide the message, vary the timeouts if successful/unsuccessful
       if (response.value.success) {
+        emit("success")
         setTimeout(() => {
           response.value.identifier = -1
         }, 3000)

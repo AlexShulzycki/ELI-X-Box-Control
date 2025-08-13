@@ -244,7 +244,9 @@ class PIControllerInterface(ControllerInterface):
         # run it async and call it a day
         awaiters = []
         for sn in controller_sn:
-            awaiters.append(self.settings.controllers[sn].refreshPosOnTarget())
+            # only if we have this identifier, of course
+            if self.settings.controllers.keys().__contains__(sn):
+                awaiters.append(self.settings.controllers[sn].refreshPosOnTarget())
         await asyncio.gather(*awaiters)
 
 
