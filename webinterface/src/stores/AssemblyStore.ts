@@ -200,19 +200,20 @@ function transform_children(rotation_: Quaternion, translation_: Vector3, comp: 
     const translation = new Vector3().copy(translation_)
 
     // Check if we are an axis
-    if(comp.axis_vector != undefined){
+    if((comp as Axis).axis_vector != undefined){
         const stageStore = useStageStore()
         // we are an axis! check if we have a position
         const ax = (comp as Axis)
-        if(ax.axis_identifier != undefined && stageStore.serverStages.get(ax.axis_identifier) != undefined){
+        const stage = stageStore.serverStages.get(ax.axis_identifier)
+        if(ax.axis_identifier != undefined && stage != undefined && stage.position != undefined){
             // check if linear
             if(ax.axis_vector != null && ax.axis_vector.length == 3){
                 // add the current axis vector * position (rotated to our fram of reference) to the translation
-                translation.add(new Vector3().fromArray(ax.axis_vector).multiplyScalar(stageStore.serverStages.get(ax.axis_identifier).position).applyQuaternion(rotation))
+                translation.add(new Vector3().fromArray(ax.axis_vector).multiplyScalar(stage.position).applyQuaternion(rotation))
             }else if(ax.axis_vector != null && ax.axis_vector.length == 4){
                 // Rotate the rotation by the position (in degrees)
                 //TODO do multiplication before slerping if the position is beyond 360
-                rotation.slerp(new Quaternion().fromArray(ax.axis_vector),stageStore.serverStages.get(ax.axis_identifier).position/360)
+                rotation.slerp(new Quaternion().fromArray(ax.axis_vector),stage.position/360)
             }
         }
 
