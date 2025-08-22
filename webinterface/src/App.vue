@@ -14,6 +14,8 @@ import Settings from "@/components/Settings.vue";
       <br>
       <router-link to="/AssemblyEditor">Assembly Editor</router-link>
       <br>
+      <router-link to="/XES">XES</router-link>
+      <br>
     </h4>
   </header>
   <div style="height: 100%">
