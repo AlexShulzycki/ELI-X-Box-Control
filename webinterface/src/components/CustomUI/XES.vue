@@ -59,19 +59,31 @@ window.addEventListener("storage", (e) => {
   </router-link>
   <div style="display: grid; width: 100vw;">
     <div class="info">
-      info blah blah blah
+      <table>
+        <tbody>
+        <tr>
+          <th>Axis</th>
+          <th>Identifier</th>
+          <th>Position</th>
+          <th>On Target?</th>
+          <th>Misc</th>
+        </tr>
+        <tr v-for="[name,id] in axis_ids" :key="name">
+          <td>{{name}}</td>
+          <td>{{id}}</td>
+          <td>{{}}</td>
+        </tr>
+        </tbody>
+      </table>
     </div>
     <div class="crystal">
-      crystal
-      <XYControl v-bind:x="axis_ids.get('crystalx')" v-bind:y="axis_ids.get('crystaly')"/>
+      <XYControl v-bind:x="axis_ids.get('crystalx')" v-bind:y="axis_ids.get('crystaly')" label="Crystal"/>
     </div>
     <div class="detector">
-      detector
-      <XYControl v-bind:x="axis_ids.get('detectorx')" v-bind:y="axis_ids.get('detectory')"/>
+      <XYControl v-bind:x="axis_ids.get('detectorx')" v-bind:y="axis_ids.get('detectory')" label="Detector"/>
     </div>
     <div class="sample">
-      sample
-      <XYControl v-bind:x="axis_ids.get('samplex')" v-bind:y="axis_ids.get('sampley')"/>
+      <XYControl v-bind:x="axis_ids.get('samplex')" v-bind:y="axis_ids.get('sampley')" label="Sample"/>
     </div>
   </div>
 </template>
