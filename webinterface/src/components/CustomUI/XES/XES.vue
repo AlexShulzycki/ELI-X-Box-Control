@@ -45,13 +45,16 @@ window.addEventListener("storage", (e) => {
       </table>
     </div>
     <div class="crystal">
-      <XYControl v-bind:x="axes.get('crystalx')?.identifier" v-bind:y="axes.get('crystaly')?.identifier" label="Crystal"/>
+      <XYControl v-bind:x="axes.get('crystalx')?.identifier" v-bind:y="axes.get('crystaly')?.identifier" label="Crystal"
+      v-bind:xrev="axes.get('crystalx')?.reversed" v-bind:yrev="axes.get('crystaly')?.reversed"/>
     </div>
     <div class="detector">
-      <XYControl v-bind:x="axes.get('detectorx')?.identifier" v-bind:y="axes.get('detectory')?.identifier" label="Detector"/>
+      <XYControl v-bind:x="axes.get('detectorx')?.identifier" v-bind:y="axes.get('detectory')?.identifier" label="Detector"
+      v-bind:xrev="axes.get('detectorx')?.reversed" v-bind:yrev="axes.get('detectory')?.reversed"/>
     </div>
     <div class="sample">
-      <XYControl v-bind:x="axes.get('samplex')?.identifier" v-bind:y="axes.get('sampley')?.identifier" label="Sample"/>
+      <XYControl v-bind:x="axes.get('samplex')?.identifier" v-bind:y="axes.get('sampley')?.identifier" label="Sample"
+      v-bind:xrev="axes.get('samplex')?.reversed" v-bind:yrev="axes.get('sampley')?.reversed"/>
     </div>
   </div>
 </template>

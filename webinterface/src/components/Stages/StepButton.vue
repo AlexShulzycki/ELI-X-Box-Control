@@ -3,9 +3,9 @@
 import {useStageStore} from "@/stores/StageStore.ts";
 import {ref} from "vue";
 
-const {stageid, negative = false, direction, stepby} = defineProps<{
+const {stageid, reversed = false, direction, stepby} = defineProps<{
   stageid: number,
-  negative?: boolean
+  reversed?: boolean
   direction: number // 0: left, 1: right, 2: up, 3: down
   stepby: number
 }>();
@@ -14,8 +14,8 @@ const stageStore = useStageStore();
 
 function step() {
   console.log("stepping stage by step", stageid, stepby)
-  if (negative) {
-    stageStore.stepStage(stageid, -stepby)
+  if (reversed) {
+    stageStore.stepStage(stageid, stepby * -1)
   } else {
     stageStore.stepStage(stageid, stepby)
   }
