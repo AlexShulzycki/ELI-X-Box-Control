@@ -1,8 +1,10 @@
 <script setup lang="ts">
 
-import XYControl from "@/components/Stages/XYControl.vue";
-import {reactive} from "vue";
 
+import {reactive, watch} from "vue";
+
+import {useStageStore} from "@/stores/StageStore.ts";
+const stageStore = useStageStore()
 
 const axis_ids = reactive(new Map<string, number>([
   ["crystalx", 0],
@@ -49,53 +51,30 @@ window.addEventListener("storage", (e) => {
     }
 
   }
-});
+})
+
+function selectID (event, key) {
+  console.log("onchange", event.target.value, key)
+  localStorage.setItem(key, String(event.target.value))
+}
+
 
 </script>
 
 <template>
-  <router-link to="/XES_setup">
-    Set up axes
-  </router-link>
-  <div style="display: grid; width: 100vw;">
-    <div class="info">
-      info blah blah blah
-    </div>
-    <div class="crystal">
-      crystal
-      <XYControl v-bind:x="axis_ids.get('crystalx')" v-bind:y="axis_ids.get('crystaly')"/>
-    </div>
-    <div class="detector">
-      detector
-      <XYControl v-bind:x="axis_ids.get('detectorx')" v-bind:y="axis_ids.get('detectory')"/>
-    </div>
-    <div class="sample">
-      sample
-      <XYControl v-bind:x="axis_ids.get('samplex')" v-bind:y="axis_ids.get('sampley')"/>
+  <div>
+    <div v-for="[key, id] in axis_ids">
+      <h3>
+        {{ key }}
+      </h3>
+      <select @change="selectID($event, key)">
+        <option selected v-if="id == 0 || id == undefined">None</option>
+        <option v-for="[ident, fullstate] in stageStore.serverStages" :value="ident">{{fullstate.identifier}}: {{fullstate.model}}</option>
+      </select>
     </div>
   </div>
 </template>
 
 <style scoped>
-
-.info {
-  grid-column: 1;
-  grid-row: 1;
-}
-
-.crystal {
-  grid-column: 2;
-  grid-row: 1;
-}
-
-.detector {
-  grid-column: 3;
-  grid-row: 2;
-}
-
-.sample {
-  grid-column: 1;
-  grid-row: 2;
-}
 
 </style>
