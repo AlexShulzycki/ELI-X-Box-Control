@@ -51,7 +51,7 @@ function setReversed(event, key:string){
         <option v-for="[ident, fullstate] in stageStore.serverStages" :value="ident">{{fullstate.identifier}}: {{fullstate.model}}</option>
       </select>
       Reversed
-      <input type="checkbox" v-bind:value="axis.reversed" @change="setReversed($event, key)">
+      <input type="checkbox" v-bind:value="axis.reversed" @change="setReversed($event, key)" v-bind:checked="axis.reversed">
     </div>
   </div>
 </template>

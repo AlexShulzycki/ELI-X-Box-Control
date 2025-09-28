@@ -30,7 +30,7 @@ window.addEventListener("storage", (e) => {
           <th>Axis</th>
           <th>Identifier</th>
           <th>Model</th>
-          <th>Position</th>
+          <th>Position (mm)</th>
           <th>On Target?</th>
           <th>Misc</th>
         </tr>
@@ -82,5 +82,16 @@ window.addEventListener("storage", (e) => {
   grid-column: 1;
   grid-row: 2;
 }
+
+table, th, td{
+  text-align: center;
+  border: 2px solid black;
+  border-collapse: collapse;
+  padding: 5px;
+}
+tr:nth-child(even) {
+  background-color: #D6EEEE;
+}
+
 
 </style>
