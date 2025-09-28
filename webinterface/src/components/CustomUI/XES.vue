@@ -54,9 +54,6 @@ window.addEventListener("storage", (e) => {
 </script>
 
 <template>
-  <router-link to="/XES_setup">
-    Set up axes
-  </router-link>
   <div style="display: grid; width: 100vw;">
     <div class="info">
       <table>

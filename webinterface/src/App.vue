@@ -10,6 +10,7 @@ import Settings from "@/components/Settings.vue";
       <br>
       <router-link to="/XES">XES</router-link>
       <br>
+      <router-link to="/XES_setup">XES Axes Setup</router-link>
     </h4>
   </header>
   <div style="height: 100%">
