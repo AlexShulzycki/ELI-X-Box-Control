@@ -46,8 +46,8 @@ function setReversed(event, key:string){
       <h3>
         {{ key }}
       </h3>
-      <select @change="selectID($event, key)">
-        <option selected v-if="axis.identifier == 0 || false">None</option>
+      <select @change="selectID($event, key)" v-bind:value="axis.identifier">
+        <option :value="0">None</option>
         <option v-for="[ident, fullstate] in stageStore.serverStages" :value="ident">{{fullstate.identifier}}: {{fullstate.model}}</option>
       </select>
       Reversed

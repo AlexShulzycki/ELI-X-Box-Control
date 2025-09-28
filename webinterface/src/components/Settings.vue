@@ -16,7 +16,7 @@ function refresh() {
   config.syncServerConfigState()
 }
 </script>
-
+<!--https://www.w3schools.com/howto/howto_js_sidenav.asp Do the sidebar properly-->
 <template>
   <div class="slidecontainer">
     <div class="content" :class="{slideout: !hidden, closed: hidden}">
@@ -47,6 +47,7 @@ template {
   right: 0;
   height: 100%;
   display: grid;
+  overflow: hidden;
 }
 
 .content {
@@ -56,6 +57,7 @@ template {
   width: 100%;
   grid-column: 2;
   grid-row: 1;
+  overflow-y: scroll
 }
 
 .slideout {
