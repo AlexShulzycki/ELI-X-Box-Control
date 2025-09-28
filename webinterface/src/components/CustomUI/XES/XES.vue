@@ -29,6 +29,7 @@ window.addEventListener("storage", (e) => {
         <tr>
           <th>Axis</th>
           <th>Identifier</th>
+          <th>Model</th>
           <th>Position</th>
           <th>On Target?</th>
           <th>Misc</th>
@@ -36,6 +37,7 @@ window.addEventListener("storage", (e) => {
         <tr v-for="[name,state] in axes" :key="name">
           <td>{{name}}</td>
           <td>{{state.identifier}}</td>
+          <td>{{stageStore.serverStages.get(state.identifier)?.model}}</td>
           <td>{{stageStore.serverStages.get(state.identifier)?.position}}</td>
           <td>{{stageStore.serverStages.get(state.identifier)?.ontarget}}</td>
           <td v-if="!stageStore.serverStages.get(state.identifier)">Disconnected</td>
