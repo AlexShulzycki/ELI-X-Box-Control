@@ -191,8 +191,8 @@ function RunMotors(event: Event) {
     return
   }
 
-  stageStore.moveStage(det_stage.identifier, det_target)
-  stageStore.moveStage(cry_stage.identifier, cry_target)
+  stageStore.moveStage(det_stage.identifier, Math.round(det_target *1000)/1000)
+  stageStore.moveStage(cry_stage.identifier, Math.round(cry_target *1000)/1000)
 
 }
 

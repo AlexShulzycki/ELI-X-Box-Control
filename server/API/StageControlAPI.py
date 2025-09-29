@@ -105,7 +105,7 @@ class MoveStageResponse(BaseModel):
     error: str = Field(description="The error message in case of failure", default=None)
 
 @router.get("/get/stage/move/")
-async def moveStage(background_tasks: BackgroundTasks, identifier: int, position: int) -> MoveStageResponse:
+async def moveStage(background_tasks: BackgroundTasks, identifier: int, position: float) -> MoveStageResponse:
     """
     Moves the indicated stage
     :param request: Request

@@ -19,7 +19,11 @@ import Settings from "@/components/Settings.vue";
   </div>
   <main>
     <div style="flex-grow: 1">
-      <RouterView/>
+      <router-view v-slot="{ Component }">
+        <keep-alive>
+          <component :is="Component"/>
+        </keep-alive>
+      </router-view>
     </div>
 
   </main>
