@@ -112,7 +112,7 @@ function Calculate() {
       name: "custom",
       symbol: "custom",
       AbsorptionEnergy: {},
-      EmissionEnergy: {"custom": Number(energy_manual.value)},
+      EmissionEnergy: {"Custom": Number(energy_manual.value)},
     } as Element;
   }
 
@@ -189,10 +189,10 @@ function Calculate() {
         </tr>
         <tr>
           <td>
+            <!-- These values are fetched from the calculation -->
             <select id="element_energy_list" v-model="element_energy_list">
-
-              <option v-if="element_dropdown != undefined"
-                      v-for="[line, energy] in Object.entries(element_dropdown?.EmissionEnergy)" :value="energy">
+              <option v-if="alignment.element.EmissionEnergy != undefined"
+                      v-for="[line, energy] in Object.entries(alignment.element.EmissionEnergy)" :value="energy">
                 {{ line }}: {{ energy }}
               </option>
             </select>
