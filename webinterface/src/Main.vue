@@ -1,6 +1,6 @@
 <script async setup lang="ts">
 
-import XES from "@/components/CustomUI/XES/XES.vue";
+import XesFineAlignment from "@/components/CustomUI/XES/XES_fine_alignment.vue";
 
 function debug() {
   console.log("debug does nothing :)")
@@ -10,7 +10,7 @@ function debug() {
 
 <template>
   <button @click="debug()">Debug</button>
-  <XES/>
+  <XesFineAlignment/>
 </template>
 
 <style scoped>

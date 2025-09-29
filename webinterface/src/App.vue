@@ -4,13 +4,15 @@ import Settings from "@/components/Settings.vue";
 
 <template>
   <header>
-    <h3 style="float: left"><strong>Current route path:</strong> {{ $route.fullPath }}</h3>
+    <!--<h3 style="float: left"><strong>Current route path:</strong> {{ $route.fullPath }}</h3>-->
     <h4 style="float: left;">
       <router-link to="/">Go Home</router-link>
       <br>
       <router-link to="/XES">XES</router-link>
       <br>
       <router-link to="/XES_setup">XES Axes Setup</router-link>
+      <br>
+      <router-link to="XES_calculator">XES Geometry calculation</router-link>
     </h4>
   </header>
   <div style="height: 100%">

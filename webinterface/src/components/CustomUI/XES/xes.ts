@@ -7,7 +7,9 @@ export const ax_names: string[] = [
     "detectorx",
     "detectory",
     "samplex",
-    "sampley"
+    "sampley",
+    "detector_x_long",
+    "crystal_x_long"
 ]
 
 export interface localAxisSetting {
