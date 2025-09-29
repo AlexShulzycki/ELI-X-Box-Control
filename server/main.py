@@ -1,3 +1,4 @@
+import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.openapi.utils import get_openapi
 from starlette.staticfiles import StaticFiles
@@ -81,3 +82,11 @@ app.openapi = custom_openapi
 # We have to mount the static files after the websockets, because otherwise it will try to serve websockets and
 # throw a runtime error.
 app.mount("/", StaticFiles(directory="./static", html=True), name="static")
+
+
+def serve():
+    """Serve the web application."""
+    uvicorn.run(app)
+
+if __name__ == "__main__":
+    serve()

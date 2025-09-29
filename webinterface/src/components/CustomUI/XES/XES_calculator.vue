@@ -48,7 +48,7 @@ let alignment: Alignment = reactive({
 })
 
 // this is how we fetch it (right as we load the page)
-axios.get("get/geometry/CrystalData/").then((response) => {
+axios.get("get/geometry/CrystalData").then((response) => {
   if (response.status === 200) {
     crystals.clear()
     Object.entries(response.data).forEach((entry) => {
@@ -60,7 +60,7 @@ axios.get("get/geometry/CrystalData/").then((response) => {
 
 })
 
-axios.get("get/geometry/ElementData/").then((response) => {
+axios.get("get/geometry/ElementData").then((response) => {
   if (response.status === 200) {
     elements.clear()
     Object.entries(response.data).forEach((entry) => {
