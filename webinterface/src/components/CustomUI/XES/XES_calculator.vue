@@ -5,11 +5,11 @@ import axios from "axios";
 
 // input refs for the UI
 
-const lattice_input_radio = ref()
+const lattice_input_radio = ref("crystal")
 const crystal_dropdown = ref<Crystal>()
 const lattice_manual = ref()
 
-const energy_input_radio = ref()
+const energy_input_radio = ref("database")
 const element_dropdown = ref<Element>()
 const energy_manual = ref()
 const element_energy_list = ref()
@@ -59,21 +59,53 @@ axios.get("get/geometry/ElementData/").then((response) => {
 })
 
 
-function Calculate(){
+function Calculate() {
   // We look at the given inputs and decide a course of action
 
   // Lets generate a Crystal object
-  let reqCrystal:Crystal|undefined = undefined
-  if(lattice_input_radio.value == "crystal"){
-    reqCrystal = crystal_dropdown.value
-  }else if(lattice_input_radio.value == "manual"){
+  let reqCrystal: Crystal | undefined = undefined
+  if (lattice_input_radio.value == "crystal") {
+    // making a non-reactive copy, I love vue
+    reqCrystal = JSON.parse(JSON.stringify(crystal_dropdown.value)) as Crystal
+  } else if (lattice_input_radio.value == "manual") {
     reqCrystal = {
       material: "custom",
-      number: "custom",
+      number: "000",
       lattice_constant: Number(lattice_manual.value),
       name: "custom"
     } as Crystal;
   }
+  if (reqCrystal == undefined) {
+    window.alert("Make sure the crystal input is valid")
+    return
+  }
+
+  //Lets generate an Element object
+  let reqElement: Element | undefined = undefined;
+  if (energy_input_radio.value == "database") {
+    reqElement = JSON.parse(JSON.stringify(element_dropdown.value)) as Element
+  } else if (energy_input_radio.value == "manual") {
+    reqElement = {
+      name: "custom",
+      symbol: "custom",
+      AbsorptionEnergy: {},
+      EmissionEnergy: {"custom": Number(energy_manual.value)},
+    } as Element;
+  }
+
+  const request = {
+    element: reqElement,
+    crystal: reqCrystal,
+  }
+
+  // Lets generate a request!
+  axios.post("post/geometry/ManualAlignment", request).then((response) => {
+    if (response.status === 200) {
+      console.log(response.data)
+    }else{
+      window.alert("Calculation error: " + response.statusText);
+    }
+  })
 }
 
 </script>
@@ -86,7 +118,7 @@ function Calculate(){
         <tbody>
         <tr>
           <td>
-            <input type="radio" id="crystal_radio" value="crystal" v-model="lattice_input_radio" checked/>
+            <input type="radio" id="crystal_radio" value="crystal" v-model="lattice_input_radio"/>
             <label for="crystal_radio"> Crystal </label>
           </td>
           <td>
@@ -113,7 +145,7 @@ function Calculate(){
         <tbody>
         <tr>
           <td>
-            <input type="radio" id="database_radio" value="database" v-model="energy_input_radio" checked/>
+            <input type="radio" id="database_radio" value="database" v-model="energy_input_radio"/>
             <label for="database_radio"> From Database </label>
           </td>
           <td>
@@ -135,8 +167,9 @@ function Calculate(){
           <td>
             <select id="element_energy_list" v-model="element_energy_list">
 
-              <option v-if="element_dropdown != undefined" v-for="[line, energy] in Object.entries(element_dropdown?.EmissionEnergy)" :value="energy">
-                {{ line }}: {{energy}}
+              <option v-if="element_dropdown != undefined"
+                      v-for="[line, energy] in Object.entries(element_dropdown?.EmissionEnergy)" :value="energy">
+                {{ line }}: {{ energy }}
               </option>
             </select>
           </td>
@@ -147,6 +180,7 @@ function Calculate(){
 
     <div>
       <h3>calculate and results below</h3>
+      <button @click="Calculate()">Calculate</button>
       <table>
         <tbody>
         <tr>

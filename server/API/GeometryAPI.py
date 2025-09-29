@@ -39,8 +39,8 @@ def getAlignment(element: str, crystal: str, order: int = 5, height: int = 250) 
         height=height
     )
 
-@router.get("/get/geometry/ManualAlignment")
-def getManualAlignment(element: Element, crystal: Crystal, order: int = 5, height: int = 250) -> Alignment:
+@router.post("/post/geometry/ManualAlignment")
+def postManualAlignment(element: Element, crystal: Crystal, order: int = 5, height: int = 250) -> Alignment:
     return Alignment(
         element=element,
         crystal=crystal,
