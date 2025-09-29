@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import {reactive, ref} from "vue";
 import axios from "axios";
+import {type FullState, useStageStore} from "@/stores/StageStore.ts";
+import {getSetting, type localAxisSetting} from "@/components/CustomUI/XES/xes.ts";
 
+// stage store since we want to move the motors
+const stageStore = useStageStore();
 
 // input refs for the UI
 
@@ -121,7 +125,6 @@ function Calculate(clickevent: Event) {
   }
 
   // Let the user know we're working on it...
-  console.log(clickevent)
   clickevent.target.disabled = true
 
   // Lets generate a request!
@@ -134,6 +137,75 @@ function Calculate(clickevent: Event) {
       window.alert("Calculation error: " + response.statusText);
     }
   })
+}
+
+
+function RunMotors(event: Event) {
+
+  const det: localAxisSetting|null = getSetting("detector_x_long")
+  const cry: localAxisSetting|null = getSetting("crystal_x_long")
+
+  // Get the ids of the motors from storage
+  if(det == null || cry == null) {
+    window.alert("Error getting settings for stages, check if you set them up properly")
+    return
+  }
+
+  const det_stage: FullState | undefined= stageStore.serverStages.get(det.identifier)
+  const cry_stage: FullState | undefined = stageStore.serverStages.get(cry.identifier)
+  if (det_stage == undefined || cry_stage == undefined) {
+      window.alert("Unable to find the stages defined in settings, make sure they're connected and set up")
+      return
+  }
+
+  // if we are here, we have found the stages and they are connected
+
+  let det_target = selected.value.c
+  det_target = det_target - det.offset
+
+  if(det.reversed && det_stage.maximum != undefined){
+    det_target = det_stage.maximum - det_target
+  } else if(det.reversed){
+    window.alert("Stage does not have a maximum, can't calculate reverse value")
+    return
+  }
+
+  let cry_target = Math.round(1000 * selected.value.c / 2) / 1000 // round to avoid 20 char decimals
+  cry_target = cry_target - cry.offset
+
+  if(cry.reversed && cry_stage.maximum != undefined){
+    cry_target = cry_stage.maximum - cry_target
+  } else if(cry.reversed){
+    window.alert("Stage does not have a maximum, can't calculate reverse value")
+    return
+  }
+
+
+  // final check of calculated position
+  if(det_stage.minimum > det_target || det_target > det_stage.maximum){
+    window.alert("Detector out of range, cannot move to "+ String(det_target))
+    return
+  }
+  if(cry_stage.minimum > cry_target || cry_target > cry_stage.maximum){
+    window.alert("Detector out of range, cannot move to "+ String(cry_target))
+    return
+  }
+
+  stageStore.moveStage(det_stage.identifier, det_target)
+  stageStore.moveStage(cry_stage.identifier, cry_target)
+
+}
+
+// Handle selecting table values
+
+const selected = ref({a: 0, c: 0, theta: 0})
+
+function clickTable(event: Event, order: number) {
+  const a = Math.round(alignment.XES_Triangles[energy_line.value][order - 1][0] * 100) / 100
+  const c = Math.round(alignment.XES_Triangles[energy_line.value][order - 1][1] * 100) / 100
+  const theta = Math.round(alignment.ThetaEmission[energy_line.value][order - 1] * 100) / 100
+  selected.value = {a: a, c: c, theta: theta}
+  console.log(selected.value)
 }
 
 </script>
@@ -222,7 +294,7 @@ function Calculate(clickevent: Event) {
           </th>
         </tr>
         <!--Apparently the index starts at 1 in the v-for in vue, fantastic.-->
-        <tr v-if="energy_line != undefined" v-for="order in alignment.order">
+        <tr v-if="energy_line != undefined" v-for="order in alignment.order" @click="clickTable($event, order)">
           <td>
             {{ order }}
           </td>
@@ -243,7 +315,22 @@ function Calculate(clickevent: Event) {
   </div>
   <div class="right_box">
     <canvas id="canvas"></canvas>
-
+    <h3>Selected Positions:</h3>
+    <table style="text-align: center;">
+      <tbody>
+      <tr>
+        <th>a (cm)</th>
+        <th>c (cm)</th>
+        <th>theta (degrees)</th>
+      </tr>
+      <tr>
+        <td>{{ Math.round(selected.a * 100) / 1000 }}</td>
+        <td>{{ Math.round(selected.c * 100) / 1000 }}</td>
+        <td>{{ selected.theta }}</td>
+      </tr>
+      </tbody>
+    </table>
+    <button @click="RunMotors($event)">Move to calculated position</button>
   </div>
 </template>
 
@@ -256,7 +343,8 @@ function Calculate(clickevent: Event) {
   border-right: solid 2px black;
   text-align: center;
 }
-.right_box{
+
+.right_box {
   width: auto;
   height: auto;
   padding-left: 5%;

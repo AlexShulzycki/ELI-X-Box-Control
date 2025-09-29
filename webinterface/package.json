@@ -11,6 +11,7 @@
     "type-check": "vue-tsc --build"
   },
   "dependencies": {
+    "@nuxt/ui": "^4.0.0",
     "@tresjs/cientos": "^4.3.1",
     "@tresjs/core": "^4.3.6",
     "axios": "^1.9.0",
