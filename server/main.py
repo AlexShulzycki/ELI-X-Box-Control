@@ -80,4 +80,4 @@ app.openapi = custom_openapi
 
 # We have to mount the static files after the websockets, because otherwise it will try to serve websockets and
 # throw a runtime error.
-app.mount("/", StaticFiles(directory="../webinterface/dist/", html=True), name="static")
+app.mount("/", StaticFiles(directory="./static", html=True), name="static")
