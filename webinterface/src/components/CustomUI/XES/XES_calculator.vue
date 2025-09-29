@@ -12,7 +12,7 @@ const lattice_manual = ref()
 const energy_input_radio = ref("database")
 const element_dropdown = ref<Element>()
 const energy_manual = ref()
-const element_energy_list = ref()
+const energy_line = ref()
 
 // On load, we want to request for available crystal data and element data
 interface Crystal {
@@ -33,8 +33,8 @@ interface Element {
 const crystals: Map<string, Crystal> = reactive(new Map<string, Crystal>())
 const elements: Map<string, Element> = reactive(new Map<string, Element>())
 let alignment: Alignment = reactive({
-  element: {name: "None", symbol: "None", AbsorptionEnergy: {}, EmissionEnergy:{}},
-  crystal: {name:"None", material: "None", number: "000", lattice_constant: 0},
+  element: {name: "None", symbol: "None", AbsorptionEnergy: {}, EmissionEnergy: {}},
+  crystal: {name: "None", material: "None", number: "000", lattice_constant: 0},
   order: 0,
   height: 0,
   ThetaAbsorption: {},
@@ -70,17 +70,16 @@ axios.get("get/geometry/ElementData/").then((response) => {
 
 // Process the response
 
-interface Alignment{
+interface Alignment {
   element: Element,
   crystal: Crystal,
   order: number,
   height: number,
-  ThetaAbsorption: object,
-  ThetaEmission: object,
-  XAS_Triangles: object,
-  XES_Triangles: object,
+  ThetaAbsorption: { [key: string]: number[] },
+  ThetaEmission: { [key: string]: number[] },
+  XAS_Triangles: { [key: string]: number[][] },
+  XES_Triangles: { [key: string]: number[][] },
 }
-
 
 function Calculate() {
   // We look at the given inputs and decide a course of action
@@ -126,7 +125,7 @@ function Calculate() {
     if (response.status === 200) {
       // We need to assign the response, otherwise just replacing it loses reactivity
       Object.assign(alignment, response.data as Alignment)
-    }else{
+    } else {
       window.alert("Calculation error: " + response.statusText);
     }
   })
@@ -187,17 +186,6 @@ function Calculate() {
             <input type="number" id="energy_manual_input" v-model="energy_manual"/>
           </td>
         </tr>
-        <tr>
-          <td>
-            <!-- These values are fetched from the calculation -->
-            <select id="element_energy_list" v-model="element_energy_list">
-              <option v-if="alignment.element.EmissionEnergy != undefined"
-                      v-for="[line, energy] in Object.entries(alignment.element.EmissionEnergy)" :value="energy">
-                {{ line }}: {{ energy }}
-              </option>
-            </select>
-          </td>
-        </tr>
         </tbody>
       </table>
     </div>
@@ -205,6 +193,13 @@ function Calculate() {
     <div>
       <h3>calculate and results below</h3>
       <button @click="Calculate()">Calculate</button>
+      <!-- These values are fetched from the calculation -->
+      <select id="energy_line" v-model="energy_line">
+        <option v-if="alignment.element.EmissionEnergy != undefined"
+                v-for="[line, energy] in Object.entries(alignment.element.EmissionEnergy)" :value="line">
+          {{ line }}: {{ energy }}
+        </option>
+      </select>
       <table>
         <tbody>
         <tr>
@@ -212,14 +207,29 @@ function Calculate() {
             n
           </th>
           <th>
-            a
+            a (cm)
           </th>
           <th>
-            c
+            c (cm)
           </th>
           <th>
             Theta
           </th>
+        </tr>
+        <!--Apparently the index starts at 1 in the v-for in vue, fantastic.-->
+        <tr v-if="energy_line != undefined" v-for="order in alignment.order">
+          <td>
+            {{ order }}
+          </td>
+          <!-- apparently I cannot just do index[0], index[1], so we do a two iteration v-for -->
+          <td v-if="alignment.XES_Triangles[energy_line][order-1] != null"
+              v-for="val in alignment.XES_Triangles[energy_line][order-1] ">
+            {{ Math.round(val * 100) / 1000 }}
+          </td>
+          <td>
+            {{ Math.round(alignment.ThetaEmission[energy_line][order - 1] * 100) / 100 }}
+          </td>
+
         </tr>
         </tbody>
       </table>
