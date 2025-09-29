@@ -15,6 +15,7 @@ export const ax_names: string[] = [
 export interface localAxisSetting {
     identifier: number;
     reversed: boolean;
+    offset: number;
 }
 
 export function getSetting(key: string): null | localAxisSetting {
@@ -49,8 +50,8 @@ export function load_prepopulate(axmap: Map<string, localAxisSetting>) {
         const val = getSetting(key)
         if (!val) {
             // Not there, prepopulate with some defaults. 0 is a flag for null.
-            axmap.set(key, {identifier:0, reversed:false})
-            saveSetting(key, {identifier:0, reversed:false})
+            axmap.set(key, {identifier:0, reversed:false, offset: 0})
+            saveSetting(key, {identifier:0, reversed:false, offset: 0})
         } else {
             // its there, lets load it in
             try {

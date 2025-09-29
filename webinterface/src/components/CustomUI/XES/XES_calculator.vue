@@ -81,7 +81,7 @@ interface Alignment {
   XES_Triangles: { [key: string]: number[][] },
 }
 
-function Calculate(clickevent) {
+function Calculate(clickevent: Event) {
   // We look at the given inputs and decide a course of action
 
   // Lets generate a Crystal object
@@ -142,7 +142,7 @@ function Calculate(clickevent) {
   <div class="left_box">
     <div>
       <h3 class="subtitle">Crystal Options</h3>
-      <table>
+      <table style="margin: auto;">
         <tbody>
         <tr>
           <td>
@@ -169,7 +169,7 @@ function Calculate(clickevent) {
     </div>
     <div>
       <h3 class="subtitle">Element Options</h3>
-      <table>
+      <table style="margin: auto;">
         <tbody>
         <tr>
           <td>
@@ -196,7 +196,7 @@ function Calculate(clickevent) {
     </div>
 
     <div>
-      <h3>calculate and results below</h3>
+      <h3>Calculate and Choose Energy</h3>
       <button @click="Calculate($event)">Calculate</button>
       <!-- These values are fetched from the calculation -->
       <select id="energy_line" v-model="energy_line">
@@ -241,12 +241,29 @@ function Calculate(clickevent) {
     </div>
 
   </div>
+  <div class="right_box">
+    <canvas id="canvas"></canvas>
+
+  </div>
 </template>
 
 <style scoped>
 .left_box {
   display: flex;
   flex-direction: column;
+  width: 50%;
+  float: left;
+  border-right: solid 2px black;
+  text-align: center;
+}
+.right_box{
+  width: auto;
+  height: auto;
+  padding-left: 5%;
+  float: left;
+  display: flex;
+  flex-direction: column;
+
 }
 
 .subtitle {
