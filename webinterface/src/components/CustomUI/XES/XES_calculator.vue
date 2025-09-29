@@ -30,8 +30,18 @@ interface Element {
 }
 
 // this is where we store the data
-const crystals = reactive(new Map<string, Crystal>())
-const elements = reactive(new Map<string, Element>())
+const crystals: Map<string, Crystal> = reactive(new Map<string, Crystal>())
+const elements: Map<string, Element> = reactive(new Map<string, Element>())
+let alignment: Alignment = reactive({
+  element: {name: "None", symbol: "None", AbsorptionEnergy: {}, EmissionEnergy:{}},
+  crystal: {name:"None", material: "None", number: "000", lattice_constant: 0},
+  order: 0,
+  height: 0,
+  ThetaAbsorption: {},
+  ThetaEmission: {},
+  XAS_Triangles: {},
+  XES_Triangles: {},
+})
 
 // this is how we fetch it (right as we load the page)
 axios.get("get/geometry/CrystalData/").then((response) => {
@@ -57,6 +67,19 @@ axios.get("get/geometry/ElementData/").then((response) => {
     window.alert("Couldn't fetch element data, error: " + response.statusText);
   }
 })
+
+// Process the response
+
+interface Alignment{
+  element: Element,
+  crystal: Crystal,
+  order: number,
+  height: number,
+  ThetaAbsorption: object,
+  ThetaEmission: object,
+  XAS_Triangles: object,
+  XES_Triangles: object,
+}
 
 
 function Calculate() {
@@ -101,7 +124,8 @@ function Calculate() {
   // Lets generate a request!
   axios.post("post/geometry/ManualAlignment", request).then((response) => {
     if (response.status === 200) {
-      console.log(response.data)
+      // We need to assign the response, otherwise just replacing it loses reactivity
+      Object.assign(alignment, response.data as Alignment)
     }else{
       window.alert("Calculation error: " + response.statusText);
     }
