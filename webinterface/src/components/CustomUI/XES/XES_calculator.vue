@@ -81,7 +81,7 @@ interface Alignment {
   XES_Triangles: { [key: string]: number[][] },
 }
 
-function Calculate() {
+function Calculate(clickevent) {
   // We look at the given inputs and decide a course of action
 
   // Lets generate a Crystal object
@@ -120,9 +120,14 @@ function Calculate() {
     crystal: reqCrystal,
   }
 
+  // Let the user know we're working on it...
+  console.log(clickevent)
+  clickevent.target.disabled = true
+
   // Lets generate a request!
   axios.post("post/geometry/ManualAlignment", request).then((response) => {
     if (response.status === 200) {
+      clickevent.target.disabled = false
       // We need to assign the response, otherwise just replacing it loses reactivity
       Object.assign(alignment, response.data as Alignment)
     } else {
@@ -156,7 +161,7 @@ function Calculate() {
             </select>
           </td>
           <td>
-            <input type="number" id="lattice_manual_input" v-model="lattice_manual"/> eV
+            <input type="number" id="lattice_manual_input" v-model="lattice_manual"/>
           </td>
         </tr>
         </tbody>
@@ -183,7 +188,7 @@ function Calculate() {
             </select>
           </td>
           <td>
-            <input type="number" id="energy_manual_input" v-model="energy_manual"/>
+            <input type="number" id="energy_manual_input" v-model="energy_manual"/> eV
           </td>
         </tr>
         </tbody>
@@ -192,7 +197,7 @@ function Calculate() {
 
     <div>
       <h3>calculate and results below</h3>
-      <button @click="Calculate()">Calculate</button>
+      <button @click="Calculate($event)">Calculate</button>
       <!-- These values are fetched from the calculation -->
       <select id="energy_line" v-model="energy_line">
         <option v-if="alignment.element.EmissionEnergy != undefined"
@@ -222,11 +227,11 @@ function Calculate() {
             {{ order }}
           </td>
           <!-- apparently I cannot just do index[0], index[1], so we do a two iteration v-for -->
-          <td v-if="alignment.XES_Triangles[energy_line][order-1] != null"
+          <td v-if="alignment.XES_Triangles[energy_line] != undefined"
               v-for="val in alignment.XES_Triangles[energy_line][order-1] ">
             {{ Math.round(val * 100) / 1000 }}
           </td>
-          <td>
+          <td v-if="alignment.XES_Triangles[energy_line] != undefined">
             {{ Math.round(alignment.ThetaEmission[energy_line][order - 1] * 100) / 100 }}
           </td>
 
