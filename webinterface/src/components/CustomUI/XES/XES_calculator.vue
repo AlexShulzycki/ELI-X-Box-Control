@@ -48,7 +48,7 @@ let alignment: Alignment = reactive({
 })
 
 // this is how we fetch it (right as we load the page)
-axios.get("get/geometry/CrystalData/").then((response) => {
+axios.get("get/geometry/CrystalData").then((response) => {
   if (response.status === 200) {
     crystals.clear()
     Object.entries(response.data).forEach((entry) => {
@@ -60,7 +60,7 @@ axios.get("get/geometry/CrystalData/").then((response) => {
 
 })
 
-axios.get("get/geometry/ElementData/").then((response) => {
+axios.get("get/geometry/ElementData").then((response) => {
   if (response.status === 200) {
     elements.clear()
     Object.entries(response.data).forEach((entry) => {
@@ -142,30 +142,32 @@ function Calculate(clickevent: Event) {
 
 function RunMotors(event: Event) {
 
-  const det: localAxisSetting|null = getSetting("detector_x_long")
-  const cry: localAxisSetting|null = getSetting("crystal_x_long")
+  const det: localAxisSetting | null = getSetting("detector_x_long")
+  const cry: localAxisSetting | null = getSetting("crystal_x_long")
 
   // Get the ids of the motors from storage
-  if(det == null || cry == null) {
+  if (det == null || cry == null) {
     window.alert("Error getting settings for stages, check if you set them up properly")
     return
   }
 
-  const det_stage: FullState | undefined= stageStore.serverStages.get(det.identifier)
+  const det_stage: FullState | undefined = stageStore.serverStages.get(det.identifier)
   const cry_stage: FullState | undefined = stageStore.serverStages.get(cry.identifier)
   if (det_stage == undefined || cry_stage == undefined) {
-      window.alert("Unable to find the stages defined in settings, make sure they're connected and set up")
-      return
+    window.alert("Unable to find the stages defined in settings, make sure they're connected and set up")
+    return
   }
 
   // if we are here, we have found the stages and they are connected
-
+  console.log()
   let det_target = selected.value.c
   det_target = det_target - det.offset
+  console.log("det target",det_target)
 
-  if(det.reversed && det_stage.maximum != undefined){
+  if (det.reversed && det_stage.maximum != undefined) {
     det_target = det_stage.maximum - det_target
-  } else if(det.reversed){
+    console.log("reversed calc", det_stage.maximum, det_target)
+  } else if (det.reversed) {
     window.alert("Stage does not have a maximum, can't calculate reverse value")
     return
   }
@@ -173,26 +175,26 @@ function RunMotors(event: Event) {
   let cry_target = Math.round(1000 * selected.value.c / 2) / 1000 // round to avoid 20 char decimals
   cry_target = cry_target - cry.offset
 
-  if(cry.reversed && cry_stage.maximum != undefined){
+  if (cry.reversed && cry_stage.maximum != undefined) {
     cry_target = cry_stage.maximum - cry_target
-  } else if(cry.reversed){
+  } else if (cry.reversed) {
     window.alert("Stage does not have a maximum, can't calculate reverse value")
     return
   }
 
 
   // final check of calculated position
-  if(det_stage.minimum > det_target || det_target > det_stage.maximum){
-    window.alert("Detector out of range, cannot move to "+ String(det_target))
+  if (det_stage.minimum > det_target || det_target > det_stage.maximum) {
+    window.alert("Detector out of range, cannot move to " + String(det_target))
     return
   }
-  if(cry_stage.minimum > cry_target || cry_target > cry_stage.maximum){
-    window.alert("Detector out of range, cannot move to "+ String(cry_target))
+  if (cry_stage.minimum > cry_target || cry_target > cry_stage.maximum) {
+    window.alert("Detector out of range, cannot move to " + String(cry_target))
     return
   }
 
-  stageStore.moveStage(det_stage.identifier, Math.round(det_target *1000)/1000)
-  stageStore.moveStage(cry_stage.identifier, Math.round(cry_target *1000)/1000)
+  stageStore.moveStage(det_stage.identifier, Math.round(det_target * 1000) / 1000)
+  stageStore.moveStage(cry_stage.identifier, Math.round(cry_target * 1000) / 1000)
 
 }
 

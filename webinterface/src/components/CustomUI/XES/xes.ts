@@ -23,8 +23,10 @@ export function getSetting(key: string): null | localAxisSetting {
     if (!item) return null;
     else {
         try{
+
             // check if its an localaxissetting object
             const ob = JSON.parse(item) as localAxisSetting;
+            console.log(ob)
 
             // Very fucky type check, I don't like this at all
             if(ob.identifier == undefined){
@@ -41,6 +43,7 @@ export function getSetting(key: string): null | localAxisSetting {
 }
 
 export function saveSetting(key: string, value: localAxisSetting) {
+    console.log("savesetting", value)
     localStorage.setItem(key, JSON.stringify(value));
 }
 

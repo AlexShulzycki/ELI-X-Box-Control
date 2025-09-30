@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Settings from "@/components/Settings.vue";
+import XES_calculator from "@/components/CustomUI/XES/XES_calculator.vue";
 </script>
 
 <template>
@@ -20,9 +21,17 @@ import Settings from "@/components/Settings.vue";
   <main>
     <div style="flex-grow: 1">
       <router-view v-slot="{ Component }">
-        <keep-alive>
+
+        <!--
+        <keep-alive v-if="typeof Component == typeof XES_calculator">
           <component :is="Component"/>
         </keep-alive>
+
+
+        -->
+
+        <component :is="Component"/>
+
       </router-view>
     </div>
 
