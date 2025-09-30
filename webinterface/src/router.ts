@@ -6,6 +6,7 @@ import Assembly3D from "@/components/3D/Assembly3D.vue";
 import AssemblyEditor from "@/components/AssemblyViewer/AssemblyEditor.vue";
 
 import XES from "@/components/CustomUI/XES.vue"
+import Settings from "@/components/Settings.vue";
 
 const routes = [
   { path: '/', component: Main },
@@ -13,6 +14,7 @@ const routes = [
   { path: '/Assembly3D', component: Assembly3D },
   { path: '/AssemblyEditor', component: AssemblyEditor },
   { path: "/XES", component: XES },
+    { path: "/Settings", component: Settings },
 ]
 
 const router = createRouter({

@@ -1,53 +1,41 @@
 <script setup lang="ts">
-import Settings from "@/components/Settings.vue";
 </script>
 
 <template>
-  <header>
-    <h3 style="float: left"><strong>Current route path:</strong> {{ $route.fullPath }}</h3>
-    <h4 style="float: left;">
-      <router-link to="/">Go Home</router-link>
-      <br>
-      <router-link to="/stages">Stages and their statuses</router-link>
-      <br>
-      <router-link to="/Assembly3D">3D Assembly</router-link>
-      <br>
-      <router-link to="/AssemblyEditor">Assembly Editor</router-link>
-      <br>
-      <router-link to="/XES">XES</router-link>
-      <br>
-    </h4>
-  </header>
-  <div style="height: 100%">
-    <Settings/>
-  </div>
-  <main>
-    <div style="flex-grow: 1">
-      <RouterView/>
-    </div>
+  <v-app>
+    <v-navigation-drawer location="right" permanent>
+      <v-list-item>
+        <router-link to="/">Go Home</router-link>
+      </v-list-item>
+      <v-list-item>
+        <router-link to="/stages">Stages and their statuses</router-link>
+      </v-list-item>
+      <v-list-item>
 
-  </main>
+        <router-link to="/Assembly3D">3D Assembly</router-link>
+      </v-list-item>
+      <v-list-item>
+
+        <router-link to="/AssemblyEditor">Assembly Editor</router-link>
+      </v-list-item>
+      <v-list-item>
+        <router-link to="/XES">XES</router-link>
+      </v-list-item>
+      <v-list-item>
+        <router-link to="/Settings">Settings</router-link>
+      </v-list-item>
+    </v-navigation-drawer>
+
+    <v-main>
+      <v-container>
+        <RouterView/>
+      </v-container>
+    </v-main>
+  </v-app>
 
 
 </template>
 
 <style scoped>
-header {
-  display: flex;
-  line-height: 1.5;
-}
 
-main {
-  display: flex;
-  flex-direction: row;
-  background-color: aliceblue;
-}
-
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
-}
 </style>
