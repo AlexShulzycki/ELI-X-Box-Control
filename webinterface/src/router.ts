@@ -8,6 +8,7 @@ import AssemblyEditor from "@/components/AssemblyViewer/AssemblyEditor.vue";
 import XesFineAlignment from "@/components/CustomUI/XES/XES_fine_alignment.vue"
 import XES_setup from "@/components/CustomUI/XES/XES_setup.vue";
 import XES_calculator from "@/components/CustomUI/XES/XES_calculator.vue";
+import Settings from "@/components/Settings.vue";
 
 const routes = [
     {path: '/', component: Main},
@@ -17,6 +18,7 @@ const routes = [
     {path: "/XES", component: XesFineAlignment},
     {path: "/XES_setup", component: XES_setup},
     {path: "/XES_calculator", component: XES_calculator},
+    {path: "/HardwareConfig", component: Settings}
 ]
 
 const router = createRouter({

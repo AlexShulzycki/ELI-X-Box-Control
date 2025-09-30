@@ -51,7 +51,7 @@ async def checkUntilOnTarget(background_tasks: BackgroundTasks, checkIDs: list[i
     # reschedule the task - since we are passing IDs we know are not on target, the list will naturally dwindle
     background_tasks.add_task(checkUntilOnTarget, background_tasks, toUpdate)
 
-@router.get("/get/stage/update/status/")
+@router.get("/get/stage/update/status")
 async def updateStageStatus(background_tasks: BackgroundTasks, identifiers: list[int] = None):
     """
     Updates the status of all connected stages
@@ -60,7 +60,7 @@ async def updateStageStatus(background_tasks: BackgroundTasks, identifiers: list
     background_tasks.add_task(checkUntilOnTarget, background_tasks)
     return
 
-@router.get("/get/stage/update/info/")
+@router.get("/get/stage/update/info")
 async def updateStageInfo(background_tasks: BackgroundTasks, identifiers: list[int] = None):
     """
     Updates the info of all connected stages

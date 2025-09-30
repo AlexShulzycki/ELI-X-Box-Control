@@ -142,20 +142,20 @@ function Calculate(clickevent: Event) {
 
 function RunMotors(event: Event) {
 
-  const det: localAxisSetting|null = getSetting("detector_x_long")
-  const cry: localAxisSetting|null = getSetting("crystal_x_long")
+  const det: localAxisSetting | null = getSetting("detector_x_long")
+  const cry: localAxisSetting | null = getSetting("crystal_x_long")
 
   // Get the ids of the motors from storage
-  if(det == null || cry == null) {
+  if (det == null || cry == null) {
     window.alert("Error getting settings for stages, check if you set them up properly")
     return
   }
 
-  const det_stage: FullState | undefined= stageStore.serverStages.get(det.identifier)
+  const det_stage: FullState | undefined = stageStore.serverStages.get(det.identifier)
   const cry_stage: FullState | undefined = stageStore.serverStages.get(cry.identifier)
   if (det_stage == undefined || cry_stage == undefined) {
-      window.alert("Unable to find the stages defined in settings, make sure they're connected and set up")
-      return
+    window.alert("Unable to find the stages defined in settings, make sure they're connected and set up")
+    return
   }
 
   // if we are here, we have found the stages and they are connected
@@ -163,9 +163,9 @@ function RunMotors(event: Event) {
   let det_target = selected.value.c
   det_target = det_target - det.offset
 
-  if(det.reversed && det_stage.maximum != undefined){
+  if (det.reversed && det_stage.maximum != undefined) {
     det_target = det_stage.maximum - det_target
-  } else if(det.reversed){
+  } else if (det.reversed) {
     window.alert("Stage does not have a maximum, can't calculate reverse value")
     return
   }
@@ -173,26 +173,26 @@ function RunMotors(event: Event) {
   let cry_target = Math.round(1000 * selected.value.c / 2) / 1000 // round to avoid 20 char decimals
   cry_target = cry_target - cry.offset
 
-  if(cry.reversed && cry_stage.maximum != undefined){
+  if (cry.reversed && cry_stage.maximum != undefined) {
     cry_target = cry_stage.maximum - cry_target
-  } else if(cry.reversed){
+  } else if (cry.reversed) {
     window.alert("Stage does not have a maximum, can't calculate reverse value")
     return
   }
 
 
   // final check of calculated position
-  if(det_stage.minimum > det_target || det_target > det_stage.maximum){
-    window.alert("Detector out of range, cannot move to "+ String(det_target))
+  if (det_stage.minimum > det_target || det_target > det_stage.maximum) {
+    window.alert("Detector out of range, cannot move to " + String(det_target))
     return
   }
-  if(cry_stage.minimum > cry_target || cry_target > cry_stage.maximum){
-    window.alert("Detector out of range, cannot move to "+ String(cry_target))
+  if (cry_stage.minimum > cry_target || cry_target > cry_stage.maximum) {
+    window.alert("Detector out of range, cannot move to " + String(cry_target))
     return
   }
 
-  stageStore.moveStage(det_stage.identifier, Math.round(det_target *1000)/1000)
-  stageStore.moveStage(cry_stage.identifier, Math.round(cry_target *1000)/1000)
+  stageStore.moveStage(det_stage.identifier, Math.round(det_target * 1000) / 1000)
+  stageStore.moveStage(cry_stage.identifier, Math.round(cry_target * 1000) / 1000)
 
 }
 
@@ -218,22 +218,22 @@ function clickTable(event: Event, order: number) {
         <tbody>
         <tr>
           <td>
-            <input type="radio" id="crystal_radio" value="crystal" v-model="lattice_input_radio"/>
+            <v-input type="radio" id="crystal_radio" value="crystal" v-model="lattice_input_radio"/>
             <label for="crystal_radio"> Crystal </label>
           </td>
           <td>
-            <input type="radio" id="lattice_radio" value="manual" v-model="lattice_input_radio"/>
+            <v-input type="radio" id="lattice_radio" value="manual" v-model="lattice_input_radio"/>
             <label for="lattice_radio"> Manual lattice constant </label>
           </td>
         </tr>
         <tr>
           <td>
-            <select id="crystal_dropdown" v-model="crystal_dropdown">
+            <v-select id="crystal_dropdown" v-model="crystal_dropdown">
               <option v-for="[key,crystal] in crystals.entries()" :value="crystal">{{ crystal.name }}</option>
-            </select>
+            </v-select>
           </td>
           <td>
-            <input type="number" id="lattice_manual_input" v-model="lattice_manual"/>
+            <v-input type="number" id="lattice_manual_input" v-model="lattice_manual"/>
           </td>
         </tr>
         </tbody>
@@ -244,23 +244,22 @@ function clickTable(event: Event, order: number) {
       <table style="margin: auto;">
         <tbody>
         <tr>
-          <td>
-            <input type="radio" id="database_radio" value="database" v-model="energy_input_radio"/>
-            <label for="database_radio"> From Database </label>
-          </td>
-          <td>
-            <input type="radio" id="energy_radio" value="manual" v-model="energy_input_radio"/>
-            <label for="energy_radio"> Manual energy input </label>
+          <td style="column-span:2">
+            <v-radio-group v-model="energy_input_radio" inline>
+              <v-radio label="From Database" :value="'database'"/>
+              <v-radio label="Manual Energy Input" value="manual"/>
+            </v-radio-group>
           </td>
         </tr>
         <tr>
           <td>
-            <select id="element_dropdown" v-model="element_dropdown">
+            <v-select id="element_dropdown" v-model="element_dropdown">
               <option v-for="[key, element] in elements.entries()" :value="element">{{ element.name }}</option>
-            </select>
+            </v-select>
           </td>
           <td>
-            <input type="number" id="energy_manual_input" v-model="energy_manual"/> eV
+            <v-input type="number" id="energy_manual_input" v-model="energy_manual"/>
+            eV
           </td>
         </tr>
         </tbody>
@@ -269,14 +268,14 @@ function clickTable(event: Event, order: number) {
 
     <div>
       <h3>Calculate and Choose Energy</h3>
-      <button @click="Calculate($event)">Calculate</button>
+      <v-btn @click="Calculate($event)">Calculate</v-btn>
       <!-- These values are fetched from the calculation -->
-      <select id="energy_line" v-model="energy_line">
+      <v-select id="energy_line" v-model="energy_line">
         <option v-if="alignment.element.EmissionEnergy != undefined"
                 v-for="[line, energy] in Object.entries(alignment.element.EmissionEnergy)" :value="line">
           {{ line }}: {{ energy }}
         </option>
-      </select>
+      </v-select>
       <table>
         <tbody>
         <tr>
@@ -330,7 +329,7 @@ function clickTable(event: Event, order: number) {
       </tr>
       </tbody>
     </table>
-    <button @click="RunMotors($event)">Move to calculated position</button>
+    <v-btn @click="RunMotors($event)">Move to calculated position</v-btn>
   </div>
 </template>
 

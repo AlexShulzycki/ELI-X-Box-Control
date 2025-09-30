@@ -9,7 +9,7 @@ function debug() {
 </script>
 
 <template>
-  <button @click="debug()">Debug</button>
+  <v-btn @click="debug()">Debug</v-btn>
   <XesFineAlignment/>
 </template>
 
