@@ -23,6 +23,16 @@ class PIControllerModel(Enum):
     C884 = "C884"
     mock = "mock"
 
+class PIStage(BaseModel):
+    channel: int = Field(description="Which channel this stage is connected to")
+    device:str = Field(description="Name of the stage, i.e. L-611.90AD", examples=['L-406.20DD10', 'NOSTAGE', 'L-611.90AD', 'NOSTAGE'])
+    clo: bool = Field(description="Whether the stage is in closed loop operation")
+    referenced: bool = Field(description="Whether the stage is referenced")
+    min_max: tuple[float, float] = Field(description="Minimum and maximum travel range, in mm", examples=[[0, 200]])
+    on_target: bool = Field(description="Whether the stage is on target")
+    position: float = Field(description="Position of the stage, in mm", examples=[12.55, 100.27])
+
+
 class PIConfiguration(BaseModel):
     """
     State of a single PI controller. Required: SN, model, connection_type (with additional rs232 fields if required)
@@ -33,63 +43,20 @@ class PIConfiguration(BaseModel):
     connected: bool = Field(default= False, examples=[True, False], description="If the controller is connected")
     channel_amount: int = Field(default= 0, examples=[0,4,6], description="Number of channels controller supports")
     ready: bool = Field(default= False, examples=[True, False], description="Whether the controller is ready")
-    referenced: list[Any] = Field(default=[], examples=[[True, False, False, None]],
-                                   description="Whether each axis is referenced", validate_default=True)
-    clo: list[Any] = Field(default=[], examples=[[True, False, True, False, None]],
-                            description="Whether each axis is in closed loop operation, i.e. if its turned on", validate_default=True)
-    stages: list[str] = Field(default = [], examples=[['L-406.20DD10', 'NOSTAGE', 'L-611.90AD', 'NOSTAGE']],
-                              description= "A list with the stages for each channel", validate_default=True)
-    """Array of 4 devices connected on the controller, in order from channel 1 to 4, or 6. If no stage is
-        present, "NOSTAGE" is required. Example: Channel 1 and 3 are connected: ['L-406.20DD10','NOSTAGE', 'L-611.90AD',
-         'NOSTAGE']"""
-    position: list[Any] = Field(default=[], description="Position of the stages in mm", validate_default=True)
-    on_target: list[Any] = Field(default=[], description="on target status of the stages", validate_default=True)
-    min_max: list[list[float]|None] = Field(default=[], examples=[[[0,0], [0, 15.2]]], description="min and max values of the stages", validate_default=True)
+    stages: dict[str,PIStage] = Field(default= None, description="List of stage objects containing all relevant information")
     error: str = Field(description="Error message. If no error, its an empty string", default="")
     baud_rate: int = Field(description="Baud rate of RS232 connection.", default=115200, examples=[115200])
     comport: int = Field(default = None, description="Comport for RS232 connection.")
 
-    @field_validator("referenced", "clo", "position", "on_target", "min_max", mode="after")
-    def validate_channel_amounts(cls, value, info: FieldValidationInfo):
-        """
-        Checks if the fields have the correct length, if length zero then initialize with None. Otherwise, raise error
-        :param value: value of the field
-        :param info: info on this object as its being constructed
-        :return: the value of the field we are validating
-        """
-        # check if there's a discrepancy
-        if info.data["channel_amount"] != len(value):
-            # if empty (default value) we populate with None
-            if len(value) == 0:
-                return [None] * info.data["channel_amount"]
-            # othewise the length is incorrect.
-            raise ValueError(f"Length ({len(value)}) needs to match number of channels ({info.data["channel_amount"]})")
-        return value
 
-    @field_validator("stages")
-    def validate_init_stages(cls, value, info: FieldValidationInfo):
-        """Does the same as validate_channel_amounts, but for the stages field"""
-        if info.data["channel_amount"] != len(value):
-            # additionally check if zero
-            if len(value) == 0:
-                # Populate with NOSTAGE
-                return ["NOSTAGE"] * info.data["channel_amount"]
-            raise ValueError("Stage list must have the right amount of channels")
-        return value
 
     @model_validator(mode="after")
     def validate_rs232(self):
         if self.connection_type is PIConnectionType.rs232:
-            if self.baud_rate is None or self.comport is None:
-                raise ValueError("Baud rate and comport must be specified for an RS232 connection")
+            if self.comport is None:
+                raise ValueError("Comport must be specified for an RS232 connection")
 
         return self
-
-    def initialize_stage_field(self, field):
-        if len(field) != self.channel_amount:
-            return [None] * self.channel_amount
-        else:
-            return field
 
     @field_validator("ready")
     def not_ready_if_disconnected(cls, value, info: FieldValidationInfo):
@@ -97,8 +64,8 @@ class PIConfiguration(BaseModel):
             return False
         else: return value
 
-    #class Config:
-    #    validate_assignment = True
+    class Config:
+        validate_assignment = True
 
 class PIStageInfo(StageInfo):
     controllerSN: int  = Field(description="SN of controller controlling this stage")
@@ -163,22 +130,22 @@ class PIController:
     @property
     def stageInfos(self) -> dict[int, PIStageInfo]:
         res = {}
-        for i in range(self.config.channel_amount):
+        for stage in self.config.stages.values():
             # Check if valid stage
-            if (self.config.stages[i] == "NOSTAGE") or (not self.config.referenced[i]):
+            if (stage == "NOSTAGE") or (not stage.referenced):
                 continue
 
-            stat = PIStageInfo(
+            res = PIStageInfo(
                 controllerSN=self.config.SN,
-                channel=i+1,
-                model = self.config.stages[i],
-                identifier =self.config.SN * 10 + (i + 1), # controller SN plus channel
+                channel=stage.channel,
+                model = stage.device,
+                identifier =self.config.SN * 10 + (stage.channel + 1), # controller SN plus channel
                 kind = StageKind.linear, #TODO UNHARDCODE
-                minimum = self.config.min_max[i][0],
-                maximum = self.config.min_max[i][1]
+                minimum = stage.min_max[0],
+                maximum = stage.min_max[1]
             )
             # if we are here, the stage exists
-            res[stat.identifier] = stat
+            res[res.identifier] = res
 
 
         return res
@@ -187,17 +154,17 @@ class PIController:
     @property
     def stageStatuses(self) -> dict[int, StageStatus]:
         res = {}
-        for i in range(self.config.channel_amount):
-
-            # only add if it's an actual stage (and referenced)
-            if (self.config.stages[i] == "NOSTAGE") or (not self.config.referenced[i]) or (not self.config.ready):
+        for stage in self.config.stages.values():
+            # Check if valid stage
+            if (stage == "NOSTAGE") or (not stage.referenced):
                 continue
+
             stat = (StageStatus(
-                identifier =self.config.SN * 10 + (i + 1),
+                identifier =self.config.SN * 10 + (stage.channel + 1),
                 connected = self.config.connected,
                 ready = self.config.ready,
-                position=self.config.position[i],
-                ontarget=self.config.on_target[i]
+                position=stage.position,
+                ontarget=stage.on_target
             ))
             res[stat.identifier] = stat
         return res
