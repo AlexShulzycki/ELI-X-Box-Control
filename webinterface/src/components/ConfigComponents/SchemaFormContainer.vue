@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { JsonForms, type JsonFormsChangeEvent } from "@jsonforms/vue";
-import { defaultStyles, mergeStyles, vanillaRenderers } from "@jsonforms/vue-vanilla";
+import { JsonForms} from "@jsonforms/vue";
+import { extendedVuetifyRenderers } from '@jsonforms/vue-vuetify';
 
 const renderers = Object.freeze([
-  ...vanillaRenderers,
+  ...extendedVuetifyRenderers,
   // here you can add custom renderers
 ]);
 
@@ -17,7 +17,7 @@ const {schemanode} = defineProps<{
 
 <template>
 
-  <h1>JSON Forms Vue 3</h1>
+  <h1>{{ schemanode.schema.title }}</h1>
   <div class="myform">
     <json-forms :renderers="renderers" :schema="schemanode.schema" />
   </div>
