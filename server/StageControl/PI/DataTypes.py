@@ -14,23 +14,27 @@ from server.StageControl.DataTypes import StageStatus, StageInfo, EventAnnouncer
 class C884Settings(BaseModel):
     pass
 
+
 class PIConnectionType(Enum):
     usb = "usb"
     rs232 = "rs232"
     network = "network"
 
+
 class PIControllerModel(Enum):
     C884 = "C884"
     mock = "mock"
 
+
 class PIStage(BaseModel):
     channel: int = Field(description="Which channel this stage is connected to")
-    device:str = Field(description="Name of the stage, i.e. L-611.90AD", examples=['L-406.20DD10', 'NOSTAGE', 'L-611.90AD', 'NOSTAGE'])
-    clo: bool = Field(description="Whether the stage is in closed loop operation")
-    referenced: bool = Field(description="Whether the stage is referenced")
-    min_max: tuple[float, float] = Field(description="Minimum and maximum travel range, in mm", examples=[[0, 200]])
-    on_target: bool = Field(description="Whether the stage is on target")
-    position: float = Field(description="Position of the stage, in mm", examples=[12.55, 100.27])
+    device: str = Field(description="Name of the stage, i.e. L-611.90AD",
+                        examples=['L-406.20DD10', 'NOSTAGE', 'L-611.90AD', 'NOSTAGE'])
+    clo: bool = Field(default= False, description="Whether the stage is in closed loop operation")
+    referenced: bool = Field(default= False, description="Whether the stage is referenced")
+    min_max: tuple[float, float] = Field(default=(0,0), description="Minimum and maximum travel range, in mm", examples=[[0, 200]])
+    on_target: bool = Field(default= False, description="Whether the stage is on target")
+    position: float = Field(default= 0,description="Position of the stage, in mm", examples=[12.55, 100.27])
 
 
 class PIConfiguration(BaseModel):
@@ -40,15 +44,14 @@ class PIConfiguration(BaseModel):
     SN: int = Field(description="Serial number of the controller")
     model: PIControllerModel = Field(description="Name of the model", examples=[PIControllerModel.C884])
     connection_type: PIConnectionType = Field(description="How the controller is connected")
-    connected: bool = Field(default= False, examples=[True, False], description="If the controller is connected")
-    channel_amount: int = Field(default= 0, examples=[0,4,6], description="Number of channels controller supports")
-    ready: bool = Field(default= False, examples=[True, False], description="Whether the controller is ready")
-    stages: dict[str,PIStage] = Field(default= None, description="List of stage objects containing all relevant information")
+    connected: bool = Field(default=False, examples=[True, False], description="If the controller is connected")
+    channel_amount: int = Field(default=0, examples=[0, 4, 6], description="Number of channels controller supports")
+    ready: bool = Field(default=False, examples=[True, False], description="Whether the controller is ready")
+    stages: dict[str, PIStage] = Field(default={},
+                                       description="List of stage objects containing all relevant information")
     error: str = Field(description="Error message. If no error, its an empty string", default="")
     baud_rate: int = Field(description="Baud rate of RS232 connection.", default=115200, examples=[115200])
-    comport: int = Field(default = None, description="Comport for RS232 connection.")
-
-
+    comport: int = Field(default=None, description="Comport for RS232 connection.")
 
     @model_validator(mode="after")
     def validate_rs232(self):
@@ -62,13 +65,15 @@ class PIConfiguration(BaseModel):
     def not_ready_if_disconnected(cls, value, info: FieldValidationInfo):
         if not info.data["connected"]:
             return False
-        else: return value
+        else:
+            return value
 
     class Config:
         validate_assignment = True
 
+
 class PIStageInfo(StageInfo):
-    controllerSN: int  = Field(description="SN of controller controlling this stage")
+    controllerSN: int = Field(description="SN of controller controlling this stage")
     channel: int = Field(description="Which controller channel this stage is connected to")
 
     # the identifier is supposed to be (controller SN)(channel number) so we check this is true
@@ -88,12 +93,12 @@ class PIStageInfo(StageInfo):
     class Config:
         validate_assignment = True
 
+
 class PIController:
-    #TODO Implement event announcer
+    # TODO Implement event announcer
     def __init__(self):
         self.EA = EventAnnouncer(StageStatus, StageInfo, StageRemoved)
         self._config = None
-
 
     async def updateFromConfig(self, status: PIConfiguration):
         raise NotImplementedError
@@ -119,7 +124,6 @@ class PIController:
     async def moveBy(self, channel, step):
         raise NotImplementedError
 
-
     @property
     def config(self) -> PIConfiguration:
         """
@@ -135,21 +139,19 @@ class PIController:
             if (stage == "NOSTAGE") or (not stage.referenced):
                 continue
 
-            res = PIStageInfo(
+            resstage = PIStageInfo(
                 controllerSN=self.config.SN,
                 channel=stage.channel,
-                model = stage.device,
-                identifier =self.config.SN * 10 + (stage.channel + 1), # controller SN plus channel
-                kind = StageKind.linear, #TODO UNHARDCODE
-                minimum = stage.min_max[0],
-                maximum = stage.min_max[1]
+                model=stage.device,
+                identifier=self.config.SN * 10 + (int(stage.channel)),  # controller SN plus channel
+                kind=StageKind.linear,  # TODO UNHARDCODE
+                minimum=stage.min_max[0],
+                maximum=stage.min_max[1]
             )
             # if we are here, the stage exists
-            res[res.identifier] = res
-
+            res[resstage.identifier] = resstage
 
         return res
-
 
     @property
     def stageStatuses(self) -> dict[int, StageStatus]:
@@ -160,14 +162,15 @@ class PIController:
                 continue
 
             stat = (StageStatus(
-                identifier =self.config.SN * 10 + (stage.channel + 1),
-                connected = self.config.connected,
-                ready = self.config.ready,
+                identifier=self.config.SN * 10 + (int(stage.channel)),
+                connected=self.config.connected,
+                ready=self.config.ready,
                 position=stage.position,
                 ontarget=stage.on_target
             ))
             res[stat.identifier] = stat
         return res
+
 
 class MockPIController(PIController):
     """
@@ -178,7 +181,6 @@ class MockPIController(PIController):
         super().__init__()
         self.position = None
         self.on_target = None
-
 
     async def connect(self):
         time.sleep(0.1)
@@ -204,7 +206,7 @@ class MockPIController(PIController):
                 continue
             else:
                 self._config.stages[i] = stage
-                self._config.min_max[i] = [0,0]
+                self._config.min_max[i] = [0, 0]
                 self._config.position[i] = 0
                 self.config.on_target[i] = False
 
@@ -223,9 +225,9 @@ class MockPIController(PIController):
             # ugly if then can't be bothered to streamline this
             if config.connection_type != PIConnectionType.rs232:
                 self._config = PIConfiguration(
-                    SN = config.SN,
-                    model = config.model,
-                    connection_type = config.connection_type,
+                    SN=config.SN,
+                    model=config.model,
+                    connection_type=config.connection_type,
                 )
             else:
                 self._config = PIConfiguration(
@@ -237,7 +239,7 @@ class MockPIController(PIController):
 
         # Go through each parameter step by step
         if not self.config.connected and config.connected:
-            #connect
+            # connect
             await self.connect()
 
         if config.stages != self.config.stages:
@@ -271,15 +273,15 @@ class MockPIController(PIController):
         for status in self.stageStatuses.values():
             self.EA.event(status)
 
-    async def moveTo(self, channel:int, position: float):
-        self._config.position[channel-1] = position
-        self._config.on_target[channel-1] = True
-        self.EA.event(self.stageStatuses[self.config.SN*10 +channel])
+    async def moveTo(self, channel: int, position: float):
+        self._config.position[channel - 1] = position
+        self._config.on_target[channel - 1] = True
+        self.EA.event(self.stageStatuses[self.config.SN * 10 + channel])
 
     async def moveBy(self, channel, step: float):
-        self._config.position[channel-1] += step
-        self._config.on_target[channel-1] = True
-        self.EA.event(self.stageStatuses[self.config.SN*10 +channel])
+        self._config.position[channel - 1] += step
+        self._config.on_target[channel - 1] = True
+        self.EA.event(self.stageStatuses[self.config.SN * 10 + channel])
 
     @property
     def config(self) -> PIConfiguration:

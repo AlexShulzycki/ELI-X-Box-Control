@@ -4,7 +4,7 @@ from unittest import IsolatedAsyncioTestCase
 
 from server.Interface import PIinterface
 from server.StageControl.PI.C884 import C884
-from server.StageControl.PI.DataTypes import PIConfiguration, PIControllerModel, PIConnectionType
+from server.StageControl.PI.DataTypes import PIConfiguration, PIControllerModel, PIConnectionType, PIStage
 from server.StageControl.PI.Interface import PIControllerInterface
 
 
@@ -14,15 +14,20 @@ class TestC884(IsolatedAsyncioTestCase):
         t = time.time()
         self.c1 = C884()
         await self.c1.updateFromConfig(PIConfiguration(
-            SN=425003044,
+            SN=118071328,
             connected=True,
             model=PIControllerModel.C884,
             connection_type=PIConnectionType.rs232,
-            comport=5,
-            channel_amount=6,
-            clo=[False, False, None, False, False, False],
-            referenced= [False, False, False, False, False, False],
-            stages=["NOSTAGE", "NOSTAGE", "L-406.40DD10", "NOSTAGE", "NOSTAGE", "NOSTAGE"]))
+            comport=17,
+            channel_amount=4,
+            stages = {
+                "3": PIStage(
+                    channel=3,
+                    device= "L-406.40DD10",
+
+                )
+            }))
+
         print(f"Configured, took {time.time() - t}")
         t = time.time()
         await self.c1.refreshFullStatus()
@@ -30,9 +35,9 @@ class TestC884(IsolatedAsyncioTestCase):
         config = self.c1.config
         print(config)
         assert self.c1.isconnected
-        config.referenced = [None, None, True, None, None, None]
-        config.clo = [None, None, True, None, None, None]
         t = time.time()
+        config.stages["3"].referenced = True
+        config.stages["3"].clo = True
         await self.c1.updateFromConfig(config)
         print(f"Updated, took {time.time() - t}")
         time.sleep(5)

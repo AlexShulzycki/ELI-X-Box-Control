@@ -3,13 +3,15 @@ from typing import Coroutine, Awaitable, Any
 
 from pipython import GCSDevice
 
-from server.StageControl.PI.DataTypes import PIController, PIConfiguration, PIConnectionType, PIStageInfo
+from server.StageControl.DataTypes import Notice
+from server.StageControl.PI.DataTypes import PIController, PIConfiguration, PIConnectionType, PIStageInfo, PIStage
 
 
 class ControllerNotReadyException(Exception):
-    def __init__(self, message = ""):
+    def __init__(self, message=""):
         self.message = f"Controller not ready! {message}"
         super().__init__(self.message)
+
 
 def sn_in_device_list(SN: int, enumerate_usb: [str]):
     """
@@ -60,40 +62,39 @@ class C884(PIController):
         :return:
         """
 
-
-
         # if we are a fresh object without a config, lets make one
         if self.config is None:
             self._config = PIConfiguration(
-                SN = config.SN,
-                model = config.model,
-                connection_type = config.connection_type,
-                comport = config.comport,
-                channel_amount = config.channel_amount# else we get a validation error, we are not actually bypassing anything here because this is
+                SN=config.SN,
+                model=config.model,
+                connection_type=config.connection_type,
+                comport=config.comport,
+                channel_amount=config.channel_amount
+                # else we get a validation error, we are not actually bypassing anything here because this is
                 # explicitly checked with the user input and further down in the connection function.
             )
 
-
-        if not self.config.connected and config.connected:
+        if not (self.config.connected and config.connected):
             # open connection handles channel_amount as well
             print("opening connection")
+            self.EA.event(Notice(message="opening connection"))
             await self.openConnection(config)
 
-        if not config.stages == self.config.stages:
-            print("loading new stages")
-            await self.loadStagesToC884(config.stages)
+        # We now need to update the stages
+        print("loading new stages")
+        self.EA.event(Notice(message="loading stage names"))
+        await self.loadStagesToC884(config.stages)
 
-        if not config.clo == self.config.clo:
-            print("setting CLO")
-            await self.setServoCLO(config.clo)
+        self.EA.event(Notice(message="enabling closed loop operation"))
+        print("setting CLO")
+        await self.setServoCLO(config.stages)
 
-        if not config.referenced == self.config.referenced:
-            print("Referencing")
-            await self.reference(config.referenced)
+        self.EA.event(Notice(message="referencing"))
+        print("Referencing")
+        await self.reference(config.stages)
 
         # Do a full status refresh
         await self.refreshFullStatus()
-
 
     @staticmethod
     def list2dict(fromList: list[Any]) -> dict[int, Any]:
@@ -113,9 +114,7 @@ class C884(PIController):
 
         return request_dict
 
-
-
-    def dict2list(self, fromController: dict) -> list[Any|None]:
+    def dict2list(self, fromController: dict) -> list[Any | None]:
         """
         Helper function.
         Converts dict received from the controller into a list, putting a None where no stage is connected
@@ -123,10 +122,9 @@ class C884(PIController):
         res = [None] * len(self.device.allaxes)
         # The returned dict will not contain keys of stages which are not connected
         for i in self.device.axes:
-                res[int(i) - 1] = fromController[f"{i}"]
+            res[int(i) - 1] = fromController[f"{i}"]
 
         return res
-
 
     async def loadStagesFromC884(self):
         """
@@ -135,22 +133,25 @@ class C884(PIController):
         """
         self.checkReady()
 
-        cst =  self.device.qCST()
-        res = []
-        # dict to list
-        for i in range(self.config.channel_amount):
-            res.append(cst[str(i+1)]) # mind the index
-        return res
+        cst = self.device.qCST()
+        return cst
 
-    async def loadStagesToC884(self, stages: list[str]):
+    async def loadStagesToC884(self, stages: dict[int, PIStage]):
         """
         Loads stages per axis onto the controller, from self.stages
         :return:
         """
         self.checkReady()
 
+        req = {}
+        # Prepopulate with NOSTAGE
+        for i in range(self.config.channel_amount):
+            req[i + 1] = "NOSTAGE"
+        # Replace NOSTAGE with stage name
+        for stage in stages.values():
+            req[stage.channel] = stage.device
         try:
-            self.device.CST(self.list2dict(stages))
+            self.device.CST(req)
             # if we're here then we successfully updated stages
             self._config.stages = stages
         except Exception as e:
@@ -158,7 +159,7 @@ class C884(PIController):
             raise e
 
     @property
-    async def error(self)-> str | None:
+    async def error(self) -> str | None:
         """
         Gets the error from controller
         :return: the error read from the controller
@@ -178,7 +179,7 @@ class C884(PIController):
 
     @property
     def ready(self) -> bool:
-        return self.isavailable # for now just isavailable
+        return self.isavailable  # for now just isavailable
 
     def checkReady(self, message: str = ""):
         """ Raises ControllerNotReady exception if controller is not ready"""
@@ -186,7 +187,7 @@ class C884(PIController):
             raise ControllerNotReadyException(message)
 
     @property
-    async def mustBeReferencedFirst(self) -> list[bool| None]:
+    async def mustBeReferencedFirst(self) -> list[bool | None]:
         """
         Returns true for axes which need to be referenced
         :return:
@@ -195,81 +196,82 @@ class C884(PIController):
         return self.dict2list(self.device.qRON(self.device.axes))
 
     @property
-    async def isReferenced(self) -> list[bool| None]:
+    async def isReferenced(self) -> dict[str, bool]:
         """
         Returns true for axes already referenced
         :return:
         """
         self.checkReady()
-        return self.dict2list(self.device.qFRF(self.device.axes))
+        return self.device.qFRF(self.device.axes)
 
     @property
-    async def servoCLO(self)-> list[bool| None]:
+    async def servoCLO(self) -> list[bool | None]:
         """
         Checks if servo is in closed loop operation, i.e. turned on
         :return:
         """
         self.checkReady()
-        return self.dict2list(self.device.qSVO(self.device.axes))
+        return self.device.qSVO(self.device.axes)
 
-
-    async def setServoCLO(self, clolist: list[bool|None] = None):
+    async def setServoCLO(self, stages: dict[int, PIStage] = None):
         """
         Try to set all axes to closed loop operation, i.e. enabling them. if no list is given, all configured axes will
         have their CLO set to true
-        :param clolist:
         :return:
         """
-        print(f"enabling clo {clolist}")
-        if clolist is None:
+        if stages is None:
             self.device.SVO(self.device.axes, [True] * len(self.device.axes))
         else:
             # if there are non-None values for a stage which is a NOSTAGE, set it to none,
             # or else GCS will throw an error
-            for i in range(self.config.channel_amount):
-                if self.config.stages[i] == "NOSTAGE":
-                    clolist[i] = None
 
-            # Dictify
-            req = self.list2dict(clolist)
+            req = {}
+            for stage in stages.values():
+                req[stage.channel] = stage.clo
 
             # Only do a request if our request is not empty, else an exception will be thrown
             if len(req.values()) != 0:
-                self.device.SVO(self.list2dict(clolist))
+                self.device.SVO(req)
 
-    async def reference(self, axes: list[bool] = None):
+    async def reference(self, stages: dict[int, PIStage]):
         """
-        Reference the given axes. If none, reference all axes.
-        :param axes: for example [True, False, True] we will reference axes 1 and 3
+        Reference the given axes. If none, reference all axes. We cannot "dereference" axes,
+        so no worries about accidentally doing that.
+        :param stages: PIStage objects we pull data from.
         :return:
         """
         self.checkReady()
-        if axes is None:
-            self.device.FRF(self.device.axes)
+        if stages is None:
+            return
 
         else:
-            # we need a list of the axes we want to reference
             req = []
-            for i, ax in enumerate(axes):
-                # We only want to reference axes that are not already referenced
-                if ax and not self.config.referenced[i]:
-                    req.append(i+1)
-            if len(req) != 0:
-                # reference
-                self.device.FRF(req)
-                await self.refreshFullStatus() # do this because sometimes it shows as not ref'd.
+            # Check against the current referenced axes, we do not want to reference already references stages.
+            refd = await self.isReferenced
+            # Go through each stage configuration.
+            for stage in stages.values():
+                if stage.referenced and refd.__contains__(stage.channel) and refd[stage.channel]:
+                    # Already referenced, no need to re-reference
+                    continue
+                elif stage.referenced:
+                    # We would like to request this stage to be referenced
+                    req.append(stage.channel)
 
+            if len(req) != 0:
+                # Ask the controller to reference. Make sure the request is not empty.
+                self.device.FRF(req)
+                await self.refreshFullStatus()  # do this because sometimes it shows as not ref'd.
 
     async def refreshFullStatus(self):
         print("referesh full status")
         status = PIConfiguration(
             SN=self.config.SN,
-            model = self.config.model,
-            connection_type = self.config.connection_type,
-            connected = self.isconnected,
+            model=self.config.model,
+            connection_type=self.config.connection_type,
+            connected=self.isconnected,
             channel_amount=self.config.channel_amount,
-            ready = self.ready,
-            comport = 0, # for validation
+            ready=self.ready,
+            comport=0,  # for validation
             # For now, we assume the stage is not ready, so everything else is in their defaults
         )
         # if we are doing rs232, check the additional fields
@@ -279,13 +281,23 @@ class C884(PIController):
 
         # If the controller is ready, then we query for the rest of the status information
         if status.ready:
-            res = await asyncio.gather(self.isReferenced, self.servoCLO, self.error, self.loadStagesFromC884())
-            status.referenced, status.clo,status.error, status.stages = res
+            res = await asyncio.gather(self.isReferenced, self.servoCLO, self.loadStagesFromC884())
+            for ax in self.device.axes:
+                status.stages[ax] = PIStage(
+                    channel=ax,
+                    referenced=res[0][ax],
+                    clo=res[1][ax],
+                    device=res[2][ax],
+                    min_max= (0, 0),
+                    on_target=False,
+                    position=0,
+                )
+
 
         self._config = status
 
-        # update other bits and bobs
-        await asyncio.gather(self.update_range(), self.refreshPosOnTarget())
+        # update parameters which directly save to the self.config
+        await asyncio.gather(self.refreshPosOnTarget(), self.update_ranges())
 
         # Send an info update, status is handled in pos on target
         for info in self.stageInfos.values():
@@ -318,14 +330,10 @@ class C884(PIController):
         :return:
         """
         self.checkReady("Cannot get position.")
-        positions =  self.dict2list(self.device.qPOS())
-        self._config.position = [None] * self.config.channel_amount
         # ensure float type
-        for index, pos in enumerate(positions):
-            if pos is not None:
-                self._config.position[index] = float(pos)
-            else:
-                self._config.position[index] = None
+        for channel, pos in self.device.qPOS().items():
+            if self.config.stages.__contains__(int(channel)):
+                self._config.stages[channel].position = float(pos)
 
     async def moveTo(self, channel: int, target: float):
         """
@@ -337,14 +345,13 @@ class C884(PIController):
 
         self.device.MOV(channel, target)
 
-
     async def moveBy(self, channel, step):
         self.checkReady("Cannot move axis.")
 
         # MVR is for relative, but it is relative to the last commanded
         # target position, not current position.
         position = self.dict2list(self.device.qPOS())
-        self.device.MOV(channel, position[channel-1] + step)
+        self.device.MOV(channel, position[channel - 1] + step)
 
     async def update_onTarget(self):
         """
@@ -352,7 +359,9 @@ class C884(PIController):
         @return: Boolean or array of booleans of whether the axes are on target.
         """
         self.checkReady()
-        self._config.on_target = self.dict2list(self.device.qONT())
+        for key, ont in self.device.qONT().items():
+            if self.config.stages.__contains__(int(key)):
+                self._config.stages[int(key)].on_target = ont
 
     async def openConnection(self, config: PIConfiguration) -> bool:
         """
@@ -408,23 +417,19 @@ class C884(PIController):
         """
         self.device.CloseConnection()
 
-    async def update_range(self):
+    async def update_ranges(self):
         """
-        Returns the [min,max] for each channel
-        @return: [min,max]
+        Updates the [min,max] for each channel
         """
         self.checkReady()
         minrange = self.device.qTMN()
         maxrange = self.device.qTMX()
 
-        for i in range(self.config.channel_amount):
-            if self.config.stages[i] == "NOSTAGE":
-                self._config.min_max[i] = None
-            else:
-                self._config.min_max[i] = [minrange[str(i + 1)], maxrange[str(i + 1)]]
+        # Go through each stage in the config and update the minmax
+        for stage in self._config.stages.values():
+                stage.min_max = ([minrange[str(stage.channel)], maxrange[str(stage.channel)]])
 
-
-    async def getSupportedStages(self)-> list[str]:
+    async def getSupportedStages(self) -> list[str]:
         if not self.isconnected:
             raise Exception("Not connected!")
 

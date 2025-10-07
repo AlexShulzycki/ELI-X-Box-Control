@@ -8,6 +8,7 @@ from server.StageControl.DataTypes import StageInfo, StageStatus, StageKind
 
 router = APIRouter(tags=["control"])
 
+
 @router.get("/get/stage/info")
 def getAllStageInfo() -> dict[int, StageInfo]:
     """
@@ -15,6 +16,7 @@ def getAllStageInfo() -> dict[int, StageInfo]:
     :return: dict identifier -> StageInfo
     """
     return toplevelinterface.StageInfo
+
 
 @router.get("/get/stage/status")
 def getAllStageStatus() -> dict[int, StageStatus]:
@@ -51,7 +53,8 @@ async def checkUntilOnTarget(background_tasks: BackgroundTasks, checkIDs: list[i
     # reschedule the task - since we are passing IDs we know are not on target, the list will naturally dwindle
     background_tasks.add_task(checkUntilOnTarget, background_tasks, toUpdate)
 
-@router.get("/get/stage/update/status/")
+
+@router.get("/get/stage/update/status")
 async def updateStageStatus(background_tasks: BackgroundTasks, identifiers: list[int] = None):
     """
     Updates the status of all connected stages
@@ -60,7 +63,8 @@ async def updateStageStatus(background_tasks: BackgroundTasks, identifiers: list
     background_tasks.add_task(checkUntilOnTarget, background_tasks)
     return
 
-@router.get("/get/stage/update/info/")
+
+@router.get("/get/stage/update/info")
 async def updateStageInfo(background_tasks: BackgroundTasks, identifiers: list[int] = None):
     """
     Updates the info of all connected stages
@@ -68,6 +72,7 @@ async def updateStageInfo(background_tasks: BackgroundTasks, identifiers: list[i
     await toplevelinterface.updateStageInfo()
     background_tasks.add_task(checkUntilOnTarget, background_tasks, identifiers)
     return
+
 
 class FullState(BaseModel):
     identifier: int
@@ -100,11 +105,13 @@ async def getStageFullstate():
         )
     return res
 
+
 class MoveStageResponse(BaseModel):
     success: bool = Field(description="Whether the stage successfully received the move command")
     error: str = Field(description="The error message in case of failure", default=None)
 
-@router.get("/get/stage/move/")
+
+@router.get("/get/stage/move")
 async def moveStage(background_tasks: BackgroundTasks, identifier: int, position: int) -> MoveStageResponse:
     """
     Moves the indicated stage
@@ -118,8 +125,9 @@ async def moveStage(background_tasks: BackgroundTasks, identifier: int, position
     except Exception as error:
         return MoveStageResponse(success=False, error=str(error))
 
-@router.get("/get/stage/step/")
-async def stepStage(background_tasks: BackgroundTasks, identifier: int, step:int) -> MoveStageResponse:
+
+@router.get("/get/stage/step")
+async def stepStage(background_tasks: BackgroundTasks, identifier: int, step: int) -> MoveStageResponse:
     try:
         await toplevelinterface.stepStage(identifier, step)
         background_tasks.add_task(checkUntilOnTarget, background_tasks, [identifier])
