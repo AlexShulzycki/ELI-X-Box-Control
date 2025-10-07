@@ -3,7 +3,8 @@ from typing import Coroutine, Awaitable, Any
 
 from pipython import GCSDevice
 
-from server.StageControl.DataTypes import Notice
+from server.Settings import SettingsVault
+from server.StageControl.DataTypes import Notice, StageKind
 from server.StageControl.PI.DataTypes import PIController, PIConfiguration, PIConnectionType, PIStageInfo, PIStage
 
 
@@ -263,7 +264,8 @@ class C884(PIController):
                 await self.refreshFullStatus()  # do this because sometimes it shows as not ref'd.
 
     async def refreshFullStatus(self):
-        print("referesh full status")
+        print("refresh full status")
+
         status = PIConfiguration(
             SN=self.config.SN,
             model=self.config.model,
@@ -279,20 +281,31 @@ class C884(PIController):
             status.baud_rate = self.config.baud_rate
             status.comport = self.config.comport
 
+
         # If the controller is ready, then we query for the rest of the status information
         if status.ready:
-            res = await asyncio.gather(self.isReferenced, self.servoCLO, self.loadStagesFromC884())
+
+            # We now try to read information to disk, namely whether
+            # the stage is linear or rotational
+            SV = SettingsVault()
+            await SV.load_all()
+
+            # Check if ref'd, clo'd and the device name
+            refd, clod, dev = await asyncio.gather(self.isReferenced, self.servoCLO, self.loadStagesFromC884())
             for ax in self.device.axes:
+
+                # Generate the PIStage object from what we learned
                 status.stages[ax] = PIStage(
                     channel=ax,
-                    referenced=res[0][ax],
-                    clo=res[1][ax],
-                    device=res[2][ax],
-                    min_max= (0, 0),
-                    on_target=False,
-                    position=0,
+                    referenced=refd[ax],
+                    clo=clod[ax],
+                    device=dev[ax]
                 )
 
+                # Check if we have information in about the device on disk
+                if SV.readonly["PIStages"].keys().__contains__(dev[ax]):
+                    # we do, lets overwrite the default
+                    status.stages[ax].kind = StageKind(SV.readonly["PIStages"][dev[ax]]["type"])
 
         self._config = status
 

@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import time
 from enum import Enum
-from typing import Any
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic_core.core_schema import FieldValidationInfo
 
+from server.Settings import SettingsVault
 from server.StageControl.DataTypes import StageStatus, StageInfo, EventAnnouncer, StageKind, \
     StageRemoved
 
@@ -30,11 +30,13 @@ class PIStage(BaseModel):
     channel: int = Field(description="Which channel this stage is connected to")
     device: str = Field(description="Name of the stage, i.e. L-611.90AD",
                         examples=['L-406.20DD10', 'NOSTAGE', 'L-611.90AD', 'NOSTAGE'])
-    clo: bool = Field(default= False, description="Whether the stage is in closed loop operation")
-    referenced: bool = Field(default= False, description="Whether the stage is referenced")
-    min_max: tuple[float, float] = Field(default=(0,0), description="Minimum and maximum travel range, in mm", examples=[[0, 200]])
-    on_target: bool = Field(default= False, description="Whether the stage is on target")
-    position: float = Field(default= 0,description="Position of the stage, in mm", examples=[12.55, 100.27])
+    clo: bool = Field(default=False, description="Whether the stage is in closed loop operation")
+    referenced: bool = Field(default=False, description="Whether the stage is referenced")
+    min_max: tuple[float, float] = Field(default=(0, 0), description="Minimum and maximum travel range, in mm",
+                                         examples=[[0, 200]])
+    on_target: bool = Field(default=False, description="Whether the stage is on target")
+    position: float = Field(default=0, description="Position of the stage, in mm", examples=[12.55, 100.27])
+    kind: StageKind = Field(default=StageKind.linear)
 
 
 class PIConfiguration(BaseModel):
@@ -99,6 +101,7 @@ class PIController:
     def __init__(self):
         self.EA = EventAnnouncer(StageStatus, StageInfo, StageRemoved)
         self._config = None
+        self.SV = SettingsVault()
 
     async def updateFromConfig(self, status: PIConfiguration):
         raise NotImplementedError
@@ -133,9 +136,10 @@ class PIController:
 
     @property
     def stageInfos(self) -> dict[int, PIStageInfo]:
+
         res = {}
         for stage in self.config.stages.values():
-            # Check if valid stage
+            # Check if ready to use, i.e. referenced and no a NOSTAGE.
             if (stage == "NOSTAGE") or (not stage.referenced):
                 continue
 

@@ -1,5 +1,9 @@
 import time
 import unittest
+
+import os
+os.chdir("../") # move to main server directory instead of /tests
+
 from unittest import IsolatedAsyncioTestCase
 
 from server.Interface import PIinterface
