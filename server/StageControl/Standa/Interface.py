@@ -215,7 +215,7 @@ class StandaInterface(ControllerInterface):
             "type": "integer",
         })
 
-
+        # TODO Include devices already connected to the interface, as they don't show up as available
         for dev in ximc.enumerate_devices(ximc.EnumerateFlags.ENUMERATE_PROBE):
             sns.append({
                 "const": dev['device_serial'],
@@ -223,6 +223,9 @@ class StandaInterface(ControllerInterface):
 
 
         schema["properties"]["SN"]["anyOf"] = sns
+
+        # remember to set the title
+        schema["title"] = "Standa"
         return schema
 
     async def refreshConfig(self, SN: int):

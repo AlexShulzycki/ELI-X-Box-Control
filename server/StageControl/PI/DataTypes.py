@@ -33,9 +33,10 @@ class PIStage(BaseModel):
     clo: bool = Field(default=False, description="Whether the stage is in closed loop operation")
     referenced: bool = Field(default=False, description="Whether the stage is referenced")
     min_max: list[float] = Field(default=[0, 0], description="Minimum and maximum travel range, in mm",
-                                         examples=[[0, 200]], min_length=2, max_length=2)
+                                 examples=[[0, 200]], min_length=2, max_length=2)
     on_target: bool = Field(default=False, description="Whether the stage is on target")
-    position: float = Field(default=0, description="Position of the stage, in mm", examples=[12.55, 100.27], json_schema_extra={"readOnly":True})
+    position: float = Field(default=0, description="Position of the stage, in mm", examples=[12.55, 100.27],
+                            json_schema_extra={"readOnly": True})
     kind: StageKind = Field(default=StageKind.linear)
 
     model_config = ConfigDict(
@@ -51,15 +52,20 @@ class PIConfiguration(BaseModel):
     State of a single PI controller. Required: SN, model, connection_type (with additional rs232 fields if required)
     """
     SN: int = Field(description="Serial number of the controller", title="Serial number of the controller")
-    model: PIControllerModel = Field(description="Model of the PI controller", title="Model" , examples=[PIControllerModel.C884])
-    connection_type: PIConnectionType = Field(description="How the controller is connected", examples=[PIConnectionType.rs232], title="Connection type")
-    connected: bool = Field(default=False, examples=[True, False], description="If the controller is connected", json_schema_extra={"readOnly":True})
+    model: PIControllerModel = Field(description="Model of the PI controller", title="Model",
+                                     examples=[PIControllerModel.C884])
+    connection_type: PIConnectionType = Field(description="How the controller is connected",
+                                              examples=[PIConnectionType.rs232], title="Connection type")
+    connected: bool = Field(default=False, examples=[True, False], description="If the controller is connected",
+                            json_schema_extra={"readOnly": True})
     channel_amount: int = Field(default=0, examples=[0, 4, 6], description="Number of channels controller supports")
-    ready: bool = Field(default=False, examples=[True, False], description="Whether the controller is ready", json_schema_extra={"readOnly":True})
+    ready: bool = Field(default=False, examples=[True, False], description="Whether the controller is ready",
+                        json_schema_extra={"readOnly": True})
     stage_list: list[PIStage] = Field(default=[],
-                                       description="Dict of stage objects containing all relevant information")
+                                      description="Dict of stage objects containing all relevant information")
     """We skip the json schema for this one because we will work with lists for the stage objects via the API"""
-    error: str = Field(description="Error message. If no error, its an empty string", default="", json_schema_extra={"readOnly":True})
+    error: str = Field(description="Error message. If no error, its an empty string", default="",
+                       json_schema_extra={"readOnly": True})
     baud_rate: int = Field(description="Baud rate of RS232 connection.", default=115200, examples=[115200])
     comport: int = Field(default=None, description="Comport for RS232 connection.")
 
@@ -93,12 +99,12 @@ class PIConfiguration(BaseModel):
         else:
             return value
 
-    model_config = ConfigDict(
-        validate_assignment=True,
-        json_schema_extra={
+    class Config:
+        validate_assignment = True,
+        json_schema_extra = {
             'title': 'PI',
         }
-    )
+
 
 
 class PIStageInfo(StageInfo):

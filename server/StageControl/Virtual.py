@@ -75,7 +75,9 @@ class VirtualControllerInterface(ControllerInterface):
 
     @property
     async def configurationSchema(self):
-        return self.settings.configurationFormat.model_json_schema()
+        schema =  self.settings.configurationFormat.model_json_schema()
+        schema["title"] = "Virtual"
+        return schema
 
     async def fullRefreshAllSettings(self):
         pass
