@@ -157,7 +157,7 @@ class PIControllerInterface(ControllerInterface):
         :return: JSON schema that describes the PI configuration object.
         """
         # Grab the JSON schema from the pydantic object
-        schema = self.configurationType.model_json_schema(mode='serialization')
+        schema = self.configurationType.model_json_schema()
         # modify some stuff i guess
         print(schema["properties"])
 

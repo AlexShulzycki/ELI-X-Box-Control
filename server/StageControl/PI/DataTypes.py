@@ -3,6 +3,7 @@ from __future__ import annotations
 import time
 from enum import Enum
 
+from numpy.ma.core import minimum
 from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict, computed_field
 from pydantic.json_schema import SkipJsonSchema
 from pydantic_core.core_schema import FieldValidationInfo
@@ -33,10 +34,10 @@ class PIStage(BaseModel):
                         examples=['L-406.20DD10', 'NOSTAGE', 'L-611.90AD', 'NOSTAGE'])
     clo: bool = Field(default=False, description="Whether the stage is in closed loop operation")
     referenced: bool = Field(default=False, description="Whether the stage is referenced")
-    min_max: tuple[float, float] = Field(default=(0, 0), description="Minimum and maximum travel range, in mm",
-                                         examples=[[0, 200]])
+    min_max: list[float] = Field(default=[0, 0], description="Minimum and maximum travel range, in mm",
+                                         examples=[[0, 200]], min_length=2, max_length=2)
     on_target: bool = Field(default=False, description="Whether the stage is on target")
-    position: float = Field(default=0, description="Position of the stage, in mm", examples=[12.55, 100.27])
+    position: float = Field(default=0, description="Position of the stage, in mm", examples=[12.55, 100.27], json_schema_extra={"readOnly":True})
     kind: StageKind = Field(default=StageKind.linear)
 
     model_config = ConfigDict(
@@ -57,7 +58,7 @@ class PIConfiguration(BaseModel):
     connected: bool = Field(default=False, examples=[True, False], description="If the controller is connected", json_schema_extra={"readOnly":True})
     channel_amount: int = Field(default=0, examples=[0, 4, 6], description="Number of channels controller supports")
     ready: bool = Field(default=False, examples=[True, False], description="Whether the controller is ready", json_schema_extra={"readOnly":True})
-    stages: SkipJsonSchema[dict[str, PIStage]] = Field(default={},
+    stage_list: list[PIStage] = Field(default=[],
                                        description="Dict of stage objects containing all relevant information")
     """We skip the json schema for this one because we will work with lists for the stage objects via the API"""
     error: str = Field(description="Error message. If no error, its an empty string", default="", json_schema_extra={"readOnly":True})
@@ -66,13 +67,18 @@ class PIConfiguration(BaseModel):
 
     @computed_field(description="List of Stages", title="Stages")
     @property
-    def stage_list(self) -> list[PIStage]:
-        return list(self.stages.values())
-    @stage_list.setter
-    def stage_list(self, value: list[PIStage]):
-        self.stages = {}
-        for stage in value:
-            self.stages[stage.name] = stage
+    def stages(self) -> dict[str, PIStage]:
+        res = {}
+        for stage in self.stage_list:
+            res[stage.name] = stage
+        return res
+
+    @stages.setter
+    def stages(self, value: dict[str, PIStage]):
+        self.stages = value
+        self.stage_list = []
+        for stage in value.values():
+            self.stage_list.append(stage)
 
     @model_validator(mode="after")
     def validate_rs232(self):
