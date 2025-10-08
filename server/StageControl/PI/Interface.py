@@ -7,7 +7,7 @@ from server.StageControl.DataTypes import ControllerInterface, StageStatus, Stag
     updateResponse, StageRemoved, EventAnnouncer, Notice
 from server.StageControl.PI.C884 import C884
 from server.StageControl.PI.DataTypes import PIConfiguration, PIController, PIStageInfo, PIControllerModel, \
-    MockPIController
+    MockPIController, PIConnectionType
 
 
 class PISettings:
@@ -158,8 +158,18 @@ class PIControllerInterface(ControllerInterface):
         """
         # Grab the JSON schema from the pydantic object
         schema = self.configurationType.model_json_schema()
-        # modify some stuff if needed? tbd so far pydantic works fantastically
-        #print(schema["properties"])
+
+        # Enforce requirements for RS232
+        schema["if"] = {
+            "properties": {
+                "connection_type": {
+                    "enum": [PIConnectionType.rs232]
+                }
+            }
+        }
+        schema["then"] = {
+            "required": ["baud_rate", "comport"]
+        }
 
         return schema
 
