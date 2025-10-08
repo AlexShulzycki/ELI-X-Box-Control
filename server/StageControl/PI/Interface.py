@@ -152,7 +152,17 @@ class PIControllerInterface(ControllerInterface):
 
     @property
     async def configurationSchema(self):
-        return self.configurationType.model_json_schema()
+        """
+        Generate a JSON schema of the configuration object that is sufficiently descriptive and exhaustive.
+        :return: JSON schema that describes the PI configuration object.
+        """
+        # Grab the JSON schema from the pydantic object
+        schema = self.configurationType.model_json_schema(mode='serialization')
+        # modify some stuff i guess
+        print(schema["properties"])
+
+
+        return schema
 
     async def fullRefreshAllSettings(self):
         return await self.settings.fullRefreshAllSettings()

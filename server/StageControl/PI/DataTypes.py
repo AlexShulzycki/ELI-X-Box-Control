@@ -3,7 +3,8 @@ from __future__ import annotations
 import time
 from enum import Enum
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict, computed_field
+from pydantic.json_schema import SkipJsonSchema
 from pydantic_core.core_schema import FieldValidationInfo
 
 from server.Settings import SettingsVault
@@ -15,19 +16,19 @@ class C884Settings(BaseModel):
     pass
 
 
-class PIConnectionType(Enum):
+class PIConnectionType(str, Enum):
     usb = "usb"
     rs232 = "rs232"
     network = "network"
 
 
-class PIControllerModel(Enum):
+class PIControllerModel(str, Enum):
     C884 = "C884"
     mock = "mock"
 
 
 class PIStage(BaseModel):
-    channel: int = Field(description="Which channel this stage is connected to")
+    channel: int = Field(description="Which channel this stage is connected to", examples=[1, 2, 3])
     device: str = Field(description="Name of the stage, i.e. L-611.90AD",
                         examples=['L-406.20DD10', 'NOSTAGE', 'L-611.90AD', 'NOSTAGE'])
     clo: bool = Field(default=False, description="Whether the stage is in closed loop operation")
@@ -38,22 +39,40 @@ class PIStage(BaseModel):
     position: float = Field(default=0, description="Position of the stage, in mm", examples=[12.55, 100.27])
     kind: StageKind = Field(default=StageKind.linear)
 
+    model_config = ConfigDict(
+        validate_assignment=True,
+        json_schema_extra={
+            'title': 'PI Stage',
+        }
+    )
+
 
 class PIConfiguration(BaseModel):
     """
     State of a single PI controller. Required: SN, model, connection_type (with additional rs232 fields if required)
     """
-    SN: int = Field(description="Serial number of the controller")
-    model: PIControllerModel = Field(description="Name of the model", examples=[PIControllerModel.C884])
-    connection_type: PIConnectionType = Field(description="How the controller is connected")
-    connected: bool = Field(default=False, examples=[True, False], description="If the controller is connected")
+    SN: int = Field(description="Serial number of the controller", title="Serial number of the controller")
+    model: PIControllerModel = Field(description="Model of the PI controller", title="Model" , examples=[PIControllerModel.C884])
+    connection_type: PIConnectionType = Field(description="How the controller is connected", examples=[PIConnectionType.rs232], title="Connection type")
+    connected: bool = Field(default=False, examples=[True, False], description="If the controller is connected", json_schema_extra={"readOnly":True})
     channel_amount: int = Field(default=0, examples=[0, 4, 6], description="Number of channels controller supports")
-    ready: bool = Field(default=False, examples=[True, False], description="Whether the controller is ready")
-    stages: dict[str, PIStage] = Field(default={},
-                                       description="List of stage objects containing all relevant information")
-    error: str = Field(description="Error message. If no error, its an empty string", default="")
+    ready: bool = Field(default=False, examples=[True, False], description="Whether the controller is ready", json_schema_extra={"readOnly":True})
+    stages: SkipJsonSchema[dict[str, PIStage]] = Field(default={},
+                                       description="Dict of stage objects containing all relevant information")
+    """We skip the json schema for this one because we will work with lists for the stage objects via the API"""
+    error: str = Field(description="Error message. If no error, its an empty string", default="", json_schema_extra={"readOnly":True})
     baud_rate: int = Field(description="Baud rate of RS232 connection.", default=115200, examples=[115200])
     comport: int = Field(default=None, description="Comport for RS232 connection.")
+
+    @computed_field(description="List of Stages", title="Stages")
+    @property
+    def stage_list(self) -> list[PIStage]:
+        return list(self.stages.values())
+    @stage_list.setter
+    def stage_list(self, value: list[PIStage]):
+        self.stages = {}
+        for stage in value:
+            self.stages[stage.name] = stage
 
     @model_validator(mode="after")
     def validate_rs232(self):
@@ -70,8 +89,12 @@ class PIConfiguration(BaseModel):
         else:
             return value
 
-    class Config:
-        validate_assignment = True
+    model_config = ConfigDict(
+        validate_assignment=True,
+        json_schema_extra={
+            'title': 'PI Configuration',
+        }
+    )
 
 
 class PIStageInfo(StageInfo):
@@ -91,9 +114,6 @@ class PIStageInfo(StageInfo):
         if str(info.data["identifier"])[-1] != str(value):
             raise ValueError(f"SN {value} doesnt match identifier")
         return value
-
-    class Config:
-        validate_assignment = True
 
 
 class PIController:
