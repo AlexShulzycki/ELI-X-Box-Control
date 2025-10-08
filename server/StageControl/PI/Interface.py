@@ -158,9 +158,8 @@ class PIControllerInterface(ControllerInterface):
         """
         # Grab the JSON schema from the pydantic object
         schema = self.configurationType.model_json_schema()
-        # modify some stuff i guess
-        print(schema["properties"])
-
+        # modify some stuff if needed? tbd so far pydantic works fantastically
+        #print(schema["properties"])
 
         return schema
 

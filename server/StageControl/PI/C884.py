@@ -14,7 +14,7 @@ class ControllerNotReadyException(Exception):
         super().__init__(self.message)
 
 
-def sn_in_device_list(SN: int, enumerate_usb: [str]):
+def sn_in_device_list(SN: int, enumerate_usb: list[str]):
     """
     Checks if serial number is in a list of enumerated USB devices
     :param SN: serial number to check
@@ -97,23 +97,6 @@ class C884(PIController):
         # Do a full status refresh
         await self.refreshFullStatus()
 
-    @staticmethod
-    def list2dict(fromList: list[Any]) -> dict[int, Any]:
-        """
-        Helper function that converts an array where each entry is one axis, i.e [True, None, 1.4] to a dictionary {1: True, 3: 1.4}.
-        :param fromList: list to convert to dict
-        :return: dict in the correct format
-        """
-        request_dict = {}
-
-        for i, value in enumerate(fromList):
-            # Ignore none values
-            if value is None:
-                continue
-            else:
-                request_dict[i + 1] = value
-
-        return request_dict
 
     def dict2list(self, fromController: dict) -> list[Any | None]:
         """
@@ -137,7 +120,7 @@ class C884(PIController):
         cst = self.device.qCST()
         return cst
 
-    async def loadStagesToC884(self, stages: dict[int, PIStage]):
+    async def loadStagesToC884(self, stages: dict[str, PIStage]):
         """
         Loads stages per axis onto the controller, from self.stages
         :return:
@@ -214,7 +197,7 @@ class C884(PIController):
         self.checkReady()
         return self.device.qSVO(self.device.axes)
 
-    async def setServoCLO(self, stages: dict[int, PIStage] = None):
+    async def setServoCLO(self, stages: dict[str, PIStage] = None):
         """
         Try to set all axes to closed loop operation, i.e. enabling them. if no list is given, all configured axes will
         have their CLO set to true
@@ -234,7 +217,7 @@ class C884(PIController):
             if len(req.values()) != 0:
                 self.device.SVO(req)
 
-    async def reference(self, stages: dict[int, PIStage]):
+    async def reference(self, stages: dict[str, PIStage]):
         """
         Reference the given axes. If none, reference all axes. We cannot "dereference" axes,
         so no worries about accidentally doing that.
@@ -251,7 +234,7 @@ class C884(PIController):
             refd = await self.isReferenced
             # Go through each stage configuration.
             for stage in stages.values():
-                if stage.referenced and refd.__contains__(stage.channel) and refd[stage.channel]:
+                if stage.referenced and refd.__contains__(str(stage.channel)) and refd[str(stage.channel)]:
                     # Already referenced, no need to re-reference
                     continue
                 elif stage.referenced:

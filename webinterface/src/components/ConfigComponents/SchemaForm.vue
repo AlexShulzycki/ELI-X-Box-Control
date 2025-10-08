@@ -1,9 +1,94 @@
 <script setup lang="ts">
 
+import {JsonForms, type JsonFormsChangeEvent} from "@jsonforms/vue";
+import {extendedVuetifyRenderers} from "@jsonforms/vue-vuetify";
+import type {SchemaNode} from "json-schema-library";
+import {ref} from "vue";
+import {type responseinterface, useConfigurationStore} from "@/stores/ConfigurationStore.ts";
+
+// Props and Emits
+const {schemanode} = defineProps<{
+  schemanode: SchemaNode,
+}>();
+const emit = defineEmits(['success'])
+
+// response data from server
+const response = ref({identifier: -1, success: false, error: ""} as responseinterface);
+
+// JSON forms renderer
+const renderers = Object.freeze([
+  ...extendedVuetifyRenderers,
+  // here you can add custom renderers
+]);
+
+// Form data handling
+// If formdata is not null, then it contains valid data, according to the schema
+const formdata = ref<object|null>(null)
+
+// On form input change, verify if the input conforms to the schema, and update formdata
+const onChange = (event: JsonFormsChangeEvent) => {
+  if(event.errors == undefined) {
+    // check if undefined
+    return
+  }
+
+  // The formdata variable also acts like a flag to show if the form inputs are valid
+  if(event.errors.length > 0) {
+    // Form input is not schema-compliant, so clear out the form data
+    formdata.value = null
+  } else{
+    // If there are no errors in validation, copy over the form data
+    formdata.value = event.data;
+  }
+};
+
+
+
+// import config store to talk to the server
+const configstore = useConfigurationStore()
+
+function UpdateToServer(){
+  if(formdata.value == null){
+    // No data to send, return.
+    return;
+  }
+
+  // Format the data, {key: list[config objects, more configs, ...]},
+  // in our case only one config (from the form) is in the list
+  let request = {
+    [schemanode.schema.title as string]: Array(formdata.value)
+  }
+
+  // Push the new data to the server, and read the response
+  configstore.pushConfig(request).then((res) => {
+    if (res != undefined) {
+      // Load in the response into the response var
+      response.value = res[0] as responseinterface;
+
+      // set the response id to -1 to hide the message, vary the timeouts if successful/unsuccessful
+      if (response.value.success) {
+        // emit a success
+        emit("success")
+        setTimeout(() => {
+          response.value.identifier = -1
+        }, 3000) // 3 seconds
+        // also resync the server settings
+        configstore.syncServerConfigState()
+      } else {
+        //setTimeout(()=>{response.value.identifier = -1}, 10000) timeout unnecessary we want to see the error
+      }
+    }
+  })
+}
+
+
 </script>
 
 <template>
-
+  <div class="myform">
+    <v-btn @click="UpdateToServer" :disabled="formdata == null">Submit Changes</v-btn>
+    <json-forms :renderers="renderers" :schema="schemanode.schema" :data="formdata"  @change="onChange"/>
+  </div>
 </template>
 
 <style scoped>

@@ -3,6 +3,7 @@
 
 <template>
   <v-app>
+
     <v-navigation-drawer location="right" permanent>
       <v-list-item>
         <router-link to="/">Go Home</router-link>
@@ -30,6 +31,7 @@
       <v-container>
         <RouterView/>
       </v-container>
+
     </v-main>
   </v-app>
 

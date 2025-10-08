@@ -2,7 +2,7 @@
 import {useConfigurationStore} from "@/stores/ConfigurationStore.ts";
 import {ref} from "vue";
 import {useStageStore} from "@/stores/StageStore.ts";
-import SchemaFormContainer from "@/components/ConfigComponents/SchemaFormContainer.vue";
+import SchemaFormBrowser from "@/components/ConfigComponents/SchemaFormBrowser.vue";
 
 const config = useConfigurationStore()
 const StageInterface = useStageStore()
@@ -22,8 +22,8 @@ function refresh() {
     <v-btn @click="config.loadConfigSet('default')">Load defaults</v-btn>
     <v-btn @click="config.saveCurrentConfigSet('default')">Save current config as default</v-btn>
   </v-btn-group>
-  <div v-for="[key, node] in config.configSchemas.entries()">
-    <SchemaFormContainer v-bind:schemanode="node"/>
+  <div v-for="[key, [schema, data]] in config.getConfigWithSchema">
+    <SchemaFormBrowser v-bind:schema="schema" v-bind:data="data"/>
   </div>
 
 </template>

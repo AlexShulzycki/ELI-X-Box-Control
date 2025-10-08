@@ -3,14 +3,12 @@ from __future__ import annotations
 import time
 from enum import Enum
 
-from numpy.ma.core import minimum
 from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict, computed_field
-from pydantic.json_schema import SkipJsonSchema
 from pydantic_core.core_schema import FieldValidationInfo
 
 from server.Settings import SettingsVault
 from server.StageControl.DataTypes import StageStatus, StageInfo, EventAnnouncer, StageKind, \
-    StageRemoved
+    StageRemoved, Notice
 
 
 class C884Settings(BaseModel):
@@ -98,7 +96,7 @@ class PIConfiguration(BaseModel):
     model_config = ConfigDict(
         validate_assignment=True,
         json_schema_extra={
-            'title': 'PI Configuration',
+            'title': 'PI',
         }
     )
 
@@ -216,35 +214,25 @@ class MockPIController(PIController):
         time.sleep(0.1)
         self._config.connected = True
 
-    async def reference(self, toreference):
+    async def reference(self, stages: dict[str, PIStage]):
         time.sleep(0.1)
-        self._config.referenced = toreference
+        for stage in stages.values():
+            if self.config.stages.__contains__(str(stage.channel)):
+                self._config.stages[str(stage.channel)].referenced = stage.referenced
 
-    async def load_stages(self, stages):
+    async def load_stages(self, stages: dict[str, PIStage]):
         time.sleep(0.1)
-        if self.config.channel_amount != len(stages):
-            # We redo the stages thing
-            self._config.channel_amount = len(stages)
-            self._config.stages = ["NOSTAGE"] * len(stages)
-            self._config.position = [None] * len(stages)
-            self._config.on_target = [None] * len(stages)
-            self._config.clo = [None] * len(stages)
-            self._config.min_max = [None] * len(stages)
 
-        for i, stage in enumerate(stages):
-            if stage == "NOSTAGE":
-                continue
-            else:
-                self._config.stages[i] = stage
-                self._config.min_max[i] = [0, 0]
-                self._config.position[i] = 0
-                self.config.on_target[i] = False
+        for stage in stages.values():
+            if self.config.stages.__contains__(str(stage.channel)):
+                self._config.stages[str(stage.channel)].device = stage.device
 
-        self._config.stages = stages
-
-    async def enable_clo(self, clo):
+    async def enable_clo(self, stages: dict[str, PIStage]):
         time.sleep(0.1)
-        self._config.clo = clo
+
+        for stage in stages.values():
+            if self.config.stages.__contains__(str(stage.channel)):
+                self._config.stages[str(stage.channel)].clo = stage.clo
 
     async def updateFromConfig(self, config: PIConfiguration):
         # Double check that we have the correct config
@@ -270,16 +258,17 @@ class MockPIController(PIController):
         # Go through each parameter step by step
         if not self.config.connected and config.connected:
             # connect
+            self.EA.event(Notice(message="opening connection"))
             await self.connect()
 
-        if config.stages != self.config.stages:
-            await self.load_stages(config.stages)
+        self.EA.event(Notice(message="loading stage names"))
+        await self.load_stages(config.stages)
 
-        if config.clo != self.config.clo:
-            await self.enable_clo(config.clo)
+        self.EA.event(Notice(message="loading stage names"))
+        await self.enable_clo(config.stages)
 
-        if config.referenced != self.config.referenced:
-            await self.reference(config.referenced)
+        self.EA.event(Notice(message="loading stage names"))
+        await self.reference(config.stages)
 
         # TODO find a way to simulate this more closely
         self._config.ready = True
