@@ -2,7 +2,6 @@
 
 import SchemaForm from "@/components/ConfigComponents/SchemaForm.vue";
 import type {SchemaNode} from "json-schema-library";
-import StandaConfigViewer from "@/components/ConfigComponents/Standa/StandaConfigViewer.vue";
 import {ref} from "vue";
 
 
@@ -25,14 +24,14 @@ function toggleHidden() {
   <v-btn @click="toggleHidden()" v-if="hidden">Add another configuration</v-btn>
   <div v-else>
     <v-btn @click="toggleHidden()">Close new config edit</v-btn>
-    <SchemaForm v-bind:schemanode="schema"/>
+    <SchemaForm v-bind:schemanode="schema" @success="toggleHidden"/>
   </div>
-  <div class="myform">
-
+  <div v-for="state in data">
+    <SchemaForm v-bind:schemanode="schema" v-bind:serverdata="state"/>
   </div>
 </template>
 
 
-<style scoped>
-
+<style>
+@import '@jsonforms/vue-vuetify/lib/jsonforms-vue-vuetify.css';
 </style>

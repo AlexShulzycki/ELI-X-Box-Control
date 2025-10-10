@@ -1,17 +1,25 @@
 import './assets/main.css'
-import { createApp } from 'vue'
-import { createPinia } from 'pinia'
+import {createApp} from 'vue'
+import {createPinia} from 'pinia'
 import router from './router'
 import App from './App.vue'
 
 import Stage from "@/components/Stages/Stage.vue";
 import Assembly3D from "@/components/3D/Assembly3D.vue";
 import WindowGrid from "@/components/Layout/WindowGrid.vue";
+
 // Vuetify
 import 'vuetify/styles'
-import { createVuetify } from 'vuetify'
+import {createVuetify} from 'vuetify'
 import * as components from 'vuetify/components'
 import * as directives from 'vuetify/directives'
+
+// Fonts??
+import 'unfonts.css'
+import { mdi, aliases as mdiAliases } from 'vuetify/iconsets/mdi';
+import { mdiIconAliases } from '@jsonforms/vue-vuetify';
+import '@mdi/font/css/materialdesignicons.css'
+
 
 const pinia = createPinia()
 const app = createApp(App)
@@ -27,8 +35,15 @@ app.mount('#app')
 
 //vuetify
 const vuetify = createVuetify({
-  components,
-  directives,
+    components,
+    directives,
+    icons: {
+        defaultSet: 'mdi',
+        sets: {
+            mdi,
+        },
+        aliases: {...mdiAliases, ...mdiIconAliases},
+    }
 })
 
 app.use(vuetify)
@@ -73,27 +88,27 @@ class WSClient {
 
     receive(message: WSMessage) {
         console.log("receiving WSMessage", message)
-        if(message.event == "StageStatus"){
+        if (message.event == "StageStatus") {
             // try parse it
-            try{
+            try {
                 const msg = JSON.parse(message.data) as StageStatus
                 stagestore.receiveStageStatus(msg)
-            }catch(e){
+            } catch (e) {
                 console.log(e)
             }
-        }else if(message.event == "StageInfo"){
-            try{
+        } else if (message.event == "StageInfo") {
+            try {
                 const msg = JSON.parse(message.data) as StageInfo
                 console.log(typeof msg)
                 stagestore.receiveStageInfo(msg)
-            }catch(e){
+            } catch (e) {
                 console.log(e)
             }
-        }else if(message.event == "StageRemoved"){
-            try{
+        } else if (message.event == "StageRemoved") {
+            try {
                 const msg = JSON.parse(message.data) as StageRemoved
                 stagestore.receiveStageRemoved(msg)
-            }catch(e){
+            } catch (e) {
                 console.log(e)
             }
         }

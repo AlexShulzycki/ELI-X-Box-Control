@@ -7,8 +7,9 @@ import {ref} from "vue";
 import {type responseinterface, useConfigurationStore} from "@/stores/ConfigurationStore.ts";
 
 // Props and Emits
-const {schemanode} = defineProps<{
+const {schemanode, serverdata} = defineProps<{
   schemanode: SchemaNode,
+  serverdata?: object
 }>();
 const emit = defineEmits(['success'])
 
@@ -87,7 +88,7 @@ function UpdateToServer(){
 <template>
   <div class="myform">
     <v-btn @click="UpdateToServer" :disabled="formdata == null">Submit Changes</v-btn>
-    <json-forms :renderers="renderers" :schema="schemanode.schema" :data="formdata"  @change="onChange"/>
+    <json-forms :renderers="renderers" :schema="schemanode.schema" :data="serverdata"  @change="onChange"/>
   </div>
 </template>
 

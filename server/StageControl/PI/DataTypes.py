@@ -33,9 +33,9 @@ class PIStage(BaseModel):
                         examples=['L-406.20DD10', 'NOSTAGE', 'L-611.90AD', 'NOSTAGE'])
     clo: bool = Field(default=False, description="Whether the stage is in closed loop operation")
     referenced: bool = Field(default=False, description="Whether the stage is referenced")
-    min_max: list[float] = Field(default=[0, 0], description="Minimum and maximum travel range, in mm",
-                                 examples=[[0, 200]], min_length=2, max_length=2)
-    on_target: bool = Field(default=False, description="Whether the stage is on target")
+    min_max: list[float] = Field(default=[0, 500], description="Minimum and maximum travel range, in mm",
+                                 examples=[[0, 200]], min_length=2, max_length=2, json_schema_extra={"readOnly": True})
+    on_target: bool = Field(default=False, description="Whether the stage is on target", json_schema_extra={"readOnly": True})
     position: float = Field(default=0, description="Position of the stage, in mm", examples=[12.55, 100.27],
                             json_schema_extra={"readOnly": True})
     kind: StageKind = Field(default=StageKind.linear)
