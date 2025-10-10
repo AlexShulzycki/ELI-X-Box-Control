@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-import time
 from enum import Enum
+from typing import Any
 
-from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict, computed_field
+from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
+from pydantic.json_schema import DEFAULT_REF_TEMPLATE, GenerateJsonSchema, JsonSchemaMode
 from pydantic_core.core_schema import FieldValidationInfo
 
 from server.Settings import SettingsVault
 from server.StageControl.DataTypes import StageStatus, StageInfo, EventAnnouncer, StageKind, \
-    StageRemoved, Notice
+    StageRemoved
 
 
 class C884Settings(BaseModel):
@@ -46,6 +47,24 @@ class PIStage(BaseModel):
         }
     )
 
+class PIStageInfo(StageInfo):
+    controllerSN: int = Field(description="SN of controller controlling this stage")
+    channel: int = Field(description="Which controller channel this stage is connected to")
+
+    # the identifier is supposed to be (controller SN)(channel number) so we check this is true
+    # I cant be bothered to do the math thing so we check using strings, sorry.
+    @field_validator("controllerSN", mode="after")
+    def validate_controllerSN(cls, value, info: FieldValidationInfo):
+        if str(info.data["identifier"])[:-1] != str(value):
+            raise ValueError(f"SN {value} doesnt match identifier")
+        return value
+
+    @field_validator("channel")
+    def validate_channelSN(cls, value, info: FieldValidationInfo):
+        if str(info.data["identifier"])[-1] != str(value):
+            raise ValueError(f"SN {value} doesnt match identifier")
+        return value
+
 
 class PIConfiguration(BaseModel):
     """
@@ -61,28 +80,14 @@ class PIConfiguration(BaseModel):
     channel_amount: int = Field(default=0, examples=[0, 4, 6], description="Number of channels controller supports")
     ready: bool = Field(default=False, examples=[True, False], description="Whether the controller is ready",
                         json_schema_extra={"readOnly": True})
-    stage_list: list[PIStage] = Field(default=[],
-                                      description="Dict of stage objects containing all relevant information")
-    """We skip the json schema for this one because we will work with lists for the stage objects via the API"""
+    stages: dict[str, PIStage] = Field(default={},
+                                       description="Dict of stage objects containing all relevant information")
     error: str = Field(description="Error message. If no error, its an empty string", default="",
                        json_schema_extra={"readOnly": True})
     baud_rate: int = Field(description="Baud rate of RS232 connection.", default=115200, examples=[115200])
-    comport: int = Field(default=None, description="Comport for RS232 connection.")
+    comport: int = Field(description="Comport for RS232 connection.", default=0)
 
-    @computed_field(description="List of Stages", title="Stages")
-    @property
-    def stages(self) -> dict[str, PIStage]:
-        res = {}
-        for stage in self.stage_list:
-            res[stage.name] = stage
-        return res
 
-    @stages.setter
-    def stages(self, value: dict[str, PIStage]):
-        self.stages = value
-        self.stage_list = []
-        for stage in value.values():
-            self.stage_list.append(stage)
 
     @model_validator(mode="after")
     def validate_rs232(self):
@@ -105,25 +110,19 @@ class PIConfiguration(BaseModel):
             'title': 'PI',
         }
 
+    def toPIAPI(self) -> PIAPIConfig:
+        """Converts this configuration to a PIAPIConfig. What it does is convert the dict of stages
+        into a list of stages, so that it plays well with json schemas"""
+        stages_dict = self.stages
+        stages_list = []
+        for stage in stages_dict.values():
+            stages_list.append(stage)
 
+        dump = self.model_dump()
+        dump["stages"] = stages_list
+        print(dump)
+        return PIAPIConfig(**dump)
 
-class PIStageInfo(StageInfo):
-    controllerSN: int = Field(description="SN of controller controlling this stage")
-    channel: int = Field(description="Which controller channel this stage is connected to")
-
-    # the identifier is supposed to be (controller SN)(channel number) so we check this is true
-    # I cant be bothered to do the math thing so we check using strings, sorry.
-    @field_validator("controllerSN", mode="after")
-    def validate_controllerSN(cls, value, info: FieldValidationInfo):
-        if str(info.data["identifier"])[:-1] != str(value):
-            raise ValueError(f"SN {value} doesnt match identifier")
-        return value
-
-    @field_validator("channel")
-    def validate_channelSN(cls, value, info: FieldValidationInfo):
-        if str(info.data["identifier"])[-1] != str(value):
-            raise ValueError(f"SN {value} doesnt match identifier")
-        return value
 
 
 class PIController:
@@ -206,108 +205,20 @@ class PIController:
         return res
 
 
-class MockPIController(PIController):
-    """
-    PI controller that's not real, used for testing, doesn't connect to anything, but acts like one.
-    """
+class PIAPIConfig(PIConfiguration):
+    """This is a version of PIConfiguration that works nicely with JSON schemas. The
+    difference is that it uses a list instead of a dict for storing PIStage objects."""
+    stages: list[PIStage] = Field(default=[])
 
-    def __init__(self):
-        super().__init__()
-        self.position = None
-        self.on_target = None
+    def toPIConfig(self) -> PIConfiguration:
+        """Convert this to a PIConfiguration"""
+        stages_dict = {}
+        # Iterate through stages, turn it from a list into a dict
+        for stage in self.stages:
+            # We use the channel number as a key. The key is in string format so we convert
+            stages_dict[str(stage.channel)] = stage
 
-    async def connect(self):
-        time.sleep(0.1)
-        self._config.connected = True
+        dump = self.model_dump()
+        dump["stages"] = stages_dict
+        return PIConfiguration(**dump)
 
-    async def reference(self, stages: dict[str, PIStage]):
-        time.sleep(0.1)
-        for stage in stages.values():
-            if self.config.stages.__contains__(str(stage.channel)):
-                self._config.stages[str(stage.channel)].referenced = stage.referenced
-
-    async def load_stages(self, stages: dict[str, PIStage]):
-        time.sleep(0.1)
-
-        for stage in stages.values():
-            if self.config.stages.__contains__(str(stage.channel)):
-                self._config.stages[str(stage.channel)].device = stage.device
-
-    async def enable_clo(self, stages: dict[str, PIStage]):
-        time.sleep(0.1)
-
-        for stage in stages.values():
-            if self.config.stages.__contains__(str(stage.channel)):
-                self._config.stages[str(stage.channel)].clo = stage.clo
-
-    async def updateFromConfig(self, config: PIConfiguration):
-        # Double check that we have the correct config
-        assert config.model == PIControllerModel.mock
-
-        # Check if we are brand new
-        if self.config is None:
-            # ugly if then can't be bothered to streamline this
-            if config.connection_type != PIConnectionType.rs232:
-                self._config = PIConfiguration(
-                    SN=config.SN,
-                    model=config.model,
-                    connection_type=config.connection_type,
-                )
-            else:
-                self._config = PIConfiguration(
-                    SN=config.SN,
-                    model=config.model,
-                    connection_type=config.connection_type,
-                    comport=config.comport,
-                    baud_rate=config.baud_rate)
-
-        # Go through each parameter step by step
-        if not self.config.connected and config.connected:
-            # connect
-            self.EA.event(Notice(message="opening connection"))
-            await self.connect()
-
-        self.EA.event(Notice(message="loading stage names"))
-        await self.load_stages(config.stages)
-
-        self.EA.event(Notice(message="loading stage names"))
-        await self.enable_clo(config.stages)
-
-        self.EA.event(Notice(message="loading stage names"))
-        await self.reference(config.stages)
-
-        # TODO find a way to simulate this more closely
-        self._config.ready = True
-
-        # refresh full status after changing config
-        await self.refreshFullStatus()
-
-    def shutdown_and_cleanup(self):
-        pass
-
-    async def refreshFullStatus(self):
-        # Send an info update, status is handled in pos on target
-        for info in self.stageInfos.values():
-            self.EA.event(info)
-
-        # also refresh pos on target since this is a full refresh
-        await self.refreshPosOnTarget()
-
-    async def refreshPosOnTarget(self):
-        # Send a status update
-        for status in self.stageStatuses.values():
-            self.EA.event(status)
-
-    async def moveTo(self, channel: int, position: float):
-        self._config.position[channel - 1] = position
-        self._config.on_target[channel - 1] = True
-        self.EA.event(self.stageStatuses[self.config.SN * 10 + channel])
-
-    async def moveBy(self, channel, step: float):
-        self._config.position[channel - 1] += step
-        self._config.on_target[channel - 1] = True
-        self.EA.event(self.stageStatuses[self.config.SN * 10 + channel])
-
-    @property
-    def config(self) -> PIConfiguration:
-        return self._config

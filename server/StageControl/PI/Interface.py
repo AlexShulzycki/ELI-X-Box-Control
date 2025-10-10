@@ -7,11 +7,12 @@ from server.StageControl.DataTypes import ControllerInterface, StageStatus, Stag
     updateResponse, StageRemoved, EventAnnouncer, Notice
 from server.StageControl.PI.C884 import C884
 from server.StageControl.PI.DataTypes import PIConfiguration, PIController, PIStageInfo, PIControllerModel, \
-    MockPIController, PIConnectionType
+    PIConnectionType, PIStage, PIAPIConfig
+from server.StageControl.PI.Mock import MockPIController
 
 
 class PISettings:
-#TODO IMPLEMENT STAGEREMOVED self.EventAnnouncer.event(StageRemoved(identifier = identifier))
+    # TODO IMPLEMENT STAGEREMOVED self.EventAnnouncer.event(StageRemoved(identifier = identifier))
     def __init__(self):
         self.EventAnnouncer = EventAnnouncer(StageStatus, StageInfo, StageRemoved, Notice)
         self._controllerStatuses = []
@@ -69,7 +70,6 @@ class PISettings:
         self.controllers[SN].shutdown_and_cleanup()
         self.controllers.pop(SN)
 
-
     async def newController(self, config: PIConfiguration):
         if config.model == PIControllerModel.C884:
             c884 = C884()
@@ -93,7 +93,6 @@ class PISettings:
 
     def getDataTypes(self) -> list[type]:
         return [PIStageInfo, PIConfiguration]
-
 
     @property
     def stageStatus(self) -> dict[int, StageStatus]:
@@ -123,7 +122,6 @@ class PISettings:
         await asyncio.gather(*awaiters)
 
 
-
 def deconstruct_SN_Channel(sn_channel):
     """
     Extracts the channel and serial number from a unique serial-number-channel identifier
@@ -134,21 +132,33 @@ def deconstruct_SN_Channel(sn_channel):
     sn: int = int((sn_channel - channel) / 10)  # minus channel, divide by 10 to get rid of 0
     return sn, channel
 
+
 class PIControllerInterface(ControllerInterface):
 
-    async def configurationChangeRequest(self, request: list[Any]) -> list[updateResponse]:
-        return await self.settings.configurationChangeRequest(request)
+    async def configurationChangeRequest(self, request: list[PIAPIConfig]) -> list[updateResponse]:
+        """Received a configuration change in PIAPI form"""
+        # lets convert to PIConfiguration objects we can use
+        configlist = []
+        for req in request:
+            configlist.append(req.toPIConfig())
+        return await self.settings.configurationChangeRequest(configlist)
 
     async def removeConfiguration(self, id: int):
         return await self.settings.removeConfiguration(id)
 
     @property
-    def currentConfiguration(self) -> list[PIConfiguration]:
-        return self.settings.currentConfiguration
+    def currentConfiguration(self) -> list[PIAPIConfig]:
+        """Returns current configurations in API-ready form"""
+        PIConfigs: list[PIConfiguration] = self.settings.currentConfiguration
+        # just converting to PIAPI, which plays nice with json schemas.
+        res = []
+        for config in PIConfigs:
+            res.append(config.toPIAPI())
+        return res
 
     @property
     def configurationType(self) -> BaseModel:
-        return PIConfiguration
+        return PIAPIConfig
 
     @property
     async def configurationSchema(self):
@@ -182,7 +192,7 @@ class PIControllerInterface(ControllerInterface):
 
     def __init__(self):
         super().__init__()
-        self._settings:PISettings = PISettings()
+        self._settings: PISettings = PISettings()
         """The PISettings is handling basically everything for us"""
         self.EventAnnouncer.patch_through_from(self.EventAnnouncer.availableDataTypes, self.settings.EventAnnouncer)
 
@@ -268,43 +278,6 @@ class PIControllerInterface(ControllerInterface):
                 awaiters.append(self.settings.controllers[sn].refreshPosOnTarget())
         await asyncio.gather(*awaiters)
 
-
     @property
     def name(self) -> str:
         return "PI"
-
-
-    async def bulkCommand(self, serial_number_channel: list[int], command) -> Awaitable[list[Any]]:
-        """
-        Execute a getter command efficiently across available C884s
-        :param serial_number_channel: identifier of the axes we want to work with
-        :param command: command we want to issue, from the C884 object
-        :return: results in the same order as the axes identifiers were given
-        """
-        # Avoid making redundant requests, extract as much info as possible
-        # Round up the controller serial numbers, create empty dict
-        controllers = {}
-        for sc in serial_number_channel:
-            sn, ch = self.deconstruct_Serial_Channel(sc)
-            controllers[sn] = []
-        print(controllers)
-        # Iterate through each controller serial number in the dict
-        for cntr_sn in controllers:
-            controllers[cntr_sn]: Awaitable[list[Any]] = command(self.c884[cntr_sn])  # this returns a coroutine!!!
-
-        # Finally, iterate through the request array again and create a parallel response array
-        res: list[Any] = []
-        for sn_ch in serial_number_channel:
-            sn, ch = self.deconstruct_Serial_Channel(sn_ch)
-
-            # await if we have to
-            solution = controllers[sn]
-            print(type(solution))
-            if isinstance(solution, Coroutine):
-                controllers[sn] = await solution
-
-            # the relevant dict entry now contains the solution
-            res.append((controllers[sn])[ch -1]) # we only want the relevant channel, -1 to get the index.
-
-        res: Awaitable[list[Any]] # make sure to hint that it's an awaitable
-        return res
