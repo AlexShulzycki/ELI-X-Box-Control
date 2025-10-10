@@ -1,5 +1,7 @@
+import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.openapi.utils import get_openapi
+from starlette.staticfiles import StaticFiles
 
 from .API import StageControlAPI, WebSocketAPI, GeometryAPI, KinematicsAPI, ConfigurationAPI
 
@@ -32,14 +34,6 @@ app.include_router(StageControlAPI.router)
 app.include_router(KinematicsAPI.router)
 
 wsmanager = WebSocketAPI.websocketapi
-
-@app.get("/")
-async def root():
-    """
-    Serves UI
-    :return: The UI
-    """
-    return {"message": "Hello"}
 
 def custom_openapi():
     if app.openapi_schema:
@@ -84,3 +78,15 @@ async def websocket_endpoint(websocket: WebSocket):
             await websocket.send_json(res)
 
 app.openapi = custom_openapi
+
+# We have to mount the static files after the websockets, because otherwise it will try to serve websockets and
+# throw a runtime error.
+app.mount("/", StaticFiles(directory="./static", html=True), name="static")
+
+
+def serve():
+    """Serve the web application."""
+    uvicorn.run(app)
+
+if __name__ == "__main__":
+    serve()

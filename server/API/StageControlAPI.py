@@ -8,7 +8,6 @@ from server.StageControl.DataTypes import StageInfo, StageStatus, StageKind
 
 router = APIRouter(tags=["control"])
 
-
 @router.get("/get/stage/info")
 def getAllStageInfo() -> dict[int, StageInfo]:
     """
@@ -16,7 +15,6 @@ def getAllStageInfo() -> dict[int, StageInfo]:
     :return: dict identifier -> StageInfo
     """
     return toplevelinterface.StageInfo
-
 
 @router.get("/get/stage/status")
 def getAllStageStatus() -> dict[int, StageStatus]:
@@ -73,7 +71,6 @@ async def updateStageInfo(background_tasks: BackgroundTasks, identifiers: list[i
     background_tasks.add_task(checkUntilOnTarget, background_tasks, identifiers)
     return
 
-
 class FullState(BaseModel):
     identifier: int
     model: str
@@ -104,7 +101,6 @@ async def getStageFullstate():
             ontarget=stat[key].ontarget,
         )
     return res
-
 
 class MoveStageResponse(BaseModel):
     success: bool = Field(description="Whether the stage successfully received the move command")
