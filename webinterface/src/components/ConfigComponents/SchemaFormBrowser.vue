@@ -20,7 +20,6 @@ function toggleHidden() {
 
 <template>
 
-  <h1>{{ schema.schema.title }}</h1>
   <v-btn @click="toggleHidden()" v-if="hidden">Add another configuration</v-btn>
   <div v-else>
     <v-btn @click="toggleHidden()">Close new config edit</v-btn>

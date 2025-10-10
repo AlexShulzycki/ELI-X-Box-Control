@@ -13,6 +13,8 @@ function refresh() {
   config.syncConfigSchema()
   config.syncServerConfigState()
 }
+
+const tab = ref(null)
 </script>
 
 <template>
@@ -22,9 +24,18 @@ function refresh() {
     <v-btn @click="config.loadConfigSet('default')">Load defaults</v-btn>
     <v-btn @click="config.saveCurrentConfigSet('default')">Save current config as default</v-btn>
   </v-btn-group>
-  <div v-for="[key, [schema, data]] in config.getConfigWithSchema">
-    <SchemaFormBrowser v-bind:schema="schema" v-bind:data="data"/>
-  </div>
+
+  <v-tabs v-model="tab">
+    <v-tab v-for="key in config.configSchemas.keys()" :value="key">
+      {{ key }}
+    </v-tab>
+  </v-tabs>
+
+  <v-tabs-window v-model="tab">
+    <v-tabs-window-item v-for="[key, [schema, data]] in config.getConfigWithSchema" :value="key">
+      <SchemaFormBrowser v-bind:schema="schema" v-bind:data="data"/>
+    </v-tabs-window-item>
+  </v-tabs-window>
 
 </template>
 
