@@ -18,25 +18,29 @@ const tab = ref(null)
 </script>
 
 <template>
-  <v-btn-group>
-    <v-btn @click="refresh()">Server Refresh</v-btn>
-    <v-btn @click="StageInterface.fullRefresh()">Sync stage status from server</v-btn>
-    <v-btn @click="config.loadConfigSet('default')">Load defaults</v-btn>
-    <v-btn @click="config.saveCurrentConfigSet('default')">Save current config as default</v-btn>
-  </v-btn-group>
+  <v-card width="100%">
+  <v-toolbar>
+    <v-btn-group>
+      <v-btn @click="refresh()">Server Refresh</v-btn>
+      <v-btn @click="StageInterface.fullRefresh()">Sync stage status from server</v-btn>
+      <v-btn @click="config.loadConfigSet('default')">Load defaults</v-btn>
+      <v-btn @click="config.saveCurrentConfigSet('default')">Save current config as default</v-btn>
+    </v-btn-group>
+  </v-toolbar>
 
-  <v-tabs v-model="tab">
-    <v-tab v-for="key in config.configSchemas.keys()" :value="key">
-      {{ key }}
-    </v-tab>
-  </v-tabs>
+    <v-tabs v-model="tab">
+      <v-tab v-for="key in config.configSchemas.keys()" :value="key">
+        {{ key }}
+      </v-tab>
+    </v-tabs>
 
-  <v-tabs-window v-model="tab">
-    <v-tabs-window-item v-for="[key, [schema, data]] in config.getConfigWithSchema" :value="key">
-      <SchemaFormBrowser v-bind:schema="schema" v-bind:data="data"/>
-    </v-tabs-window-item>
-  </v-tabs-window>
 
+    <v-tabs-window v-model="tab">
+      <v-tabs-window-item v-for="[key, [schema, data]] in config.getConfigWithSchema" :value="key">
+        <SchemaFormBrowser v-bind:schema="schema" v-bind:data="data"/>
+      </v-tabs-window-item>
+    </v-tabs-window>
+    </v-card>
 </template>
 
 <style scoped>
