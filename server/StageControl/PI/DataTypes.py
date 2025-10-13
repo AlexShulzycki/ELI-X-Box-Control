@@ -35,7 +35,8 @@ class PIStage(BaseModel):
     referenced: bool = Field(default=False, description="Whether the stage is referenced")
     min_max: list[float] = Field(default=[0, 500], description="Minimum and maximum travel range, in mm",
                                  examples=[[0, 200]], min_length=2, max_length=2, json_schema_extra={"readOnly": True})
-    on_target: bool = Field(default=False, description="Whether the stage is on target", json_schema_extra={"readOnly": True})
+    on_target: bool = Field(default=False, description="Whether the stage is on target",
+                            json_schema_extra={"readOnly": True})
     position: float = Field(default=0, description="Position of the stage, in mm", examples=[12.55, 100.27],
                             json_schema_extra={"readOnly": True})
     kind: StageKind = Field(default=StageKind.linear, json_schema_extra={"readOnly": True})
@@ -46,6 +47,7 @@ class PIStage(BaseModel):
             'title': 'PI Stage',
         }
     )
+
 
 class PIStageInfo(StageInfo):
     controllerSN: int = Field(description="SN of controller controlling this stage")
@@ -77,7 +79,8 @@ class PIConfiguration(BaseModel):
                                               examples=[PIConnectionType.rs232], title="Connection type")
     connected: bool = Field(default=False, examples=[True, False], description="If the controller is connected",
                             json_schema_extra={"readOnly": True})
-    channel_amount: int = Field(default=0, examples=[0, 4, 6], description="Number of channels controller supports")
+    channel_amount: int = Field(default=0, examples=[0, 4, 6], description="Number of channels controller supports",
+                                json_schema_extra={"readOnly": True})
     ready: bool = Field(default=False, examples=[True, False], description="Whether the controller is ready",
                         json_schema_extra={"readOnly": True})
     stages: dict[str, PIStage] = Field(default={},
@@ -86,8 +89,6 @@ class PIConfiguration(BaseModel):
                        json_schema_extra={"readOnly": True})
     baud_rate: int = Field(description="Baud rate of RS232 connection.", default=115200, examples=[115200])
     comport: int = Field(description="Comport for RS232 connection.", default=0)
-
-
 
     @model_validator(mode="after")
     def validate_rs232(self):
@@ -122,7 +123,6 @@ class PIConfiguration(BaseModel):
         dump["stages"] = stages_list
         print(dump)
         return PIAPIConfig(**dump)
-
 
 
 class PIController:
@@ -234,4 +234,3 @@ class PIAPIConfig(PIConfiguration):
         dump = self.model_dump()
         dump["stages"] = stages_dict
         return PIConfiguration(**dump)
-

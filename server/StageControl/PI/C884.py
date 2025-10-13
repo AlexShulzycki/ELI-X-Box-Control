@@ -398,12 +398,8 @@ class C884(PIController):
                 self.closeConnection()
                 raise e
 
-        # check the channel amount. If incorrect, disconnect and tell the user
+        # check the channel amount. Automatically sets itself.
         ch_amount = len(self.device.allaxes)
-        if config.channel_amount != ch_amount:
-            self.closeConnection()
-            raise Exception(
-                f"The controller has {ch_amount} channel(s), but {config.channel_amount} are in the config. Try again with the correct amount.")
         self._config.channel_amount = ch_amount
         return self.device.connected
 
