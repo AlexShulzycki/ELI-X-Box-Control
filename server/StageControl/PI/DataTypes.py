@@ -38,7 +38,7 @@ class PIStage(BaseModel):
     on_target: bool = Field(default=False, description="Whether the stage is on target", json_schema_extra={"readOnly": True})
     position: float = Field(default=0, description="Position of the stage, in mm", examples=[12.55, 100.27],
                             json_schema_extra={"readOnly": True})
-    kind: StageKind = Field(default=StageKind.linear)
+    kind: StageKind = Field(default=StageKind.linear, json_schema_extra={"readOnly": True})
 
     model_config = ConfigDict(
         validate_assignment=True,
@@ -112,7 +112,7 @@ class PIConfiguration(BaseModel):
 
     def toPIAPI(self) -> PIAPIConfig:
         """Converts this configuration to a PIAPIConfig. What it does is convert the dict of stages
-        into a list of stages, so that it plays well with json schemas"""
+        into a list of stages, so that it plays well with json schemas. We also """
         stages_dict = self.stages
         stages_list = []
         for stage in stages_dict.values():
@@ -203,6 +203,19 @@ class PIController:
             ))
             res[stat.identifier] = stat
         return res
+
+    @staticmethod
+    def fetchPIStageData(name: str, settings: object):
+        """
+        Look into the readonly settings if we have a stage of this name
+        :param name: name of the stage, i.e. L406.20DD10
+        :param settings: the settings dict loaded from disk
+        :return: dict from the settings, {type: linear/rotational}
+        """
+        if settings.__contains__(name):
+            return settings[name]
+        else:
+            raise Exception(f"Stage {name} not found in settings")
 
 
 class PIAPIConfig(PIConfiguration):

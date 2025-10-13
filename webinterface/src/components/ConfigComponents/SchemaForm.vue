@@ -14,7 +14,7 @@ const {schemanode, serverdata} = defineProps<{
 const emit = defineEmits(['success'])
 
 // response data from server
-const response = ref({identifier: -1, success: false, error: ""} as responseinterface);
+const response = ref({identifier: -1, success: true, error: ""} as responseinterface);
 
 // JSON forms renderer
 const renderers = Object.freeze([
@@ -24,32 +24,34 @@ const renderers = Object.freeze([
 
 // Form data handling
 // If formdata is not null, then it contains valid data, according to the schema
-const formdata = ref<object|null>(null)
+const formdata = ref<object | null>(null)
+
+// loading flag, informs if we are waiting for a request response
+const loading = ref<boolean>(false)
 
 // On form input change, verify if the input conforms to the schema, and update formdata
 const onChange = (event: JsonFormsChangeEvent) => {
-  if(event.errors == undefined) {
+  if (event.errors == undefined) {
     // check if undefined
     return
   }
 
   // The formdata variable also acts like a flag to show if the form inputs are valid
-  if(event.errors.length > 0) {
+  if (event.errors.length > 0) {
     // Form input is not schema-compliant, so clear out the form data
     formdata.value = null
-  } else{
+  } else {
     // If there are no errors in validation, copy over the form data
     formdata.value = event.data;
   }
 };
 
 
-
 // import config store to talk to the server
 const configstore = useConfigurationStore()
 
-function UpdateToServer(){
-  if(formdata.value == null){
+function UpdateToServer() {
+  if (formdata.value == null) {
     // No data to send, return.
     return;
   }
@@ -60,8 +62,13 @@ function UpdateToServer(){
     [schemanode.schema.title as string]: Array(formdata.value)
   }
 
+  // lets change the button to loading
+  loading.value = true
   // Push the new data to the server, and read the response
   configstore.pushConfig(request).then((res) => {
+    // we received a response, button is no longer loading
+    loading.value = false
+
     if (res != undefined) {
       // Load in the response into the response var
       response.value = res[0] as responseinterface;
@@ -86,12 +93,26 @@ function UpdateToServer(){
 </script>
 
 <template>
-  <div class="myform">
-    <v-btn @click="UpdateToServer" :disabled="formdata == null">Submit Changes</v-btn>
-    <json-forms :renderers="renderers" :schema="schemanode.schema" :data="serverdata"  @change="onChange"/>
-  </div>
+  <v-container>
+    <div v-if="typeof serverdata != typeof undefined">
+      {{}}
+    </div>
+
+    <v-container :class="{hidden:response.success}">
+      <h3>
+        {{ response.error }}
+      </h3>
+
+    </v-container>
+  </v-container>
+  <v-container class="myform">
+    <v-btn @click="UpdateToServer" :disabled="formdata == null" :loading="loading">Submit Changes</v-btn>
+    <json-forms :renderers="renderers" :schema="schemanode.schema" :data="serverdata" @change="onChange"/>
+  </v-container>
 </template>
 
 <style scoped>
-
+.hidden {
+  visibility: hidden;
+}
 </style>

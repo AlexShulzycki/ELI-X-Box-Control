@@ -83,7 +83,8 @@ class C884(PIController):
 
         # We now need to update the stages
         print("loading new stages")
-        self.EA.event(Notice(message="loading stage names"))
+
+        self.EA.event(Notice(message="loading new stage names"))
         await self.loadStagesToC884(config.stages)
 
         self.EA.event(Notice(message="enabling closed loop operation"))
@@ -277,18 +278,17 @@ class C884(PIController):
             refd, clod, dev = await asyncio.gather(self.isReferenced, self.servoCLO, self.loadStagesFromC884())
             for ax in self.device.axes:
 
+                # get device data saved on disk
+                fetched = self.fetchPIStageData(dev[ax], SV.readonly["PIStages"])
+
                 # Generate the PIStage object from what we learned
                 status.stages[ax] = PIStage(
                     channel=ax,
                     referenced=refd[ax],
                     clo=clod[ax],
-                    device=dev[ax]
+                    device=dev[ax],
+                    kind=StageKind(fetched["type"])
                 )
-
-                # Check if we have information in about the device on disk
-                if SV.readonly["PIStages"].keys().__contains__(dev[ax]):
-                    # we do, lets overwrite the default
-                    status.stages[ax].kind = StageKind(SV.readonly["PIStages"][dev[ax]]["type"])
 
         self._config = status
 
@@ -328,10 +328,10 @@ class C884(PIController):
         self.checkReady("Cannot get position.")
         # ensure float type
         for channel, pos in self.device.qPOS().items():
-            if self.config.stages.__contains__(int(channel)):
+            if self.config.stages.__contains__(channel):
                 self._config.stages[channel].position = float(pos)
 
-    async def moveTo(self, channel: int, target: float):
+    async def moveTo(self, channel: str, target: float):
         """
         Moves channel(s) to target(s)
         @param channel: Integer of channel to which device(s) is/are connected
@@ -356,8 +356,8 @@ class C884(PIController):
         """
         self.checkReady()
         for key, ont in self.device.qONT().items():
-            if self.config.stages.__contains__(int(key)):
-                self._config.stages[int(key)].on_target = ont
+            if self.config.stages.__contains__(key):
+                self._config.stages[key].on_target = ont
 
     async def openConnection(self, config: PIConfiguration) -> bool:
         """
@@ -401,7 +401,7 @@ class C884(PIController):
         # check the channel amount. If incorrect, disconnect and tell the user
         ch_amount = len(self.device.allaxes)
         if config.channel_amount != ch_amount:
-            self.device.close()
+            self.closeConnection()
             raise Exception(
                 f"The controller has {ch_amount} channel(s), but {config.channel_amount} are in the config. Try again with the correct amount.")
         self._config.channel_amount = ch_amount

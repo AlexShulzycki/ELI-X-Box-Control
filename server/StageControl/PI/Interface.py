@@ -3,8 +3,9 @@ from typing import Any, Awaitable
 
 from pydantic import BaseModel
 
+from server.Settings import SettingsVault
 from server.StageControl.DataTypes import ControllerInterface, StageStatus, StageInfo, \
-    updateResponse, StageRemoved, EventAnnouncer, Notice
+    updateResponse, StageRemoved, EventAnnouncer, Notice, getComPorts
 from server.StageControl.PI.C884 import C884
 from server.StageControl.PI.DataTypes import PIConfiguration, PIController, PIStageInfo, PIControllerModel, \
     PIConnectionType, PIStage, PIAPIConfig
@@ -169,6 +170,7 @@ class PIControllerInterface(ControllerInterface):
         # Grab the JSON schema from the pydantic object
         schema = self.configurationType.model_json_schema()
 
+
         # Enforce requirements for RS232
         schema["if"] = {
             "properties": {
@@ -181,6 +183,24 @@ class PIControllerInterface(ControllerInterface):
             "required": ["baud_rate", "comport"]
         }
 
+        # turn the PIStage device field into a dropdown
+        # Update from settings
+
+        await self.SV.reload_all()
+        schema["$defs"]["PIStage"]["properties"]["device"]["enum"] = list(self.SV.readonly["PIStages"].keys())
+
+        # turn the comport field into a dropdown
+        # grab free comports
+        coms = getComPorts()
+
+        # add connected comports so the controller doesn't throw a fit
+        for config in self.settings.currentConfiguration:
+            if config.connection_type == PIConnectionType.rs232:
+                coms.append(config.comport)
+
+
+        schema["properties"]["comport"]["enum"] = coms
+        print(schema)
         return schema
 
     async def fullRefreshAllSettings(self):
@@ -195,6 +215,7 @@ class PIControllerInterface(ControllerInterface):
         self._settings: PISettings = PISettings()
         """The PISettings is handling basically everything for us"""
         self.EventAnnouncer.patch_through_from(self.EventAnnouncer.availableDataTypes, self.settings.EventAnnouncer)
+        self.SV = SettingsVault()
 
     @property
     def settings(self) -> PISettings:

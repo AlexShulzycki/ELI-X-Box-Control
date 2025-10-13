@@ -52,6 +52,7 @@ class TestC884(IsolatedAsyncioTestCase):
         time.sleep(2)
         t = time.time()
         await self.c1.moveTo(3, 30)
+        time.sleep(5)
         await self.c1.refreshPosOnTarget()
         print(self.c1.stageStatuses)
         print(f"moved and refreshed, took {time.time() - t}")

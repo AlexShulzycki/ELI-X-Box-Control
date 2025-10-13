@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import sys
 from enum import Enum
 from typing import Any, Callable
 
+import serial
 from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic_core.core_schema import FieldValidationInfo
 
@@ -230,3 +232,31 @@ class updateResponse(BaseModel):
     identifier: int
     success: bool
     error: str|None = Field(default=None)
+
+def getComPorts() -> list[int]:
+    """
+    Lists serial port names. Stolen from https://stackoverflow.com/a/14224477
+    :raises EnvironmentError:
+        On unsupported or unknown platforms
+    :returns:
+        A list of the serial ports available on the system
+    """
+    if sys.platform.startswith('win'):
+        ports = ['COM%s' % (i + 1) for i in range(256)]
+    elif sys.platform.startswith('linux') or sys.platform.startswith('cygwin'):
+        # this excludes your current terminal "/dev/tty"
+        ports = glob.glob('/dev/tty[A-Za-z]*')
+    elif sys.platform.startswith('darwin'):
+        ports = glob.glob('/dev/tty.*')
+    else:
+        raise EnvironmentError('Unsupported platform')
+
+    result = []
+    for port in ports:
+        try:
+            s = serial.Serial(port)
+            s.close()
+            result.append(int(port[3:]))  # only return the com port number
+        except (OSError, serial.SerialException):
+            pass
+    return result
