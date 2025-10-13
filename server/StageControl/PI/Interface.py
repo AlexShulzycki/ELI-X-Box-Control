@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from server.Settings import SettingsVault
 from server.StageControl.DataTypes import ControllerInterface, StageStatus, StageInfo, \
-    updateResponse, StageRemoved, EventAnnouncer, Notice, getComPorts
+    updateResponse, StageRemoved, EventAnnouncer, Notice, getComPorts, ConfigurationUpdate
 from server.StageControl.PI.C884 import C884
 from server.StageControl.PI.DataTypes import PIConfiguration, PIController, PIStageInfo, PIControllerModel, \
     PIConnectionType, PIStage, PIAPIConfig
@@ -15,7 +15,7 @@ from server.StageControl.PI.Mock import MockPIController
 class PISettings:
     # TODO IMPLEMENT STAGEREMOVED self.EventAnnouncer.event(StageRemoved(identifier = identifier))
     def __init__(self):
-        self.EventAnnouncer = EventAnnouncer(StageStatus, StageInfo, StageRemoved, Notice)
+        self.EventAnnouncer = EventAnnouncer(StageStatus, StageInfo, StageRemoved, Notice, ConfigurationUpdate)
         self._controllerStatuses = []
         # type hint, this is where we store controller statuses
         self.controllers: dict[int, PIController] = {}
@@ -54,6 +54,7 @@ class PISettings:
                     success=True,
                 ))
             except Exception as e:
+                print(e)
                 res.append(updateResponse(
                     identifier=req.SN,
                     success=False,
@@ -302,3 +303,21 @@ class PIControllerInterface(ControllerInterface):
     @property
     def name(self) -> str:
         return "PI"
+
+    async def is_configuration_configured(self, identifiers: list[int]) -> list[int]:
+
+        # TODO FIX THIS
+        print("checkig if config configureed")
+        awaiters = []
+        for identifier, controller in self.settings.controllers.items():
+            if identifier in identifiers:
+                # Check it
+                awaiters.append(controller.is_configuration_configured())
+
+        awaited = await asyncio.gather(*awaiters)
+        res = []
+        print(awaited, identifiers)
+        for index, ident in enumerate(self.settings.controllers.keys()):
+            if not awaited[index]:
+                res.append(index)
+        return res

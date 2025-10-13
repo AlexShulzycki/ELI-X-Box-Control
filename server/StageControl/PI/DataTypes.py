@@ -9,7 +9,7 @@ from pydantic_core.core_schema import FieldValidationInfo
 
 from server.Settings import SettingsVault
 from server.StageControl.DataTypes import StageStatus, StageInfo, EventAnnouncer, StageKind, \
-    StageRemoved
+    StageRemoved, ConfigurationUpdate
 
 
 class C884Settings(BaseModel):
@@ -128,7 +128,7 @@ class PIConfiguration(BaseModel):
 class PIController:
     # TODO Implement event announcer
     def __init__(self):
-        self.EA = EventAnnouncer(StageStatus, StageInfo, StageRemoved)
+        self.EA = EventAnnouncer(StageStatus, StageInfo, StageRemoved, ConfigurationUpdate)
         self._config = None
         self.SV = SettingsVault()
 
@@ -216,6 +216,9 @@ class PIController:
             return settings[name]
         else:
             raise Exception(f"Stage {name} not found in settings")
+
+    async def is_configuration_configured(self):
+        raise NotImplementedError
 
 
 class PIAPIConfig(PIConfiguration):

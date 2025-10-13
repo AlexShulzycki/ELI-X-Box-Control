@@ -241,6 +241,19 @@ class ControllerInterface:
     async def fullRefreshAllSettings(self):
         raise NotImplementedError
 
+    async def is_configuration_configured(self, identifiers: list[int]) -> list[int]:
+        """
+         If the configuration change function does something that has to be checked again,
+          i.e. if the stages have not yet finished referencing, then it is refreshed in this function,
+          then if the action is completed, i.e. stages finished referencing, we return true. Otherwise,
+          we return false and the server will query this function again after a short delay. Any ConfingurationUpdate
+          events need to be sent here to update the UI. This function purely exists to allow the server to
+          query this function when the need exists.
+        :return: List of identifiers we need to check again
+        """
+        # return [] by default, override this in the individual interface implementations.
+        return []
+
 class updateResponse(BaseModel):
     identifier: int
     success: bool

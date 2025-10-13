@@ -2,11 +2,11 @@
 import asyncio
 import glob
 import sys
-from typing import Any
+from typing import Any, Callable
 
 import serial
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, BackgroundTasks
 
 from pydantic import BaseModel, ValidationError
 
@@ -41,7 +41,8 @@ async def getConfigSchema():
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/post/UpdateConfiguration", description='{"Virtual": [{"model": "Virtual 1","identifier": 1234,"kind": "linear","minimum": 0,"maximum": 200}]}')
-async def updateConfiguration(configuration: dict[str, list[Any]]) -> list[updateResponse]:
+async def updateConfiguration(background_tasks: BackgroundTasks, configuration: dict[str, list[Any]]) -> list[updateResponse]:
+    config_finished_check = []
     res: list[updateResponse] = []
     for name, array in configuration.items():
         for interface in toplevelinterface.interfaces:
@@ -54,12 +55,14 @@ async def updateConfiguration(configuration: dict[str, list[Any]]) -> list[updat
                         try:
                             valid_model = interface.configurationType.model_validate(item)
                             toConfig.append(valid_model)
+                            config_finished_check.append(valid_model.SN)
                         except ValidationError as e:
                             print("Issue parsing config: ", e)
                             print(item)
                             raise e
                     except Exception as e:
                         # Bad validation format, add as error
+
                         res.append(updateResponse(
                             identifier=-5, # some random identifier to pass the pydantic check
                             success=False,
@@ -77,6 +80,9 @@ async def updateConfiguration(configuration: dict[str, list[Any]]) -> list[updat
                     # something catastrophic has happened if that failed
                     print("Catastrophic failure updating configuration", e)
                     raise HTTPException(status_code=500, detail=str(e))
+
+    # Add the configurations we just modified to the check config queue
+    background_tasks.add_task(checkUntilConfigured, background_tasks, config_finished_check)
     return res
 
 @router.get("/get/RemoveConfiguration")
@@ -156,3 +162,24 @@ async def getloadConfiguration(name: str):
     """load a configuration from disk"""
     saved = (await getSavedConfigurations()).configuration
     return await updateConfiguration(saved[name])
+
+async def checkUntilConfigured(background_tasks: BackgroundTasks, ids_to_check: list[int]):
+
+    print("checking configs", ids_to_check)
+    # go to sleep :)
+    await asyncio.sleep(0.2)
+
+    awaiters = []
+    for ident in ids_to_check:
+        for intf in toplevelinterface.interfaces:
+            awaiters.append(intf.is_configuration_configured(ident))
+
+    awaited = await asyncio.gather(*awaiters)
+    # flatten array
+    check_again = []
+    for a in awaited:
+        for i in a:
+            check_again.append(i)
+
+    if len(check_again) > 0:
+        background_tasks.add_task(checkUntilConfigured, background_tasks, check_again)

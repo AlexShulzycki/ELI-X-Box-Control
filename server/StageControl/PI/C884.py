@@ -4,7 +4,7 @@ from typing import Coroutine, Awaitable, Any
 from pipython import GCSDevice
 
 from server.Settings import SettingsVault
-from server.StageControl.DataTypes import Notice, StageKind
+from server.StageControl.DataTypes import Notice, StageKind, ConfigurationUpdate
 from server.StageControl.PI.DataTypes import PIController, PIConfiguration, PIConnectionType, PIStageInfo, PIStage
 
 
@@ -433,6 +433,30 @@ class C884(PIController):
             raise Exception("Not connected!")
 
         return self.device.qVST()
+
+    async def is_configuration_configured(self):
+
+        # The only PI configuration we need to query periodically for is if everything is referenced
+        refstate = self.device.qFRF()
+        message = "Referencing"
+
+        for key, ref in refstate.items():
+            if ref:
+                message += f", Channel {key} referenced "
+
+        # Construct the configuration update
+        print("Checking config update")
+        update = ConfigurationUpdate(
+            identifier=self.config.identifier,
+            message = message,
+            configuration = self.config,
+            finished = self.device.IsControllerReady()
+        )
+
+        self.EA.event(update)
+
+        # Check if controller is ready, if True we don't need to run this function again
+        return self.device.IsControllerReady()
 
     def shutdown_and_cleanup(self):
         self.__exit__()
