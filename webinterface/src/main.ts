@@ -56,9 +56,11 @@ import {
     type StageInfo,
     type StageRemoved
 } from "@/stores/StageStore.ts";
+import {type ConfigurationUpdate, useConfigurationStore} from "@/stores/ConfigurationStore.ts";
 
 
 const stagestore = useStageStore();
+const configstore = useConfigurationStore();
 
 class WSClient {
 
@@ -108,6 +110,15 @@ class WSClient {
                 stagestore.receiveStageRemoved(msg)
             } catch (e) {
                 console.log(e)
+            }
+        } else if (message.event == "ConfigurationUpdate") {
+            try{
+                const msg = JSON.parse(message.data) as ConfigurationUpdate
+                // update specific configuration
+                configstore.newConfigurationUpdate(msg)
+
+            }catch (e) {
+                console.log("configuration update error", e)
             }
         }
     }

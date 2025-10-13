@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import glob
 import sys
 from enum import Enum
 from typing import Any, Callable
@@ -58,6 +59,18 @@ class Notice(BaseModel):
     """This is a class that can send any miscellaneous string up the chain"""
     identifier:int = None
     message: str
+
+class ConfigurationUpdate(BaseModel):
+    """Update to the configuration state"""
+    identifier: int
+    """Identifier of the configuration object"""
+    message: str
+    """Description that can be displayed to the user"""
+    configuration: object|None
+    """New configuration state"""
+    finished: bool
+    """Whether something is still happening, and you should expect another
+    ConfigurationUpdate soon"""
 
 class EventAnnouncer:
     def __init__(self, *availableDataTypes: type):
@@ -156,7 +169,7 @@ class ControllerInterface:
     """
 
     def __init__(self):
-        self.EventAnnouncer = EventAnnouncer(StageStatus, StageInfo, StageRemoved, Notice)
+        self.EventAnnouncer = EventAnnouncer(StageStatus, StageInfo, StageRemoved, Notice, ConfigurationUpdate)
 
     @property
     def stages(self) -> list[int]:

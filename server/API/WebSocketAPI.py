@@ -6,7 +6,8 @@ from fastapi import WebSocket
 from pydantic import BaseModel, Field
 
 from server.Interface import toplevelinterface
-from server.StageControl.DataTypes import EventAnnouncer, StageStatus, StageInfo, StageRemoved, Notice
+from server.StageControl.DataTypes import EventAnnouncer, StageStatus, StageInfo, StageRemoved, Notice, \
+    ConfigurationUpdate
 
 
 class ReqTypes(Enum):
@@ -51,8 +52,8 @@ class Update(BaseModel):
 
 class StageMotionStatus(BaseModel):
     device_type: DeviceTypes = Field(description="Device type", examples=[DeviceTypes.c884, DeviceTypes.smc5])
-    position: list[float, None] = Field(description="Position of each stage in mm", examples=[[9.32], [1.4, None, 53.44]])
-    on_target: list[bool, None] = Field(description="On target status for the stages", examples=[True, False, None, False])
+    position: list[float| None] = Field(description="Position of each stage in mm", examples=[[9.32], [1.4, None, 53.44]])
+    on_target: list[bool| None] = Field(description="On target status for the stages", examples=[True, False, None, False])
 
 class MotionUpdate(Update):
     event: UpdateTypes = UpdateTypes.motion_update
@@ -77,12 +78,13 @@ class WebSocketAPI:
         self.active_connections: list[WebSocket] = []
         self.EA: EventAnnouncer = EventAnnouncer(StageStatus)
         # Subscribe to stage status changes
-        self.EA.patch_through_from([StageStatus, StageInfo, StageRemoved, Notice], toplevelinterface.EventAnnouncer)
-        sub = toplevelinterface.EventAnnouncer.subscribe(StageStatus, StageInfo, StageRemoved, Notice)
+        self.EA.patch_through_from([StageStatus, StageInfo, StageRemoved, Notice, ConfigurationUpdate], toplevelinterface.EventAnnouncer)
+        sub = toplevelinterface.EventAnnouncer.subscribe(StageStatus, StageInfo, StageRemoved, Notice, ConfigurationUpdate)
         sub.deliverTo(StageStatus,self.broadcastStageStatus)
         sub.deliverTo(StageInfo,self.broadcastStageInfo)
         sub.deliverTo(StageRemoved, self.broadcastStageRemoved)
         sub.deliverTo(Notice, self.broadcastNotice)
+        sub.deliverTo(ConfigurationUpdate, self.broadcastConfigurationUpdate)
 
     async def receive(self, msg: Req, websocket: WebSocket) -> None:
         """
@@ -136,6 +138,12 @@ class WebSocketAPI:
     def broadcastNotice(self, message: Notice):
         asyncio.create_task(self.broadcast({
             "event": "Notice",
+            "data": message.model_dump_json()
+        }))
+
+    def broadcastConfigurationUpdate(self, message: ConfigurationUpdate):
+        asyncio.create_task(self.broadcast({
+            "event": "ConfigurationUpdate",
             "data": message.model_dump_json()
         }))
 

@@ -4,7 +4,6 @@ import type {SchemaNode} from "json-schema-library"
 import axios from "axios";
 
 
-
 export const useConfigurationStore = defineStore('ConfigurationState', {
     state: () => {
         return {
@@ -14,6 +13,8 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
             // Configuration object schemas (from the server)
             loadedConfigSet: new Map<string, Array<object>>(),
             // Configuration set loaded from server settings
+            configurationUpdates: new Map<number, Array<ConfigurationUpdate>>(),
+            // history of configuration updates for each unique config identifier
         }
     },
     actions: {
@@ -30,7 +31,7 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
                 console.log("saved received schema")
             }
         },
-        async syncServerConfigState(){
+        async syncServerConfigState() {
             // We sync the configs from the server
             const res = await axios.get("get/ConfigState")
             if (res.status == 200) {
@@ -41,34 +42,34 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
             }
         },
         // convoluted way to load, we are basically copying code above
-        async loadConfigSet(name:string){
+        async loadConfigSet(name: string) {
             // We sync the configs from the server
-            const res = await axios.get("get/loadConfiguration", {params:{name: name}})
+            const res = await axios.get("get/loadConfiguration", {params: {name: name}})
             if (res.status == 200 && res.data.success) {
                 console.log("loaded config:", res.data)
-            }else if(res.status == 200 && !res.data.success){
+            } else if (res.status == 200 && !res.data.success) {
                 console.log("Error: ", res.data)
             }
 
         },
-        async saveCurrentConfigSet(name: string){
-            const res = await axios.get("get/saveCurrentConfiguration", {params:{name: name}})
-            if(res.status == 200) {
+        async saveCurrentConfigSet(name: string) {
+            const res = await axios.get("get/saveCurrentConfiguration", {params: {name: name}})
+            if (res.status == 200) {
                 // Successful request, lets read the response
                 console.log("received save configr response", res.data)
                 console.log(res.data)
             }
         },
-        async listConfigSets(){
+        async listConfigSets() {
             const res = await axios.get("get/savedConfigurations")
-            if(res.status == 200) {
+            if (res.status == 200) {
                 return res.data.keys()
             }
         },
         async pushConfig(config: object) {
             const res = await axios.post("post/UpdateConfiguration", config)
             let responseArray: object[] = []
-            if(res.status == 200) {
+            if (res.status == 200) {
                 // Successful request, lets read the response
                 console.log("received update response to update request", res.data, config)
                 // format the data into an array explicitly
@@ -79,13 +80,59 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
                 return responseArray
             }
         },
-        async removeConfig(controllerKey: string, identifier:number){
-            const res = await axios.get("/get/RemoveConfiguration", {params: {controllername: controllerKey, identifier: identifier}})
-            if(res.status != 200){
-              window.alert("Error occurred while removing config: " + res.data)
-            }else{
-              // All good, lets resync the status of everything
-              await this.syncServerConfigState()
+        async removeConfig(controllerKey: string, identifier: number) {
+            const res = await axios.get("/get/RemoveConfiguration", {
+                params: {
+                    controllername: controllerKey,
+                    identifier: identifier
+                }
+            })
+            if (res.status != 200) {
+                window.alert("Error occurred while removing config: " + res.data)
+            } else {
+                // All good, lets resync the status of everything
+                await this.syncServerConfigState()
+            }
+        },
+        updateConfigByID: function (config: object) {
+            try {
+                const id = (config as Configuration).identifier
+                if (this.getConfigsByID.has(id)) {
+                    // go through each configuration
+                    this.serverConfigs.forEach((config_list, key) => {
+                        // go through the list
+                        config_list.forEach((value, index) => {
+                            if ((value as Configuration).identifier == id) {
+                                // found it, update please
+                                config_list[index] = config
+                                return
+                            }
+                        })
+                    })
+                    // we havent found it
+                    console.log("Could not find configuration with id "+id)
+                }
+            } catch (e) {
+                console.log("Unable to update config: " + config)
+            }
+        },
+        newConfigurationUpdate(update: ConfigurationUpdate){
+            // update configuration state if needed
+            if(update.configuration != undefined){
+                    this.updateConfigByID(update.configuration)
+                }
+            // first check if exists and the status of the queue
+            if(this.configurationUpdates.has(update.identifier)){
+                // get relevant queue
+                const queue = this.configurationUpdates.get(update.identifier)
+                // if nonexistent, empty, or last item is finished
+                if((queue == undefined) || (queue.length == 0) || (queue[-1].finished)){
+                    // overwrite with this new update
+                    this.configurationUpdates.set(update.identifier, [update])
+                }else{
+                    // append to the end
+                    this.configurationUpdates.get(update.identifier)?.push(update)
+                }
             }
         }
     },
@@ -97,81 +144,71 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
             })
             return res
         },
-
-        getCurrentConfig: (state) => {
-            let res = new Map<string, object>()
-            state.serverConfigs.forEach((value: Array<object>, key) => {
-                // get the schema for the type of config (denoted by the key)
-                let schema = state.configSchemas.get(key)
-                if(schema != undefined){
-                    // try to parse the list of configs according to the schema
-                    console.error("Not ready to parse, implement this method please")
-                    try{
-                        value.forEach((item) => {
-                        //TODO Finish this up
-                        })
-                        res.set(key, schema.getData(value))
-                    }catch (e){
-                        console.log("Error parsing data for "+ key)
+        getConfigsByID: (state) => {
+            let res: Map<number, object> = new Map<number, object>()
+            state.serverConfigs.forEach((config_list, key) => {
+                config_list.forEach((value) => {
+                    try {
+                        res.set((value as Configuration).identifier, value)
+                    } catch (e) {
+                        console.log(e)
+                        window.alert("Error parsing received configuration")
                     }
-                }
+
+                })
             })
             return res
-        },
+        }
     }
 })
 
-function objectToMap<type1, type2>(data:Object) {
-    let res = new Map<type1, type2>
-    Object.entries(data).forEach(([key, value]) => {
-        res.set(key as type1 , value as type2)
-    })
-    return res
-}
-
 // update state when we wait for the response from the server
 export interface responseinterface {
-  identifier: number;
-  success: boolean;
-  error?: string;
+    identifier: number;
+    success: boolean;
+    error?: string;
 }
 
-export interface settingsresponseinterface {
-    success: boolean
-    error: string
-    configuration: Map<string, object>
+export interface ConfigurationUpdate {
+    identifier: number;
+    message: string,
+    configuration?: object,
+    finished: boolean,
 }
 
-function parseConfigs(data:object, schemas:Map<string, any>) {
+export interface Configuration {
+    identifier: number
+}
+
+function parseConfigs(data: object, schemas: Map<string, any>) {
 // We sync the configs from the server
 
-        // clear the current state TODO have it only edit it, so we dont mess up any front end stuff
-        let finalres = new Map<string, Array<object>>()
+    // clear the current state
+    let finalres = new Map<string, Array<object>>()
 
-        // iterate through each config type
-        Object.entries(data).forEach(([key, value]) => {
-            let schema = schemas.get(key)
-            if (schema != undefined) {
+    // iterate through each config type
+    Object.entries(data).forEach(([key, value]) => {
+        let schema = schemas.get(key)
+        if (schema != undefined) {
 
-                // result array
-                let res: Object[] = []
+            // result array
+            let res: Object[] = []
 
-                // try to parse the list of configs according to the schema
-                try {
-                    (value as Array<object>).forEach((configState) => {
-                        const dat = schema.getData(configState, { extendDefaults: false })
-                        res.push(dat)
-                    })
+            // try to parse the list of configs according to the schema
+            try {
+                (value as Array<object>).forEach((configState) => {
+                    const dat = schema.getData(configState, {extendDefaults: false})
+                    res.push(dat)
+                })
 
-                    // all done, save the parsed settings
-                    finalres.set(key, res)
+                // all done, save the parsed settings
+                finalres.set(key, res)
 
-                } catch (e) {
-                    console.log("Error parsing data for " + key)
-                }
-
+            } catch (e) {
+                console.log("Error parsing data for " + key)
             }
-        })
-        return finalres
 
+        }
+    })
+    return finalres
 }

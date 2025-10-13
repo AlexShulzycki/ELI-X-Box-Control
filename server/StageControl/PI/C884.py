@@ -81,7 +81,14 @@ class C884(PIController):
             self.EA.event(Notice(message="opening connection"))
             await self.openConnection(config)
 
-        # We now need to update the stages
+
+        # if no stages are given, we read the stages from the controller and not overwrite anything
+        if len(config.stages) == 0:
+            # Do a full status refresh and return
+            await self.refreshFullStatus()
+            return
+
+        # Otherwise, we now need to update the stages
         print("loading new stages")
 
         self.EA.event(Notice(message="loading new stage names"))
