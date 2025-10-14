@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 
-from server.StageControl.DataTypes import Notice
+from server.StageControl.DataTypes import Notice, ConfigurationUpdate
 from server.StageControl.PI.DataTypes import PIController, PIStage, PIConfiguration, PIControllerModel, PIConnectionType
 
 
@@ -13,6 +13,10 @@ class MockPIController(PIController):
 
     def __init__(self):
         super().__init__()
+
+        # variables for simulation
+        self.time_when_referenced = {}
+        """Dict which stores time when a particular channel should be treated as referenced. Null if not referencing."""
 
     async def connect(self):
         time.sleep(0.1)
@@ -111,3 +115,33 @@ class MockPIController(PIController):
     @property
     def config(self) -> PIConfiguration:
         return self._config
+
+    async def is_configuration_configured(self):
+        # The only PI configuration we need to query periodically for is if everything is referenced
+
+        refstate = {}
+        # go through each time when referenced for each channel
+        for key, reftime in self.time_when_referenced.items():
+                refstate[key] = (time.time() > reftime)
+
+        message = "Referencing"
+
+        for key, ref in refstate.items():
+            if ref:
+                message += f", Channel {key} referenced "
+
+        finished = refstate.values().__contains__(False)  # if any channel is not referenced yet, don't reference
+
+        # Construct the configuration update
+        print("Checking config update")
+        update = ConfigurationUpdate(
+            identifier=self.config.identifier,
+            message=message,
+            configuration=self.config,
+            finished=finished
+        )
+
+        self.EA.event(update)
+
+        # Check if controller is ready, if True we don't need to run this function again
+        return finished

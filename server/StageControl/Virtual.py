@@ -1,10 +1,25 @@
 from typing import Any
 
-from pydantic import Field, BaseModel
+from pydantic import Field
 
-from .DataTypes import StageKind, StageInfo, StageStatus, ControllerInterface, updateResponse, \
-    StageRemoved, EventAnnouncer
+from .DataTypes import StageKind, StageStatus, ControllerInterface, updateResponse, \
+    StageRemoved, EventAnnouncer, Configuration, StageInfo
 
+
+class VirtualStageInfo(Configuration):
+    # identifier is now SN, minimum is hardwired to zero
+    model: str = Field(description="Stage model, i.e. L-406.20DD10", examples=["L-406.20DD10", "Virtual Linear Stage"])
+    kind: StageKind = Field(default=StageKind.linear, description="What kind of stage this is")
+    maximum: float = Field(default=0, description="Maximum position, in mm.", ge=0)
+
+    def toStageInfo(self) -> StageInfo:
+        return StageInfo(
+            model=self.model,
+            identifier=self.SN,
+            kind=self.kind,
+            minimum= 0,
+            maximum=self.maximum
+        )
 
 class VirtualSettings:
 
@@ -14,26 +29,26 @@ class VirtualSettings:
         self.virtualstages: dict[int, VirtualStage] = {}
 
     @property
-    def currentConfiguration(self) -> list[Any]:
+    def currentConfiguration(self) -> list[VirtualStageInfo]:
         res = []
         for v in self.virtualstages.values():
             res.append(v.stageInfo)
         return res
 
-    async def configurationChangeRequest(self, requests: list[StageInfo]) -> list[updateResponse]:
+    async def configurationChangeRequest(self, requests: list[VirtualStageInfo]) -> list[updateResponse]:
         res = []
         for request in requests:
             try:
-                    self.virtualstages[request.identifier] = VirtualStage(request)
+                    self.virtualstages[request.SN] = VirtualStage(request)
                     res.append(updateResponse(
-                        identifier=request.identifier,
+                        identifier=request.SN,
                         success=True,
                     ))
                     # success, send an event update
-                    self.EventAnnouncer.event(self.virtualstages[request.identifier].stageInfo)
+                    self.EventAnnouncer.event(self.virtualstages[request.SN].stageInfo.toStageInfo())
             except Exception as e:
                 res.append(updateResponse(
-                    identifier = request.identifier,
+                    identifier = request.SN,
                     success = False,
                     error = str(e),
                 ))
@@ -49,21 +64,21 @@ class VirtualSettings:
 
     @property
     def configurationFormat(self):
-        return StageInfo
+        return VirtualStageInfo
 
     def getDataTypes(self):
-        return [StageInfo, StageStatus]
+        return [VirtualStageInfo, StageStatus]
 
 
 class VirtualStage:
-    def __init__(self, config: StageInfo):
+    def __init__(self, config: VirtualStageInfo):
         self.stageInfo = config
-        self.stageStatus = StageStatus(identifier= config.identifier, connected=True, ready=True, position=config.minimum, ontarget=True)
+        self.stageStatus = StageStatus(identifier= config.SN, connected=True, ready=True, position=0, ontarget=True)
 
 
 class VirtualControllerInterface(ControllerInterface):
 
-    async def configurationChangeRequest(self, request: list[Any]) -> list[updateResponse]:
+    async def configurationChangeRequest(self, request: list[VirtualStageInfo]) -> list[updateResponse]:
         return await self.settings.configurationChangeRequest(request)
 
     async def removeConfiguration(self, id: int):
@@ -71,7 +86,7 @@ class VirtualControllerInterface(ControllerInterface):
 
     @property
     def configurationType(self):
-        return StageInfo
+        return VirtualStageInfo
 
     @property
     async def configurationSchema(self):
@@ -130,7 +145,7 @@ class VirtualControllerInterface(ControllerInterface):
     def stageInfo(self) -> dict[int, StageInfo]:
         e = {} # dunno why I called it e
         for v in self.settings.virtualstages.values():
-            e[v.stageInfo.identifier] = v.stageInfo
+            e[v.stageInfo.SN] = v.stageInfo.toStageInfo()
         return e
 
     async def updateStageStatus(self, identifiers: list[int] = None):
@@ -144,5 +159,5 @@ class VirtualControllerInterface(ControllerInterface):
         """Return StageStatus objects for the given stages"""
         e = {}  # dunno why I called it e
         for v in self.settings.virtualstages.values():
-            e[v.stageInfo.identifier] = v.stageStatus
+            e[v.stageInfo.SN] = v.stageStatus
         return e
