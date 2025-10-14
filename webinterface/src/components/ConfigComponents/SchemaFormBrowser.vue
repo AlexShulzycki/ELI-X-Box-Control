@@ -16,6 +16,8 @@ function toggleHidden() {
   hidden.value = !hidden.value;
 }
 
+const tab = ref(null)
+
 </script>
 
 <template>
@@ -25,9 +27,14 @@ function toggleHidden() {
     <v-btn @click="toggleHidden()">Close new config edit</v-btn>
     <SchemaForm v-bind:schemanode="schema" @success="toggleHidden"/>
   </div>
-  <div v-for="state in data">
-    <SchemaForm v-bind:schemanode="schema" v-bind:serverdata="state"/>
-  </div>
+  <v-tabs v-model="tab">
+    <v-tab v-for="state in data">{{ state.SN }}</v-tab>
+  </v-tabs>
+  <v-tabs-window v-model="tab">
+    <v-tabs-window-item v-for="state in data">
+      <SchemaForm v-bind:schemanode="schema" v-bind:serverdata="state"/>
+    </v-tabs-window-item>
+  </v-tabs-window>
 </template>
 
 

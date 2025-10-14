@@ -87,7 +87,6 @@ class WSClient {
     }
 
     receive(message: WSMessage) {
-        console.log("receiving WSMessage", message)
         if (message.event == "StageStatus") {
             // try parse it
             try {

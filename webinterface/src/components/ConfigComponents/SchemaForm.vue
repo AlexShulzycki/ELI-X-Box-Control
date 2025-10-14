@@ -28,10 +28,11 @@ let formdata: object = reactive({})
 
 // loading flag, informs if we are waiting for a request response
 const loading = ref<boolean>(false)
+const disabled = ref(false)
 
 // On form input change, verify if the input conforms to the schema, and update formdata
 const onChange = (event: JsonFormsChangeEvent) => {
-  console.log("onchange", event)
+
   if (event.errors == undefined) {
     // check if undefined
     return
@@ -45,6 +46,8 @@ const onChange = (event: JsonFormsChangeEvent) => {
     // If there are no errors in validation, copy over the form data
     formdata = event.data;
   }
+  console.log("onchange", event, JSON.stringify(formdata) == JSON.stringify({}))
+  disabled.value = JSON.stringify(formdata) == JSON.stringify({})
 };
 
 
@@ -98,9 +101,22 @@ function UpdateToServer() {
 
 <template>
   <v-container>
-    <div v-if="typeof serverdata != typeof undefined">
-      {{}}
-    </div>
+    <v-card v-bind:loading="configstore.getIsUpdateQueueNotFinished.get(formdata.SN)?? false">
+      <v-card-text>
+        <v-timeline direction="horizontal"
+                    v-if="formdata.SN != undefined && configstore.configurationUpdates.get(formdata.SN)" side="end">
+          <v-timeline-item v-for="event in configstore.configurationUpdates.get(formdata.SN)"
+                           v-bind:dot-color="event.finished?'green':'orange'">
+            {{ event.message }}
+          </v-timeline-item>
+        </v-timeline>
+      </v-card-text>
+      <v-card-actions>
+        <v-btn @click="UpdateToServer" v-model:disabled="disabled" :loading="loading">
+          Submit Changes
+        </v-btn>
+      </v-card-actions>
+    </v-card>
 
     <v-container :class="{hidden:response.success}">
       <h3>
@@ -110,9 +126,7 @@ function UpdateToServer() {
     </v-container>
   </v-container>
   <v-container class="myform">
-    <v-btn @click="UpdateToServer" v-bind:disabled="JSON.stringify(formdata) == JSON.stringify({})" :loading="loading">
-      Submit Changes
-    </v-btn>
+
     <json-forms :renderers="renderers" :schema="schemanode.schema" :data="serverdata" @change="onChange"/>
   </v-container>
 </template>

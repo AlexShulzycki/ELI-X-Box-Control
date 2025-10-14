@@ -85,6 +85,14 @@ class MockPIController(PIController):
         # TODO find a way to simulate this more closely
         self._config.ready = True
 
+        # send a configuration update
+        self.EA.event(ConfigurationUpdate(
+            SN=config.SN,
+            message="Connected and configured",
+            configuration=self.config.toPIAPI(),
+            finished=False
+        ))
+
         # refresh full status after changing config
         await self.refreshFullStatus()
 
@@ -135,13 +143,17 @@ class MockPIController(PIController):
                 # "reference"
                 self._config.stages[str(key)].referenced = True
 
+        # convoluted string manipulation
+        if message != "Referencing":
+            message = message[12:]
+
         finished = not list(refstate.values()).__contains__(False)  # if any channel is not referenced yet, don't reference
 
         # Construct the configuration update
         update = ConfigurationUpdate(
             SN=self.config.SN,
             message=message,
-            configuration=self.config,
+            configuration=self.config.toPIAPI(), # REMEMBER TO USE API FORMAT
             finished=finished
         )
 

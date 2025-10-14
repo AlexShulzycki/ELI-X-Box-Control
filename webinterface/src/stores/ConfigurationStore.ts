@@ -114,26 +114,31 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
                 console.log("Unable to update config: " + config)
             }
         },
-        newConfigurationUpdate(update: ConfigurationUpdate){
-            console.log("configuration update",update)
+        newConfigurationUpdate(update: ConfigurationUpdate) {
+            console.log("configuration update", update)
             // update configuration state if needed
-            if(update.configuration != undefined){
-                    this.updateConfigByID(update.configuration)
-                }
+            if (update.configuration != undefined) {
+                this.updateConfigByID(update.configuration)
+            }
             // first check if exists and the status of the queue
             // serial number is an integer, convert it
             update.SN = Number(update.SN)
-            if(this.configurationUpdates.has(update.SN)){
+            if (this.configurationUpdates.has(update.SN)) {
                 // get relevant queue
-                const queue = this.configurationUpdates.get(update.SN)
+                const queue = this.configurationUpdates.get(update.SN) ?? []
                 // if nonexistent, empty, or last item is finished
-                if((queue == undefined) || (queue.length == 0) || (queue[-1].finished)){
+                if ((queue.length == 0) || (queue[queue.length - 1].finished)) {
                     // overwrite with this new update
                     this.configurationUpdates.set(update.SN, [update])
-                }else{
-                    // append to the end
-                    this.configurationUpdates.get(update.SN)?.push(update)
+                } else {
+                    // check if we indeed have a new update
+                    if (queue[queue.length - 1].message != update.message) {
+                        // append to the end
+                        this.configurationUpdates.get(update.SN)?.push(update)
+                    }
                 }
+            } else {
+                this.configurationUpdates.set(update.SN, [update])
             }
         }
     },
@@ -157,6 +162,17 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
                     }
 
                 })
+            })
+            return res
+        },
+        getIsUpdateQueueNotFinished: (state) => {
+            let res = new Map<number, boolean>()
+            state.configurationUpdates.forEach((value, key) => {
+                if(value[value.length - 1].finished) {
+                    res.set(key, false)
+                }else{
+                    res.set(key, true)
+                }
             })
             return res
         }

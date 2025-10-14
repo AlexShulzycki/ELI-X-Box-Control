@@ -449,14 +449,14 @@ class C884(PIController):
         update = ConfigurationUpdate(
             SN=self.config.SN,
             message = message,
-            configuration = self.config,
+            configuration = self.config.toPIAPI(),
             finished = self.device.IsControllerReady()
         )
 
         self.EA.event(update)
 
         # Check if controller is ready, if True we don't need to run this function again
-        return self.device.IsControllerReady()
+        return self.config.SN, self.device.IsControllerReady()
 
     def shutdown_and_cleanup(self):
         self.__exit__()
