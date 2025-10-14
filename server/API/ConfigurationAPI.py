@@ -170,9 +170,8 @@ async def checkUntilConfigured(background_tasks: BackgroundTasks, ids_to_check: 
     await asyncio.sleep(0.2)
 
     awaiters = []
-    for ident in ids_to_check:
-        for intf in toplevelinterface.interfaces:
-            awaiters.append(intf.is_configuration_configured(ident))
+    for intf in toplevelinterface.interfaces:
+        awaiters.append(intf.is_configuration_configured(ids_to_check))
 
     awaited = await asyncio.gather(*awaiters)
     # flatten array

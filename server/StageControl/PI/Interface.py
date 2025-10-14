@@ -13,18 +13,14 @@ from server.StageControl.PI.Mock import MockPIController
 
 
 class PISettings:
-    # TODO IMPLEMENT STAGEREMOVED self.EventAnnouncer.event(StageRemoved(identifier = identifier))
     def __init__(self):
-        self.EventAnnouncer = EventAnnouncer(StageStatus, StageInfo, StageRemoved, Notice, ConfigurationUpdate)
+        self.EventAnnouncer = EventAnnouncer(PISettings, StageStatus, StageInfo, StageRemoved, Notice, ConfigurationUpdate)
         self._controllerStatuses = []
         # type hint, this is where we store controller statuses
         self.controllers: dict[int, PIController] = {}
 
     def subscribeTo(self, cntr: PIController):
-        sub = cntr.EA.subscribe(StageStatus, StageInfo, StageRemoved)
-        sub.deliverTo(StageStatus, self.EventAnnouncer.event)
-        sub.deliverTo(StageInfo, self.EventAnnouncer.event)
-        sub.deliverTo(StageRemoved, self.EventAnnouncer.event)
+        self.EventAnnouncer.patch_through_from(self.EventAnnouncer.availableDataTypes, cntr.EA)
 
     @property
     def currentConfiguration(self) -> list[PIConfiguration]:
@@ -54,7 +50,6 @@ class PISettings:
                     success=True,
                 ))
             except Exception as e:
-                print(e)
                 res.append(updateResponse(
                     identifier=req.SN,
                     success=False,
@@ -84,8 +79,8 @@ class PISettings:
         elif config.model == PIControllerModel.mock:
             mock = MockPIController()
             await mock.updateFromConfig(config)
-            self.subscribeTo(mock)
             self.controllers[config.SN] = mock
+            self.subscribeTo(mock)
             await mock.refreshFullStatus()
         else:
             raise Exception("Unknown PI controller model")
@@ -193,6 +188,8 @@ class PIControllerInterface(ControllerInterface):
         # turn the comport field into a dropdown
         # grab free comports
         coms = getComPorts()
+        # add comport 0 to allow for the default value
+        coms.append(0)
 
         # add connected comports so the controller doesn't throw a fit
         for config in self.settings.currentConfiguration:
@@ -201,7 +198,7 @@ class PIControllerInterface(ControllerInterface):
 
 
         schema["properties"]["comport"]["enum"] = coms
-        print(schema)
+
         return schema
 
     async def fullRefreshAllSettings(self):
@@ -305,19 +302,23 @@ class PIControllerInterface(ControllerInterface):
         return "PI"
 
     async def is_configuration_configured(self, identifiers: list[int]) -> list[int]:
+        """
+        Checks if we have a controller with the given SN, and returns is_configuration_configured.
+        :param identifiers:
+        :return:
+        """
 
-        # TODO FIX THIS
-        print("checkig if config configureed")
-        awaiters = []
+        # Ask each controller
+        awaiters: list[Awaitable[tuple[int, bool]]] = []
         for identifier, controller in self.settings.controllers.items():
             if identifier in identifiers:
-                # Check it
+                # Check if it's the correct identifier, if so append to awaiters
                 awaiters.append(controller.is_configuration_configured())
 
-        awaited = await asyncio.gather(*awaiters)
+        awaited: list[tuple[int, bool]] = await asyncio.gather(*awaiters)
         res = []
-        print(awaited, identifiers)
-        for index, ident in enumerate(self.settings.controllers.keys()):
-            if not awaited[index]:
-                res.append(index)
+        # Go through each awaiter and construct a response array
+        for SN, finished in awaited:
+            if not finished:
+                res.append(SN)
         return res

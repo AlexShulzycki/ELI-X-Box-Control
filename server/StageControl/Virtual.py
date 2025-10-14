@@ -3,7 +3,7 @@ from typing import Any
 from pydantic import Field
 
 from .DataTypes import StageKind, StageStatus, ControllerInterface, updateResponse, \
-    StageRemoved, EventAnnouncer, Configuration, StageInfo
+    StageRemoved, EventAnnouncer, Configuration, StageInfo, ConfigurationUpdate, Notice
 
 
 class VirtualStageInfo(Configuration):
@@ -24,7 +24,7 @@ class VirtualStageInfo(Configuration):
 class VirtualSettings:
 
     def __init__(self):
-        self.EventAnnouncer = EventAnnouncer(StageStatus, StageInfo, StageRemoved)
+        self.EventAnnouncer = EventAnnouncer(VirtualSettings, StageStatus, StageInfo, StageRemoved, Notice, ConfigurationUpdate)
         self._controllerStatuses = []
         self.virtualstages: dict[int, VirtualStage] = {}
 

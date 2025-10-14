@@ -86,6 +86,9 @@ function UpdateToServer() {
         //setTimeout(()=>{response.value.identifier = -1}, 10000) timeout unnecessary we want to see the error
       }
     }
+  }, () => {
+    // error
+    loading.value = false
   })
 }
 

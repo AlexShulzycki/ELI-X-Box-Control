@@ -212,7 +212,7 @@ class AxisComponent(Structure):
 # Set up the main interface
 class AssemblyInterface:
     def __init__(self):
-        self.EA = EventAnnouncer(StageStatus)
+        self.EA = EventAnnouncer(AssemblyInterface, StageStatus)
         self._root: Component = Component(name="root") # For now we create a root, rethink this
 
     @property

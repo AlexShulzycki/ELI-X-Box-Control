@@ -27,7 +27,7 @@ class MainInterface:
 
     def __init__(self, *controller_interfaces: ControllerInterface):
         """Pass in all additional Controller Interfaces in the constructor"""
-        self.EventAnnouncer: EventAnnouncer = EventAnnouncer(StageInfo, StageStatus, StageRemoved, Notice, ConfigurationUpdate)
+        self.EventAnnouncer: EventAnnouncer = EventAnnouncer(MainInterface, StageInfo, StageStatus, StageRemoved, Notice, ConfigurationUpdate)
         self._interfaces: list[ControllerInterface] = []
         for intf in controller_interfaces:
             self.addInterface(intf)
@@ -47,7 +47,7 @@ class MainInterface:
             # Already exists here
             return
         # New interface, lets sub to their event announcer and feed it directly into ours
-        self.EventAnnouncer.patch_through_from([StageInfo, StageStatus, StageRemoved, Notice], intf.EventAnnouncer)
+        self.EventAnnouncer.patch_through_from(self.EventAnnouncer.availableDataTypes, intf.EventAnnouncer)
 
         # All done, finally append to the list
         self._interfaces.append(intf)
@@ -100,8 +100,8 @@ class MainInterface:
 
     def getRelevantInterface(self, identifier: int) -> ControllerInterface | None:
         """
-        Returns relevant controller interface for given identifier.
-        :param identifier: identifier to look for
+        Returns relevant controller interface for given stage identifier.
+        :param identifier: stage identifier to look for
         :return: ControllerInterface, or if the identifier isn't found, None.
         """
         for interface in self.interfaces:
@@ -154,7 +154,7 @@ class MainInterface:
 
     @property
     def allIdentifiers(self) -> list[int]:
-        """Returns list of all identifiers"""
+        """Returns list of all stage identifiers"""
         res = []
         for intf in self.interfaces:
             res.extend(intf.stages)

@@ -76,7 +76,7 @@ class WebSocketAPI:
 
     def __init__(self):
         self.active_connections: list[WebSocket] = []
-        self.EA: EventAnnouncer = EventAnnouncer(StageStatus)
+        self.EA: EventAnnouncer = EventAnnouncer(WebSocketAPI, StageStatus)
         # Subscribe to stage status changes
         self.EA.patch_through_from([StageStatus, StageInfo, StageRemoved, Notice, ConfigurationUpdate], toplevelinterface.EventAnnouncer)
         sub = toplevelinterface.EventAnnouncer.subscribe(StageStatus, StageInfo, StageRemoved, Notice, ConfigurationUpdate)
@@ -144,11 +144,11 @@ class WebSocketAPI:
     def broadcastConfigurationUpdate(self, message: ConfigurationUpdate):
         asyncio.create_task(self.broadcast({
             "event": "ConfigurationUpdate",
-            "data": message.model_dump_json()
+            "data": message # model dump only gives us the ConfigurationUpdate fields, namely only SN.
         }))
 
     async def broadcast(self, json: dict[str, str]):
-        print(f"Broadcasting event {json} to {len(self.active_connections)} active clients")
+        #print(f"Broadcasting event {json} to {len(self.active_connections)} active clients")
         awaiters = []
         for connection in self.active_connections:
             awaiters.append(connection.send_json(json))

@@ -85,7 +85,7 @@ class ControllerInterface:
     """
 
     def __init__(self):
-        self.EventAnnouncer = EventAnnouncer(StageStatus, StageInfo, StageRemoved, Notice, ConfigurationUpdate)
+        self.EventAnnouncer = EventAnnouncer(ControllerInterface, StageStatus, StageInfo, StageRemoved, Notice, ConfigurationUpdate)
 
     @property
     def stages(self) -> list[int]:
@@ -255,7 +255,9 @@ class Subscription:
         self.announcer.unsubscribe(self)
 
 class EventAnnouncer:
-    def __init__(self, *availableDataTypes: type):
+    def __init__(self, host: type|str,  *availableDataTypes: type):
+        self.host = host
+        """Information about the object hosting this EventAnnouncer, can be a type or a string. Useful for debugging"""
         self.subs: list[Subscription] = []
         self.availableDataTypes: list[type] = list(availableDataTypes)
 
@@ -274,6 +276,7 @@ class EventAnnouncer:
 
     def event(self, event: Any):
         """Receive an event, send it to relevant subscribers"""
+        #print(f"event at {self.host}", event) useful for debug
         for sub in self.subs:
             if sub.datatypes.__contains__(type(event)):
                 sub.event(event)

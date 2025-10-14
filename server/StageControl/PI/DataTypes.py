@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any
+from typing import Any, Coroutine, Awaitable
 
 from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
 from pydantic.json_schema import DEFAULT_REF_TEMPLATE, GenerateJsonSchema, JsonSchemaMode
@@ -9,7 +9,7 @@ from pydantic_core.core_schema import FieldValidationInfo
 
 from server.Settings import SettingsVault
 from server.StageControl.DataTypes import StageStatus, StageInfo, EventAnnouncer, StageKind, \
-    StageRemoved, ConfigurationUpdate
+    StageRemoved, ConfigurationUpdate, Configuration, Notice
 
 
 class C884Settings(BaseModel):
@@ -68,7 +68,7 @@ class PIStageInfo(StageInfo):
         return value
 
 
-class PIConfiguration(BaseModel):
+class PIConfiguration(Configuration):
     """
     State of a single PI controller. Required: SN, model, connection_type (with additional rs232 fields if required)
     """
@@ -126,9 +126,8 @@ class PIConfiguration(BaseModel):
 
 
 class PIController:
-    # TODO Implement event announcer
     def __init__(self):
-        self.EA = EventAnnouncer(StageStatus, StageInfo, StageRemoved, ConfigurationUpdate)
+        self.EA = EventAnnouncer(PIController, StageStatus, StageInfo, StageRemoved, Notice, ConfigurationUpdate)
         self._config = None
         self.SV = SettingsVault()
 
@@ -217,7 +216,7 @@ class PIController:
         else:
             raise Exception(f"Stage {name} not found in settings")
 
-    async def is_configuration_configured(self):
+    async def is_configuration_configured(self) -> tuple[int, bool]:
         raise NotImplementedError
 
 

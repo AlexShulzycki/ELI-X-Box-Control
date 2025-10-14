@@ -447,7 +447,7 @@ class C884(PIController):
         # Construct the configuration update
         print("Checking config update")
         update = ConfigurationUpdate(
-            identifier=self.config.identifier,
+            identifier=self.config.SN,
             message = message,
             configuration = self.config,
             finished = self.device.IsControllerReady()

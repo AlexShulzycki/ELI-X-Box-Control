@@ -26,7 +26,9 @@ class MockPIController(PIController):
         time.sleep(0.1)
         for stage in stages.values():
             if self.config.stages.__contains__(str(stage.channel)):
-                self._config.stages[str(stage.channel)].referenced = stage.referenced
+                if stage.referenced:
+                    # set the referencing time to 3 seconds
+                    self.time_when_referenced[stage.channel] = time.time() + 3
 
     async def load_stages(self, stages: dict[str, PIStage]):
         time.sleep(0.1)
@@ -128,14 +130,16 @@ class MockPIController(PIController):
 
         for key, ref in refstate.items():
             if ref:
+                # add to the message and "reference"
                 message += f", Channel {key} referenced "
+                # "reference"
+                self._config.stages[str(key)].referenced = True
 
-        finished = refstate.values().__contains__(False)  # if any channel is not referenced yet, don't reference
+        finished = not list(refstate.values()).__contains__(False)  # if any channel is not referenced yet, don't reference
 
         # Construct the configuration update
-        print("Checking config update")
         update = ConfigurationUpdate(
-            identifier=self.config.identifier,
+            identifier=self.config.SN,
             message=message,
             configuration=self.config,
             finished=finished
@@ -144,4 +148,4 @@ class MockPIController(PIController):
         self.EA.event(update)
 
         # Check if controller is ready, if True we don't need to run this function again
-        return finished
+        return self.config.SN, finished

@@ -11,7 +11,7 @@ class TestEventAnnouncer(TestCase):
         pass
 
     def test_subscribe_deliver_basic(self):
-        EA = EventAnnouncer(int, str)
+        EA = EventAnnouncer("EA1",int, str)
 
         strfunc = MagicMock()
         intfunc = MagicMock()
@@ -27,7 +27,7 @@ class TestEventAnnouncer(TestCase):
         intfunc.assert_called_with(5)
 
     def test_unsubscribe(self):
-        EA = EventAnnouncer(int, str)
+        EA = EventAnnouncer("EA2", int, str)
         sub = EA.subscribe(str)
         destination = MagicMock()
         sub.deliverTo(str, destination)
