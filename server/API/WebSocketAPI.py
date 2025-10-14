@@ -1,4 +1,5 @@
 import asyncio
+import json
 from enum import Enum
 from typing import Dict, Any
 
@@ -7,7 +8,7 @@ from pydantic import BaseModel, Field
 
 from server.Interface import toplevelinterface
 from server.StageControl.DataTypes import EventAnnouncer, StageStatus, StageInfo, StageRemoved, Notice, \
-    ConfigurationUpdate
+    ConfigurationUpdate, Configuration
 
 
 class ReqTypes(Enum):
@@ -142,13 +143,20 @@ class WebSocketAPI:
         }))
 
     def broadcastConfigurationUpdate(self, message: ConfigurationUpdate):
+
+        # Because pydantic will only dump to the base class in nested objects, we need to do it manually
+        if message.configuration is not None: # because we don't need to pass in a configuration
+            config = message.configuration.model_dump() # this will dump subclasses properly
+            message = message.model_dump() # pydantic says no I won't dump subclasses in properties
+            message["configuration"] = config # so we say yes you will
+
         asyncio.create_task(self.broadcast({
             "event": "ConfigurationUpdate",
-            "data": message # model dump only gives us the ConfigurationUpdate fields, namely only SN.
+            "data": message
         }))
 
     async def broadcast(self, json: dict[str, str]):
-        #print(f"Broadcasting event {json} to {len(self.active_connections)} active clients")
+        print(f"Broadcasting event {json} to {len(self.active_connections)} active clients")
         awaiters = []
         for connection in self.active_connections:
             awaiters.append(connection.send_json(json))

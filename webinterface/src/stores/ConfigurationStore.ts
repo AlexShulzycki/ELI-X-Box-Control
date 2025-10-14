@@ -117,6 +117,7 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
             }
         },
         newConfigurationUpdate(update: ConfigurationUpdate){
+            console.log("configuration update",update)
             // update configuration state if needed
             if(update.configuration != undefined){
                     this.updateConfigByID(update.configuration)
