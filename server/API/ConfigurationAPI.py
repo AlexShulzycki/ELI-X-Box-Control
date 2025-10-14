@@ -158,10 +158,10 @@ async def getRemoveSavedConfiguration(name: str):
         return SettingsResponse(success=False, error=str(e))
 
 @router.get("/get/loadConfiguration")
-async def getloadConfiguration(name: str):
+async def getloadConfiguration(background_tasks: BackgroundTasks, name: str):
     """load a configuration from disk"""
     saved = (await getSavedConfigurations()).configuration
-    return await updateConfiguration(saved[name])
+    return await updateConfiguration(background_tasks, saved[name])
 
 async def checkUntilConfigured(background_tasks: BackgroundTasks, ids_to_check: list[int]):
 
