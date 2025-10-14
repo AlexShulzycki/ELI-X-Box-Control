@@ -90,7 +90,7 @@ async def getStageFullstate():
     res: dict[int, FullState] = {}
     for key in info.keys():
         res[key] = FullState(
-            identifier=info[key].identifier,
+            identifier=info[key].SN,
             model=info[key].model,
             kind=info[key].kind,
             minimum=info[key].minimum,

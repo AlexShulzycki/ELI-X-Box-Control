@@ -3,7 +3,7 @@
 import {JsonForms, type JsonFormsChangeEvent} from "@jsonforms/vue";
 import {extendedVuetifyRenderers} from "@jsonforms/vue-vuetify";
 import type {SchemaNode} from "json-schema-library";
-import {ref} from "vue";
+import {reactive, ref} from "vue";
 import {type responseinterface, useConfigurationStore} from "@/stores/ConfigurationStore.ts";
 
 // Props and Emits
@@ -24,13 +24,14 @@ const renderers = Object.freeze([
 
 // Form data handling
 // If formdata is not null, then it contains valid data, according to the schema
-const formdata = ref<object | null>(null)
+let formdata: object = reactive({})
 
 // loading flag, informs if we are waiting for a request response
 const loading = ref<boolean>(false)
 
 // On form input change, verify if the input conforms to the schema, and update formdata
 const onChange = (event: JsonFormsChangeEvent) => {
+  console.log("onchange", event)
   if (event.errors == undefined) {
     // check if undefined
     return
@@ -39,10 +40,10 @@ const onChange = (event: JsonFormsChangeEvent) => {
   // The formdata variable also acts like a flag to show if the form inputs are valid
   if (event.errors.length > 0) {
     // Form input is not schema-compliant, so clear out the form data
-    formdata.value = null
+    formdata = {}
   } else {
     // If there are no errors in validation, copy over the form data
-    formdata.value = event.data;
+    formdata = event.data;
   }
 };
 
@@ -51,7 +52,7 @@ const onChange = (event: JsonFormsChangeEvent) => {
 const configstore = useConfigurationStore()
 
 function UpdateToServer() {
-  if (formdata.value == null) {
+  if (JSON.stringify(formdata) == JSON.stringify({})) {
     // No data to send, return.
     return;
   }
@@ -59,7 +60,7 @@ function UpdateToServer() {
   // Format the data, {key: list[config objects, more configs, ...]},
   // in our case only one config (from the form) is in the list
   let request = {
-    [schemanode.schema.title as string]: Array(formdata.value)
+    [schemanode.schema.title as string]: Array(formdata)
   }
 
   // lets change the button to loading
@@ -109,7 +110,9 @@ function UpdateToServer() {
     </v-container>
   </v-container>
   <v-container class="myform">
-    <v-btn @click="UpdateToServer" :disabled="formdata == null" :loading="loading">Submit Changes</v-btn>
+    <v-btn @click="UpdateToServer" v-bind:disabled="JSON.stringify(formdata) == JSON.stringify({})" :loading="loading">
+      Submit Changes
+    </v-btn>
     <json-forms :renderers="renderers" :schema="schemanode.schema" :data="serverdata" @change="onChange"/>
   </v-container>
 </template>

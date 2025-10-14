@@ -146,9 +146,14 @@ class WebSocketAPI:
 
         # Because pydantic will only dump to the base class in nested objects, we need to do it manually
         if message.configuration is not None: # because we don't need to pass in a configuration
-            config = message.configuration.model_dump() # this will dump subclasses properly
-            message = message.model_dump() # pydantic says no I won't dump subclasses in properties
-            message["configuration"] = config # so we say yes you will
+            config = message.configuration.model_dump_json() # this will dump subclasses properly
+            message = message.model_dump_json() # pydantic says no I won't dump subclasses in properties
+
+            # force-feed into dicts
+            message = json.loads(message)
+            config = json.loads(config)
+
+            message["configuration"] = config # we now have a proper json-ready dict
 
         asyncio.create_task(self.broadcast({
             "event": "ConfigurationUpdate",

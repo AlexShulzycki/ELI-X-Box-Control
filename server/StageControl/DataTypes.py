@@ -68,7 +68,7 @@ class Notice(BaseModel):
 
 class ConfigurationUpdate(BaseModel):
     """Update to the configuration state"""
-    identifier: int
+    SN: int
     """Identifier of the configuration object"""
     message: str
     """Description that can be displayed to the user"""

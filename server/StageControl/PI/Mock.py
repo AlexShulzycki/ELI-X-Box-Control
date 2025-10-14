@@ -139,7 +139,7 @@ class MockPIController(PIController):
 
         # Construct the configuration update
         update = ConfigurationUpdate(
-            identifier=self.config.SN,
+            SN=self.config.SN,
             message=message,
             configuration=self.config,
             finished=finished

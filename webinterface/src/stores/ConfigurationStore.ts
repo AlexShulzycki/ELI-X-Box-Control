@@ -71,7 +71,6 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
             let responseArray: object[] = []
             if (res.status == 200) {
                 // Successful request, lets read the response
-                console.log("received update response to update request", res.data, config)
                 // format the data into an array explicitly
                 res.data.forEach((item: object) => {
                     responseArray.push(item)
@@ -96,21 +95,20 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
         },
         updateConfigByID: function (config: object) {
             try {
-                const id = (config as Configuration).identifier
+                const id = (config as Configuration).SN
                 if (this.getConfigsByID.has(id)) {
                     // go through each configuration
                     this.serverConfigs.forEach((config_list, key) => {
                         // go through the list
                         config_list.forEach((value, index) => {
-                            if ((value as Configuration).identifier == id) {
+                            if ((value as Configuration).SN == id) {
                                 // found it, update please
+                                console.log("found it")
                                 config_list[index] = config
                                 return
                             }
                         })
                     })
-                    // we havent found it
-                    console.log("Could not find configuration with id "+id)
                 }
             } catch (e) {
                 console.log("Unable to update config: " + config)
@@ -123,16 +121,18 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
                     this.updateConfigByID(update.configuration)
                 }
             // first check if exists and the status of the queue
-            if(this.configurationUpdates.has(update.identifier)){
+            // serial number is an integer, convert it
+            update.SN = Number(update.SN)
+            if(this.configurationUpdates.has(update.SN)){
                 // get relevant queue
-                const queue = this.configurationUpdates.get(update.identifier)
+                const queue = this.configurationUpdates.get(update.SN)
                 // if nonexistent, empty, or last item is finished
                 if((queue == undefined) || (queue.length == 0) || (queue[-1].finished)){
                     // overwrite with this new update
-                    this.configurationUpdates.set(update.identifier, [update])
+                    this.configurationUpdates.set(update.SN, [update])
                 }else{
                     // append to the end
-                    this.configurationUpdates.get(update.identifier)?.push(update)
+                    this.configurationUpdates.get(update.SN)?.push(update)
                 }
             }
         }
@@ -150,7 +150,7 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
             state.serverConfigs.forEach((config_list, key) => {
                 config_list.forEach((value) => {
                     try {
-                        res.set((value as Configuration).identifier, value)
+                        res.set((value as Configuration).SN, value)
                     } catch (e) {
                         console.log(e)
                         window.alert("Error parsing received configuration")
@@ -171,14 +171,14 @@ export interface responseinterface {
 }
 
 export interface ConfigurationUpdate {
-    identifier: number;
+    SN: number;
     message: string,
     configuration?: object,
     finished: boolean,
 }
 
 export interface Configuration {
-    identifier: number
+    SN: number
 }
 
 function parseConfigs(data: object, schemas: Map<string, any>) {
