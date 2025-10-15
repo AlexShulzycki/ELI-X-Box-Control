@@ -9,6 +9,7 @@ const emit = defineEmits(['changetree'])
 const stageStore = useStageStore()
 let res = ref<moveStageResponse>({success: true})
 const idselect = ref(id)
+const offset = ref(1)
 
 function moveBy(offset: number){
   stageStore.stepStage(idselect.value, offset).then((value)=>{
@@ -41,34 +42,30 @@ const state = computed(()=>{
 </script>
 
 <template>
-  <div v-if="state !== undefined" >
-    <div v-if="!res.success">
+  <v-card v-if="state !== undefined"  width="auto" max-width="25%" text-no-wrap>
+    <v-card-item v-if="!res.success">
       Error: {{res.error}}
-    </div>
-    <h5>ID: {{state.identifier}}</h5>
-    <p>Connected: {{state.connected}}</p>
-    <p>Ready: {{state.ready}}</p>
-    <p>Type: {{state.kind}}</p>
-    <p>Min-Max: {{state.minimum}}mm - {{state.maximum}}mm</p>
-    <p><b>On Target? {{state.ontarget}}</b></p>
-    <div>
-      <table>
-        <tbody>
-        <tr>
-          <th></th>
-          <th><h6>Position</h6></th>
-          <th></th>
-        </tr>
-        <tr>
-          <td><button @click="moveBy(-40)">Decrease</button></td>
-          <td>{{state.position}}</td>
-          <td><button @click="moveBy(40)">Increase</button></td>
-        </tr>
-        </tbody>
-      </table>
+    </v-card-item>
+    <v-card-title>ID: {{state.identifier}}</v-card-title>
+    <v-card-text>Connected: {{state.connected}}</v-card-text>
+    <v-card-text>Ready: {{state.ready}}</v-card-text>
+    <v-card-text>Type: {{state.kind}}</v-card-text>
+    <v-card-text>Min-Max: {{state.minimum}}mm - {{state.maximum}}mm</v-card-text>
+    <v-card-text><b>On Target? {{state.ontarget}}</b></v-card-text>
+    <v-card-item>
+        <v-row>
+          <v-col></v-col>
+          <v-col><h6>Position</h6></v-col>
+          <v-col></v-col>
+        </v-row>
+        <v-row>
+          <v-col><v-btn @click="moveBy(-offset)">Decrease</v-btn></v-col>
+          <v-col>{{state.position}}</v-col>
+          <v-col><v-btn @click="moveBy(offset)">Increase</v-btn></v-col>
+        </v-row>
 
-    </div>
-  </div>
+    </v-card-item>
+  </v-card>
   <div v-else>
     ID: <select v-model="idselect" @change="$emit('changetree', {id: idselect})"> <option v-for="ident in stageStore.getStageIDs">{{ident}}</option> </select>
   </div>

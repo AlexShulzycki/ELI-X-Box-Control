@@ -44,7 +44,7 @@ export const useStageStore = defineStore('AxisState', {
                 "identifier": id,
                 "position": position
             }
-            const res = await axios.get("/get/stage/move/", {params: data})
+            const res = await axios.get("/get/stage/move", {params: data})
             if(res.status === 200){
                 return res.data as moveStageResponse
             }
@@ -54,7 +54,7 @@ export const useStageStore = defineStore('AxisState', {
                 "identifier": id,
                 "step": step
             }
-            const res = await axios.get("/get/stage/step/", {params: data})
+            const res = await axios.get("/get/stage/step", {params: data})
             if(res.status === 200){
                 return res.data as moveStageResponse
             }
