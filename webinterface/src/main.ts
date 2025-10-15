@@ -57,21 +57,37 @@ import {
     type StageRemoved
 } from "@/stores/StageStore.ts";
 import {type ConfigurationUpdate, useConfigurationStore} from "@/stores/ConfigurationStore.ts";
+import {useSettingsStore} from "@/stores/SettingsStore.ts";
 
 
 const stagestore = useStageStore();
 const configstore = useConfigurationStore();
+const settingsStore = useSettingsStore();
 
 class WSClient {
 
     constructor(private ws: WebSocket) {
         this.ws = ws
+        this.init_ws_behavior()
 
-        ws.onopen = () => {
-            console.log('Connected to server');
+        // check if we are even connected in the first place, try again otherwise.
+        // we do this because if we fail to connect on startup, the onclose function does not trigger.
+        if(this.ws.readyState === WebSocket.CLOSED) {
+            this.ws = new WebSocket(this.ws.url)
+            this.init_ws_behavior()
         }
 
-        ws.onmessage = (event) => {
+    }
+
+    init_ws_behavior(){
+        // assign functions to the new websocket
+        this.ws.onopen = () => {
+            console.log('Connected to server');
+            // update the state
+            settingsStore.websocketConnected = true
+        }
+
+        this.ws.onmessage = (event) => {
             console.log(`Message from server: ${event.data}`);
             try {
                 const parsed = <WSMessage>JSON.parse(event.data)
@@ -81,8 +97,20 @@ class WSClient {
             }
         }
 
-        ws.onclose = () => {
+        this.ws.onclose = () => {
             console.log('Connection closed');
+            // update the state
+            settingsStore.websocketConnected = false
+            // try to reconnect
+            setTimeout(function(wsclient: WSClient){
+                // extract the current url
+                const url = wsclient.ws.url
+                // create a new websocket
+                wsclient.ws = new WebSocket(url)
+                // give it the proper functions it needs
+                wsclient.init_ws_behavior()
+            }, 500, this)
+
         }
     }
 
