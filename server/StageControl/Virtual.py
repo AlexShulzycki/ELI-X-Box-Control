@@ -21,6 +21,7 @@ class VirtualStageInfo(Configuration):
             maximum=self.maximum
         )
 
+
 class VirtualSettings:
 
     def __init__(self):
