@@ -3,6 +3,7 @@ import {reactive, ref} from "vue";
 import axios from "axios";
 import {type FullState, useStageStore} from "@/stores/StageStore.ts";
 import {getSetting, type localAxisSetting} from "@/components/CustomUI/XES/xes.ts";
+import TriangleView from "@/components/CustomUI/TriangleView.vue";
 
 // stage store since we want to move the motors
 const stageStore = useStageStore();
@@ -125,12 +126,13 @@ function Calculate(clickevent: Event) {
   }
 
   // Let the user know we're working on it...
-  clickevent.target.disabled = true
+  //clickevent.target.disabled = true
 
+  console.log("Calculation request", request)
   // Lets generate a request!
   axios.post("post/geometry/ManualAlignment", request).then((response) => {
     if (response.status === 200) {
-      clickevent.target.disabled = false
+      //clickevent.target.disabled = false
       // We need to assign the response, otherwise just replacing it loses reactivity
       Object.assign(alignment, response.data as Alignment)
     } else {
@@ -219,18 +221,17 @@ function clickTable(event: Event, order: number) {
         <tr>
           <td>
             <v-input type="radio" id="crystal_radio" value="crystal" v-model="lattice_input_radio"/>
-            <label for="crystal_radio"> Crystal </label>
+            <v-label for="crystal_radio"> Crystal</v-label>
           </td>
           <td>
             <v-input type="radio" id="lattice_radio" value="manual" v-model="lattice_input_radio"/>
-            <label for="lattice_radio"> Manual lattice constant </label>
+            <v-label for="lattice_radio"> Manual lattice constant</v-label>
           </td>
         </tr>
         <tr>
           <td>
-            <v-select id="crystal_dropdown" v-model="crystal_dropdown">
-              <option v-for="[key,crystal] in crystals.entries()" :value="crystal">{{ crystal.name }}</option>
-            </v-select>
+            <v-select id="crystal_dropdown" v-model="crystal_dropdown" v-bind:items="Array.from(crystals.values())"
+                      item-title="name" return-object/>
           </td>
           <td>
             <v-input type="number" id="lattice_manual_input" v-model="lattice_manual"/>
@@ -246,15 +247,19 @@ function clickTable(event: Event, order: number) {
         <tr>
           <td style="column-span:2">
             <v-radio-group v-model="energy_input_radio" inline>
-              <v-radio label="From Database" :value="'database'"/>
+              <v-radio label="From Database" value="database"/>
               <v-radio label="Manual Energy Input" value="manual"/>
             </v-radio-group>
           </td>
         </tr>
         <tr>
           <td>
-            <v-select id="element_dropdown" v-model="element_dropdown">
-              <option v-for="[key, element] in elements.entries()" :value="element">{{ element.name }}</option>
+            <v-select id="element_dropdown" v-model="element_dropdown" v-bind:items="Array.from(elements.values())"
+                      item-title="name" return-object>
+              <template v-slot:item="{ props: itemProps, item }">
+                <v-list-item v-bind="itemProps" :title="item.raw.name" :subtitle="item.raw.symbol">
+                </v-list-item>
+              </template>
             </v-select>
           </td>
           <td>
@@ -269,15 +274,16 @@ function clickTable(event: Event, order: number) {
     <div>
       <h3>Calculate and Choose Energy</h3>
       <v-btn @click="Calculate($event)">Calculate</v-btn>
-      <!-- These values are fetched from the calculation -->
-      <v-select id="energy_line" v-model="energy_line">
-        <option v-if="alignment.element.EmissionEnergy != undefined"
-                v-for="[line, energy] in Object.entries(alignment.element.EmissionEnergy)" :value="line">
-          {{ line }}: {{ energy }}
-        </option>
+      <!-- These values are fetched from the calculation. Extremely hacky implementation with vuetify, thankfully passing [0] as the value for an array of arrays selects the first item -->
+      <v-select id="energy_line" v-model="energy_line" v-bind:items="Object.entries(alignment.element.EmissionEnergy)"
+                item-value="[0]">
+        <template v-slot:item="{ props: itemProps, item }">
+          <v-list-item v-bind="itemProps" :title="item.raw[0]" :subtitle="item.raw[1]"></v-list-item>
+        </template>
       </v-select>
-      <table>
-        <tbody>
+      <v-table striped="even">
+
+        <thead>
         <tr>
           <th>
             n
@@ -292,12 +298,14 @@ function clickTable(event: Event, order: number) {
             Theta
           </th>
         </tr>
+        </thead>
+        <tbody>
         <!--Apparently the index starts at 1 in the v-for in vue, fantastic.-->
         <tr v-if="energy_line != undefined" v-for="order in alignment.order" @click="clickTable($event, order)">
           <td>
             {{ order }}
           </td>
-          <!-- apparently I cannot just do index[0], index[1], so we do a two iteration v-for -->
+          <!-- apparently I cannot just do index[0], index[1], so we do a two iteration v-for TODO make this nicer-->
           <td v-if="alignment.XES_Triangles[energy_line] != undefined"
               v-for="val in alignment.XES_Triangles[energy_line][order-1] ">
             {{ Math.round(val * 100) / 1000 }}
@@ -308,12 +316,12 @@ function clickTable(event: Event, order: number) {
 
         </tr>
         </tbody>
-      </table>
+      </v-table>
     </div>
 
   </div>
   <div class="right_box">
-    <canvas id="canvas"></canvas>
+    <TriangleView v-bind:a="selected.a" v-bind:c="selected.c" v-bind:theta="selected.theta"/>
     <h3>Selected Positions:</h3>
     <table style="text-align: center;">
       <tbody>
