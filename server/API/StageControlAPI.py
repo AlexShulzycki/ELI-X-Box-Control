@@ -108,10 +108,9 @@ class MoveStageResponse(BaseModel):
 
 
 @router.get("/get/stage/move")
-async def moveStage(background_tasks: BackgroundTasks, identifier: int, position: int) -> MoveStageResponse:
+async def moveStage(background_tasks: BackgroundTasks, identifier: int, position: float) -> MoveStageResponse:
     """
     Moves the indicated stage
-    :param request: Request
     :return: Response
     """
     try:
@@ -123,7 +122,7 @@ async def moveStage(background_tasks: BackgroundTasks, identifier: int, position
 
 
 @router.get("/get/stage/step")
-async def stepStage(background_tasks: BackgroundTasks, identifier: int, step: int) -> MoveStageResponse:
+async def stepStage(background_tasks: BackgroundTasks, identifier: int, step: float) -> MoveStageResponse:
     try:
         await toplevelinterface.stepStage(identifier, step)
         background_tasks.add_task(checkUntilOnTarget, background_tasks, [identifier])

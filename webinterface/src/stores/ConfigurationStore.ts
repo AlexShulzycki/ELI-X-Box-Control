@@ -116,10 +116,6 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
         },
         newConfigurationUpdate(update: ConfigurationUpdate) {
             console.log("configuration update", update)
-            // update configuration state if needed
-            if (update.configuration != null) {
-                this.updateConfigByID(update.configuration)
-            }
             // first check if exists and the status of the queue
             // serial number is an integer, convert it
             update.SN = Number(update.SN)
@@ -130,11 +126,21 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
                 if ((queue.length == 0) || (queue[queue.length - 1].finished)) {
                     // overwrite with this new update
                     this.configurationUpdates.set(update.SN, [update])
+
+                    // update configuration state if needed
+                    if (update.configuration != null) {
+                        this.updateConfigByID(update.configuration)
+                    }
                 } else {
                     // check if we indeed have a new update
                     if (queue[queue.length - 1].message != update.message) {
                         // append to the end
                         this.configurationUpdates.get(update.SN)?.push(update)
+
+                        // update configuration state if needed
+                        if (update.configuration != null) {
+                            this.updateConfigByID(update.configuration)
+                        }
                     }
                 }
             } else {
@@ -168,9 +174,9 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
         getIsUpdateQueueNotFinished: (state) => {
             let res = new Map<number, boolean>()
             state.configurationUpdates.forEach((value, key) => {
-                if(value[value.length - 1].finished) {
+                if (value[value.length - 1].finished) {
                     res.set(key, false)
-                }else{
+                } else {
                     res.set(key, true)
                 }
             })
