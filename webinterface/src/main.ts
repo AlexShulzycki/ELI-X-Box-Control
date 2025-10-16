@@ -141,7 +141,8 @@ class WSClient {
         } else if (message.event == "ConfigurationUpdate") {
             try{
                 // update specific configuration
-                configstore.newConfigurationUpdate(message.data as ConfigurationUpdate)
+                const msg = JSON.parse(message.data) as ConfigurationUpdate
+                configstore.newConfigurationUpdate(msg)
 
             }catch (e) {
                 console.log("configuration update error", e)

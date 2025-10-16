@@ -78,9 +78,12 @@ class C884(PIController):
         if not (self.config.connected and config.connected):
             # open connection handles channel_amount as well
             print("opening connection")
-            self.EA.event(Notice(message="opening connection"))
+            self.EA.event(ConfigurationUpdate(SN=config.SN, message="Connecting"))
             await self.openConnection(config)
 
+        # send an update for the user
+        update = ConfigurationUpdate(SN=config.SN, message="New configuration received")
+        self.EA.event(update)
 
         # if no stages are given, we read the stages from the controller and not overwrite anything
         if len(config.stages) == 0:
@@ -90,15 +93,13 @@ class C884(PIController):
 
         # Otherwise, we now need to update the stages
         print("loading new stages")
-
-        self.EA.event(Notice(message="loading new stage names"))
         await self.loadStagesToC884(config.stages)
 
-        self.EA.event(Notice(message="enabling closed loop operation"))
+
         print("setting CLO")
         await self.setServoCLO(config.stages)
 
-        self.EA.event(Notice(message="referencing"))
+
         print("Referencing")
         await self.reference(config.stages)
 
@@ -289,13 +290,17 @@ class C884(PIController):
                 fetched = self.fetchPIStageData(dev[ax], SV.readonly["PIStages"])
 
                 # Generate the PIStage object from what we learned
-                status.stages[ax] = PIStage(
-                    channel=ax,
-                    referenced=refd[ax],
-                    clo=clod[ax],
-                    device=dev[ax],
-                    kind=StageKind(fetched["type"])
-                )
+                try:
+                    status.stages[ax] = PIStage(
+                        channel=ax,
+                        referenced=refd[ax],
+                        clo=clod[ax],
+                        device=dev[ax],
+                        kind=StageKind(fetched["type"])
+                    )
+                except Exception as e:
+                    raise Exception(f"Error reading stages from settings/readonly/PIStages.json: {e}")
+
 
         self._config = status
 
@@ -438,6 +443,7 @@ class C884(PIController):
 
         # The only PI configuration we need to query periodically for is if everything is referenced
         refstate = self.device.qFRF()
+        print("refstate", refstate)
         message = "Referencing"
 
         for key, ref in refstate.items():
@@ -445,18 +451,17 @@ class C884(PIController):
                 message += f", Channel {key} referenced "
 
         # Construct the configuration update
-        print("Checking config update")
         update = ConfigurationUpdate(
             SN=self.config.SN,
             message = message,
             configuration = self.config.toPIAPI(),
-            finished = self.device.IsControllerReady()
+            finished = self.device.isavailable
         )
 
         self.EA.event(update)
 
         # Check if controller is ready, if True we don't need to run this function again
-        return self.config.SN, self.device.IsControllerReady()
+        return self.config.SN, self.device.isavailable
 
     def shutdown_and_cleanup(self):
         self.__exit__()

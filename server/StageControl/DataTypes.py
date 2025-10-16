@@ -72,9 +72,9 @@ class ConfigurationUpdate(BaseModel):
     """Identifier of the configuration object"""
     message: str
     """Description that can be displayed to the user"""
-    configuration: Configuration|None
+    configuration: Configuration|None = None
     """New configuration state"""
-    finished: bool
+    finished: bool = False
     """Whether something is still happening, and you should expect another
     ConfigurationUpdate soon"""
 

@@ -143,7 +143,7 @@ class WebSocketAPI:
         }))
 
     def broadcastConfigurationUpdate(self, message: ConfigurationUpdate):
-
+        print("configurationupdate broadcast")
         # Because pydantic will only dump to the base class in nested objects, we need to do it manually
         if message.configuration is not None: # because we don't need to pass in a configuration
             config = message.configuration.model_dump_json() # this will dump subclasses properly
@@ -154,6 +154,10 @@ class WebSocketAPI:
             config = json.loads(config)
 
             message["configuration"] = config # we now have a proper json-ready dict
+            message = json.dumps(message)
+        else:
+            # just do a regular JSON serialization
+            message = json.dumps(message.model_dump_json())
 
         asyncio.create_task(self.broadcast({
             "event": "ConfigurationUpdate",

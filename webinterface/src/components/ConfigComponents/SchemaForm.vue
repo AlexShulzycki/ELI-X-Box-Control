@@ -46,7 +46,6 @@ const onChange = (event: JsonFormsChangeEvent) => {
     // If there are no errors in validation, copy over the form data
     formdata = event.data;
   }
-  console.log("onchange", event, JSON.stringify(formdata) == JSON.stringify({}))
   disabled.value = JSON.stringify(formdata) == JSON.stringify({})
 };
 

@@ -117,7 +117,7 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
         newConfigurationUpdate(update: ConfigurationUpdate) {
             console.log("configuration update", update)
             // update configuration state if needed
-            if (update.configuration != undefined) {
+            if (update.configuration != null) {
                 this.updateConfigByID(update.configuration)
             }
             // first check if exists and the status of the queue
