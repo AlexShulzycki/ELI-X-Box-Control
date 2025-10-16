@@ -22,17 +22,17 @@ export function getSetting(key: string): null | localAxisSetting {
     const item = localStorage.getItem(key)
     if (!item) return null;
     else {
-        try{
+        try {
             // check if its an localaxissetting object
             const ob = JSON.parse(item) as localAxisSetting;
 
             // Very fucky type check, I don't like this at all
-            if(ob.identifier == undefined){
+            if (ob.identifier == undefined) {
                 return null;
-            }else{
+            } else {
                 return ob
             }
-        }catch(err){
+        } catch (err) {
             console.log(err)
             return null
         }
@@ -41,7 +41,15 @@ export function getSetting(key: string): null | localAxisSetting {
 }
 
 export function saveSetting(key: string, value: localAxisSetting) {
-    localStorage.setItem(key, JSON.stringify(value));
+    // WE HAVE TO MANUALLY SEND AN EVENT, otherwise it will not be registered by other tabs in the same app.
+    const newvalue = JSON.stringify(value)
+    localStorage.setItem(key, newvalue);
+    const event = new StorageEvent('storage', {
+        key: key,
+        newValue: newvalue
+    });
+
+    window.dispatchEvent(event);
 }
 
 export function load_prepopulate(axmap: Map<string, localAxisSetting>) {
@@ -50,8 +58,8 @@ export function load_prepopulate(axmap: Map<string, localAxisSetting>) {
         const val = getSetting(key)
         if (!val) {
             // Not there, prepopulate with some defaults. 0 is a flag for null.
-            axmap.set(key, {identifier:0, reversed:false, offset: 0})
-            saveSetting(key, {identifier:0, reversed:false, offset: 0})
+            axmap.set(key, {identifier: 0, reversed: false, offset: 0})
+            saveSetting(key, {identifier: 0, reversed: false, offset: 0})
         } else {
             // its there, lets load it in
             try {
@@ -63,23 +71,23 @@ export function load_prepopulate(axmap: Map<string, localAxisSetting>) {
     })
 }
 
-export function updateMapFromStorage(e: StorageEvent, map: Map<string, localAxisSetting>){
+export function updateMapFromStorage(e: StorageEvent, map: Map<string, localAxisSetting>) {
 
-  if (!e.key || !map.get(e.key)) {
-    // not relevant to us, return
-    return
-  } else {
-    // if null then just skip
-    try {
-      if (!e.newValue) {
+    if (!e.key || !map.get(e.key)) {
+        // not relevant to us, return
         return
-      } else {
-        // update the object
-        map.set(e.key, JSON.parse(e.newValue) as localAxisSetting);
-      }
-    } catch (e) {
-      console.log(e)
-    }
+    } else {
+        // if null then just skip
+        try {
+            if (!e.newValue) {
+                return
+            } else {
+                // update the object
+                map.set(e.key, JSON.parse(e.newValue) as localAxisSetting);
+            }
+        } catch (e) {
+            console.log(e)
+        }
 
-  }
+    }
 }

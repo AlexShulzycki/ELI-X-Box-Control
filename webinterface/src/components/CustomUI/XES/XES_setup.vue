@@ -19,11 +19,6 @@ const axes = reactive(new Map<string, localAxisSetting>())
 // load and or prepopulate
 load_prepopulate(axes)
 
-// Update our reactive map when storage changes
-window.addEventListener("storage", (e) => {
-  updateMapFromStorage(e, axes)
-})
-
 function selectID(event, key: string) {
   let current = getSetting(key)
   if (!current) return
@@ -45,7 +40,10 @@ function setOffset(event, key: string) {
   saveSetting(key, current)
 }
 
-
+// Update our reactive map when storage changes
+window.onstorage = (e) => {
+  updateMapFromStorage(e, axes)
+}
 </script>
 
 <template>
