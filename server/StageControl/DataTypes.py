@@ -77,6 +77,8 @@ class ConfigurationUpdate(BaseModel):
     finished: bool = False
     """Whether something is still happening, and you should expect another
     ConfigurationUpdate soon"""
+    error: bool = False
+    """If this ConfigurationUpdate heralds bad news"""
 
 class ControllerInterface:
     """

@@ -191,6 +191,7 @@ export interface ConfigurationUpdate {
     message: string,
     configuration?: object,
     finished: boolean,
+    error: boolean
 }
 
 export interface Configuration {

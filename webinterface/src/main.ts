@@ -88,9 +88,10 @@ class WSClient {
         }
 
         this.ws.onmessage = (event) => {
-            console.log(`Message from server: ${event.data}`);
+            //console.log(`Message from server: ${event.data}`);
             try {
                 const parsed = <WSMessage>JSON.parse(event.data)
+                console.log("received WS: ", parsed)
                 this.receive(parsed)
             } catch (e) {
                 console.log("Error parsing to JSON" + e)
@@ -141,8 +142,7 @@ class WSClient {
         } else if (message.event == "ConfigurationUpdate") {
             try{
                 // update specific configuration
-                const msg = JSON.parse(message.data) as ConfigurationUpdate
-                configstore.newConfigurationUpdate(msg)
+                configstore.newConfigurationUpdate(message.data)
 
             }catch (e) {
                 console.log("configuration update error", e)

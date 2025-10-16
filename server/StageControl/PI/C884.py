@@ -53,6 +53,8 @@ class C884(PIController):
         # Start up GCS device
         self.device: GCSDevice.gcsdevice = GCSDevice("C-884").gcsdevice
         """GCSDevice instance, DO NOT ACESS/MODIFY OUTSIDE OF THE C884 CLASS"""
+        self.being_referenced = []
+        """List of axes we are currently referencing, because PI doesn't know :)"""
         super().__init__()
 
     async def updateFromConfig(self, config: PIConfiguration):
@@ -233,6 +235,10 @@ class C884(PIController):
         :param stages: PIStage objects we pull data from.
         :return:
         """
+        # clear the list of stages we are currently referencing
+        self.being_referenced = []
+
+        # check if we are ready, if we are requesting anything to be referenced in the first place
         self.checkReady()
         if stages is None:
             return
@@ -249,6 +255,8 @@ class C884(PIController):
                 elif stage.referenced:
                     # We would like to request this stage to be referenced
                     req.append(stage.channel)
+                    # add to the list of stages we are referencing
+                    self.being_referenced.append(stage.channel)
 
             if len(req) != 0:
                 # Ask the controller to reference. Make sure the request is not empty.
@@ -443,25 +451,39 @@ class C884(PIController):
 
         # The only PI configuration we need to query periodically for is if everything is referenced
         refstate = self.device.qFRF()
-        print("refstate", refstate)
+        print("refstate, being_referenced", refstate, self.being_referenced)
         message = "Referencing"
 
-        for key, ref in refstate.items():
-            if ref:
-                message += f", Channel {key} referenced "
+        for reffing in self.being_referenced:
+            if refstate.__contains__(str(reffing)):
+                # we have it (we should!)
+                if refstate.get(str(reffing)):
+                    # add to the message and remove from list of axes being referenced
+                    message += f", Channel {reffing} referenced "
+                    self.being_referenced.remove(reffing)
+            else:
+                # something has gone wrong! tell the user and remove from list
+                self.EA.event(ConfigurationUpdate(SN=self.config.SN,message=f"could not find channel {reffing}", error=True))
+                self.being_referenced.remove(reffing)
+
 
         # Construct the configuration update
+        if len(self.being_referenced)==0:
+            message = "Ready"
+
+        await self.refreshFullStatus()
+
         update = ConfigurationUpdate(
             SN=self.config.SN,
             message = message,
             configuration = self.config.toPIAPI(),
-            finished = self.device.isavailable
+            finished = len(self.being_referenced)==0,
         )
-
         self.EA.event(update)
 
+
         # Check if controller is ready, if True we don't need to run this function again
-        return self.config.SN, self.device.isavailable
+        return self.config.SN, len(self.being_referenced)==0
 
     def shutdown_and_cleanup(self):
         self.__exit__()

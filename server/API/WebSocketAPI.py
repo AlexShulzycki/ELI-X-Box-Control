@@ -154,10 +154,10 @@ class WebSocketAPI:
             config = json.loads(config)
 
             message["configuration"] = config # we now have a proper json-ready dict
-            message = json.dumps(message)
+
         else:
             # just do a regular JSON serialization
-            message = json.dumps(message.model_dump_json())
+            message = json.loads(message.model_dump_json())
 
         asyncio.create_task(self.broadcast({
             "event": "ConfigurationUpdate",

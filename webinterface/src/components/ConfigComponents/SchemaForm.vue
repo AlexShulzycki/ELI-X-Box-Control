@@ -105,7 +105,7 @@ function UpdateToServer() {
         <v-timeline direction="horizontal"
                     v-if="formdata.SN != undefined && configstore.configurationUpdates.get(formdata.SN)" side="end">
           <v-timeline-item v-for="event in configstore.configurationUpdates.get(formdata.SN)"
-                           v-bind:dot-color="event.finished?'green':'orange'">
+                           v-bind:dot-color="event.error?'red':event.finished?'green':'orange'">
             {{ event.message }}
           </v-timeline-item>
         </v-timeline>
