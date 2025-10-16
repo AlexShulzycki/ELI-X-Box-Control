@@ -219,22 +219,21 @@ function clickTable(event: Event, order: number) {
       <table style="margin: auto;">
         <tbody>
         <tr>
-          <td>
-            <v-input type="radio" id="crystal_radio" value="crystal" v-model="lattice_input_radio"/>
-            <v-label for="crystal_radio"> Crystal</v-label>
-          </td>
-          <td>
-            <v-input type="radio" id="lattice_radio" value="manual" v-model="lattice_input_radio"/>
-            <v-label for="lattice_radio"> Manual lattice constant</v-label>
+          <td colspan="2">
+            <v-radio-group v-model="lattice_input_radio" inline>
+              <v-radio id="crystal_radio" label="Crystal" value="crystal"/>
+              <v-radio id="lattice_radio" label="Manual lattice constant" value="manual"/>
+            </v-radio-group>
           </td>
         </tr>
         <tr>
-          <td>
+          <td v-if="lattice_input_radio=='crystal'">
             <v-select id="crystal_dropdown" v-model="crystal_dropdown" v-bind:items="Array.from(crystals.values())"
                       item-title="name" return-object/>
           </td>
-          <td>
-            <v-input type="number" id="lattice_manual_input" v-model="lattice_manual"/>
+          <td v-else>
+            <v-number-input id="lattice_manual_input" v-model="lattice_manual" control-variant="hidden"
+            />
           </td>
         </tr>
         </tbody>
@@ -253,7 +252,7 @@ function clickTable(event: Event, order: number) {
           </td>
         </tr>
         <tr>
-          <td>
+          <td v-if="energy_input_radio=='database'">
             <v-select id="element_dropdown" v-model="element_dropdown" v-bind:items="Array.from(elements.values())"
                       item-title="name" return-object>
               <template v-slot:item="{ props: itemProps, item }">
@@ -262,9 +261,8 @@ function clickTable(event: Event, order: number) {
               </template>
             </v-select>
           </td>
-          <td>
-            <v-input type="number" id="energy_manual_input" v-model="energy_manual"/>
-            eV
+          <td v-else>
+            <v-number-input label="eV" type="number" control-variant="hidden" id="energy_manual_input" v-model="energy_manual"/>
           </td>
         </tr>
         </tbody>
