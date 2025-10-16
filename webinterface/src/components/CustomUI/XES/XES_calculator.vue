@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {reactive, ref} from "vue";
+import {reactive, ref, useTemplateRef} from "vue";
 import axios from "axios";
 import {type FullState, useStageStore} from "@/stores/StageStore.ts";
 import {getSetting, type localAxisSetting} from "@/components/CustomUI/XES/xes.ts";
@@ -18,6 +18,10 @@ const energy_input_radio = ref("database")
 const element_dropdown = ref<Element>()
 const energy_manual = ref()
 const energy_line = ref()
+
+const energy_dropdown = ref<Element>()
+const has_server_data = ref(false)
+const waiting_for_server_data = ref(false)
 
 // On load, we want to request for available crystal data and element data
 interface Crystal {
@@ -51,6 +55,7 @@ let alignment: Alignment = reactive({
 // this is how we fetch it (right as we load the page)
 axios.get("get/geometry/CrystalData").then((response) => {
   if (response.status === 200) {
+    // load in the crystals
     crystals.clear()
     Object.entries(response.data).forEach((entry) => {
       crystals.set(entry[0], entry[1] as Crystal)
@@ -67,7 +72,6 @@ axios.get("get/geometry/ElementData").then((response) => {
     Object.entries(response.data).forEach((entry) => {
       elements.set(entry[0], entry[1] as Element)
     })
-
   } else {
     window.alert("Couldn't fetch element data, error: " + response.statusText);
   }
@@ -86,14 +90,27 @@ interface Alignment {
   XES_Triangles: { [key: string]: number[][] },
 }
 
-function Calculate(clickevent: Event) {
+async function Calculate() {
   // We look at the given inputs and decide a course of action
+
+  // since this function is fired immediately on change, there is a chance that we access values before they're updated,
+  // (hello vuetify select component I hate you) so we wait a tiny bit. Abysmal fix, you're welcome to find a better one.
+  const delay = (delayInms:number) => {
+    return new Promise(resolve => setTimeout(resolve, delayInms));
+  };
+  await delay(200)
 
   // Lets generate a Crystal object
   let reqCrystal: Crystal | undefined = undefined
   if (lattice_input_radio.value == "crystal") {
     // making a non-reactive copy, I love vue
-    reqCrystal = JSON.parse(JSON.stringify(crystal_dropdown.value)) as Crystal
+    try {
+      reqCrystal = JSON.parse(JSON.stringify(crystal_dropdown.value)) as Crystal
+    } catch (e) {
+      //couldn't stringify, probably not ready yet
+      return
+    }
+
   } else if (lattice_input_radio.value == "manual") {
     reqCrystal = {
       material: "custom",
@@ -110,7 +127,12 @@ function Calculate(clickevent: Event) {
   //Lets generate an Element object
   let reqElement: Element | undefined = undefined;
   if (energy_input_radio.value == "database") {
-    reqElement = JSON.parse(JSON.stringify(element_dropdown.value)) as Element
+    try {
+      reqElement = JSON.parse(JSON.stringify(element_dropdown.value)) as Element
+    } catch (e) {
+      return
+    }
+
   } else if (energy_input_radio.value == "manual") {
     reqElement = {
       name: "custom",
@@ -126,19 +148,31 @@ function Calculate(clickevent: Event) {
   }
 
   // Let the user know we're working on it...
-  //clickevent.target.disabled = true
+  waiting_for_server_data.value = true
+  has_server_data.value = false
 
-  console.log("Calculation request", request)
+  // clear the current value of the energy line so the dropdown looks empty
+  energy_line.value = ""
+
+
   // Lets generate a request!
   axios.post("post/geometry/ManualAlignment", request).then((response) => {
     if (response.status === 200) {
-      //clickevent.target.disabled = false
+      // give user feedback
+      waiting_for_server_data.value = false
+      has_server_data.value = true
+
       // We need to assign the response, otherwise just replacing it loses reactivity
       Object.assign(alignment, response.data as Alignment)
+
     } else {
       window.alert("Calculation error: " + response.statusText);
     }
+  }, ()=>{
+    has_server_data.value = false
+    window.alert("Error getting calculations from server")
   })
+
 }
 
 
@@ -228,11 +262,13 @@ function clickTable(event: Event, order: number) {
         </tr>
         <tr>
           <td v-if="lattice_input_radio=='crystal'">
-            <v-select id="crystal_dropdown" v-model="crystal_dropdown" v-bind:items="Array.from(crystals.values())"
+            <v-select @update:model-value="Calculate()" id="crystal_dropdown" v-model="crystal_dropdown"
+                      v-bind:items="Array.from(crystals.values())"
                       item-title="name" return-object/>
           </td>
           <td v-else>
-            <v-number-input id="lattice_manual_input" v-model="lattice_manual" control-variant="hidden"
+            <v-number-input @change="Calculate()" id="lattice_manual_input" v-model="lattice_manual"
+                            control-variant="hidden"
             />
           </td>
         </tr>
@@ -253,7 +289,8 @@ function clickTable(event: Event, order: number) {
         </tr>
         <tr>
           <td v-if="energy_input_radio=='database'">
-            <v-select id="element_dropdown" v-model="element_dropdown" v-bind:items="Array.from(elements.values())"
+            <v-select @update:model-value="Calculate()" id="element_dropdown" v-model="element_dropdown"
+                      v-bind:items="Array.from(elements.values())"
                       item-title="name" return-object>
               <template v-slot:item="{ props: itemProps, item }">
                 <v-list-item v-bind="itemProps" :title="item.raw.name" :subtitle="item.raw.symbol">
@@ -262,7 +299,8 @@ function clickTable(event: Event, order: number) {
             </v-select>
           </td>
           <td v-else>
-            <v-number-input label="eV" type="number" control-variant="hidden" id="energy_manual_input" v-model="energy_manual"/>
+            <v-number-input @change="Calculate()" label="eV" type="number" control-variant="hidden"
+                            id="energy_manual_input" v-model="energy_manual"/>
           </td>
         </tr>
         </tbody>
@@ -270,11 +308,12 @@ function clickTable(event: Event, order: number) {
     </div>
 
     <div>
-      <h3>Calculate and Choose Energy</h3>
-      <v-btn @click="Calculate($event)">Calculate</v-btn>
+      <h3>Choose Energy</h3>
       <!-- These values are fetched from the calculation. Extremely hacky implementation with vuetify, thankfully passing [0] as the value for an array of arrays selects the first item -->
-      <v-select id="energy_line" v-model="energy_line" v-bind:items="Object.entries(alignment.element.EmissionEnergy)"
-                item-value="[0]">
+      <v-select ref="energy_dropdown" v-model="energy_line"
+                v-bind:items="Object.entries(alignment.element.EmissionEnergy)"
+                item-value="[0]" :item-title="[0]" label="Energy Line"
+                v-bind:disabled="!has_server_data" v-bind:loading="waiting_for_server_data">
         <template v-slot:item="{ props: itemProps, item }">
           <v-list-item v-bind="itemProps" :title="item.raw[0]" :subtitle="item.raw[1]"></v-list-item>
         </template>
