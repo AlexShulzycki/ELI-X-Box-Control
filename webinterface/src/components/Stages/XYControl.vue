@@ -3,7 +3,7 @@ import {useStageStore} from "@/stores/StageStore.ts";
 import StepButton from "@/components/Stages/StepButton.vue";
 import {ref} from "vue";
 
-const {x, xrev=false, y, yrev=false} = defineProps<{
+const {x, xrev = false, y, yrev = false} = defineProps<{
   x?: number,
   xrev?: boolean,
   y?: number,
@@ -16,38 +16,48 @@ const step = ref(1)
 </script>
 
 <template>
-  <div class="container">
+  <v-container class="fill-height">
     <!--Spawn appropriate buttons, else display message
     Directions - 0: left, 1: right, 2: up, 3: down
     -->
-    <StepButton v-if="x!= undefined" style="grid-column: 1; grid-row: 2" v-bind:stageid="x" :direction="0"
-                v-bind:stepby="-step" v-bind:reversed="xrev"/>
+    <div style="aspect-ratio: 1">
+      <v-row>
 
-    <StepButton v-if="x!= undefined" style="grid-column: 3; grid-row: 2" v-bind:stageid="x" :direction="1"
-                v-bind:stepby="step" v-bind:reversed="xrev"/>
+        <v-col style="width:50%; margin:auto">
+          <StepButton v-if="y!= undefined" style="grid-column: 1; grid-row: 2" v-bind:stageid="y" :direction="2"
+                      v-bind:stepby="-step" v-bind:reversed="xrev"/>
+        </v-col>
 
-    <StepButton v-if="y!= undefined" style="grid-column: 2; grid-row: 1" v-bind:stageid="y" :direction="2"
-                v-bind:stepby="step" v-bind:reversed="yrev"/>
+      </v-row>
+      <v-row>
+        <v-col>
+          <StepButton v-if="x!= undefined" style="grid-column: 3; grid-row: 2" v-bind:stageid="x" :direction="0"
+                      v-bind:stepby="step" v-bind:reversed="xrev"/>
+        </v-col>
+        <v-col>
+          <v-container class="fill-height" style="padding:0; margin:0">
+            <h3 v-if="label != undefined" style="margin:auto">{{ label }}</h3>
 
-    <StepButton v-if="y!= undefined" style="grid-column: 2; grid-row: 3" v-bind:stageid="y" :direction="3"
-                v-bind:stepby="-step" v-bind:reversed="yrev"/>
+            <v-number-input v-model="step" style="width: 100%" control-variant="split" label="Step (mm)" inset/>
+          </v-container>
 
-    <div style="grid-column: 2; grid-row: 2; text-align: center">
-      <h3 v-if="label != undefined">{{ label }}</h3>
-      <h4>Step size (mm)</h4>
-      <input v-model="step" style="width: 50%"/>
+        </v-col>
+        <v-col>
+          <StepButton v-if="x!= undefined" style="grid-column: 2; grid-row: 1" v-bind:stageid="x" :direction="1"
+                      v-bind:stepby="step" v-bind:reversed="yrev"/>
+        </v-col>
+      </v-row>
+      <v-row>
+        <v-col/>
+        <v-col>
+          <StepButton v-if="y!= undefined" style="grid-column: 2; grid-row: 3" v-bind:stageid="y" :direction="3"
+                      v-bind:stepby="-step" v-bind:reversed="yrev" />
+        </v-col>
+        <v-col/>
+      </v-row>
     </div>
-  </div>
+  </v-container>
 </template>
 
 <style scoped>
-.container {
-  display: grid;
-  grid-auto-columns: minmax(0, 1fr);
-  grid-auto-flow: column;
-  width: 60%;
-  margin: auto;
-  aspect-ratio: 1;
-  background-color: darkgrey;
-}
 </style>

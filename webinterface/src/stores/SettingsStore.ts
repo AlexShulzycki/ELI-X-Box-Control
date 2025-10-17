@@ -12,6 +12,7 @@ export const useSettingsStore = defineStore("SettingsStore", {
     },
     actions: {
         async websocket_got_connected() {
+            // Refresh everything when we initially (re)connect
             this.websocketConnected = true
             const configStore = useConfigurationStore()
             await configStore.syncConfigSchema()
@@ -19,7 +20,6 @@ export const useSettingsStore = defineStore("SettingsStore", {
             const stageStore = useStageStore()
             await stageStore.syncServerStageInformation()
             await stageStore.updateStageInfo()
-
         }
 
     },

@@ -18,14 +18,12 @@ const tab = ref(null)
 </script>
 
 <template>
-  <v-card width="100%">
-  <v-toolbar>
-    <v-btn-group>
+  <v-sheet width="100%">
+    <v-toolbar>
       <v-btn @click="refresh()">Server Refresh</v-btn>
       <v-btn @click="config.loadConfigSet('default')">Load defaults</v-btn>
       <v-btn @click="config.saveCurrentConfigSet('default')">Save current config as default</v-btn>
-    </v-btn-group>
-  </v-toolbar>
+    </v-toolbar>
 
     <v-tabs v-model="tab">
       <v-tab v-for="key in config.configSchemas.keys()" :value="key">
@@ -39,7 +37,7 @@ const tab = ref(null)
         <SchemaFormBrowser v-bind:schema="schema" v-bind:data="data"/>
       </v-tabs-window-item>
     </v-tabs-window>
-    </v-card>
+  </v-sheet>
 </template>
 
 <style scoped>

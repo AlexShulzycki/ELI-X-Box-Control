@@ -10,6 +10,8 @@ const {stageid, reversed = false, direction, stepby} = defineProps<{
   stepby: number
 }>();
 
+const icons = ["mdi-arrow-left", "mdi-arrow-right", "mdi-arrow-up", "mdi-arrow-down"]
+
 const stageStore = useStageStore();
 
 function step() {
@@ -24,46 +26,22 @@ function step() {
 </script>
 
 <template>
-  <div style="padding: 25%; border-radius:30%; margin: 10%" :class="{onTarget: stageStore.serverStages.get(stageid)?.ontarget}">
-    <div v-if="stageStore.serverStages.get(stageid) != undefined" class="arrow"
-         :class="{left: direction == 0, right: direction == 1, up: direction==2, down: direction == 3}"
-         @click="step()">
-
-    </div>
-  </div>
+  <v-container class="fill-height">
+    <v-btn v-if="stageStore.serverStages.get(stageid) != undefined" class="arrow" @click="step()"
+    :class="{onTarget: stageStore.serverStages.get(stageid)?.ontarget}">
+    <v-icon :icon="icons[direction]"></v-icon>
+    </v-btn>
+  </v-container>
 
 </template>
 
 <style scoped>
-
-
-.arrow {
-  border: solid black;
-  border-width: 0 3px 3px 0;
-  display: inline-block;
-  width: 100%;
-  aspect-ratio: 1;
-  margin-left: auto;
-  margin-right: auto;
+.arrow{
+  margin: auto;
+  height: 100%;
+  aspect-ratio:1;
 }
-
-.right {
-  transform: rotate(-45deg);
-}
-
-.left {
-  transform: rotate(135deg);
-}
-
-.up {
-  transform: rotate(-135deg);
-}
-
-.down {
-  transform: rotate(45deg);
-}
-
 .onTarget {
-  background-color: green;
+  background-color: #00ff00;
 }
 </style>
