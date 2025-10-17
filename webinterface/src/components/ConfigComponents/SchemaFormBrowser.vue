@@ -14,10 +14,12 @@ const {schema, data} = defineProps<{
 
 function added_new(SN: number) {
   tab.value = SN
-
+  newData.value = {SN: null}
 }
 
 const tab = ref<null|number>(null)
+
+const newData = ref({SN: null})
 
 </script>
 
@@ -32,7 +34,7 @@ const tab = ref<null|number>(null)
       <SchemaForm v-bind:schemanode="schema" v-bind:serverdata="state"/>
     </v-tabs-window-item>
     <v-tabs-window-item value="new">
-      <SchemaForm ref="newForm" v-bind:schemanode="schema" @success="added_new($event)"/>
+      <SchemaForm v-bind:serverdata="newData" v-bind:schemanode="schema" @success="added_new($event)"/>
     </v-tabs-window-item>
   </v-tabs-window>
 </template>

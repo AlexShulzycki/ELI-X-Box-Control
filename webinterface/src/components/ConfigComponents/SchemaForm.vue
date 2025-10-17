@@ -122,7 +122,7 @@ function removeController(){
         <v-btn @click="UpdateToServer" v-model:disabled="disabled" :loading="loading">
           Submit Changes
         </v-btn>
-        <v-btn @click="removeController" v-if="serverdata != undefined">
+        <v-btn @click="removeController" v-if="serverdata.SN != null">
           Remove Controller
         </v-btn>
       </v-card-actions>
