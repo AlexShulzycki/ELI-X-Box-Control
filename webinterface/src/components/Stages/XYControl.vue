@@ -21,35 +21,35 @@ const step = ref(1)
     Directions - 0: left, 1: right, 2: up, 3: down
     -->
     <div style="aspect-ratio: 1">
-      <v-row>
+      <v-row no-gutters justify="center">
 
-        <v-col style="width:50%; margin:auto">
+        <v-col cols="6" >
           <StepButton v-if="y!= undefined" style="grid-column: 1; grid-row: 2" v-bind:stageid="y" :direction="2"
                       v-bind:stepby="-step" v-bind:reversed="xrev"/>
         </v-col>
 
       </v-row>
-      <v-row>
-        <v-col>
+      <v-row no-gutters justify="space-between">
+        <v-col cols="3">
           <StepButton v-if="x!= undefined" style="grid-column: 3; grid-row: 2" v-bind:stageid="x" :direction="0"
                       v-bind:stepby="step" v-bind:reversed="xrev"/>
         </v-col>
-        <v-col>
-          <v-container class="fill-height" style="padding:0; margin:0">
+        <v-col cols="6">
+          <v-container class="fill-height" style="aspect-ratio:1">
             <h3 v-if="label != undefined" style="margin:auto">{{ label }}</h3>
 
             <v-number-input v-model="step" style="width: 100%" control-variant="split" label="Step (mm)" inset/>
           </v-container>
 
         </v-col>
-        <v-col>
+        <v-col cols="3">
           <StepButton v-if="x!= undefined" style="grid-column: 2; grid-row: 1" v-bind:stageid="x" :direction="1"
                       v-bind:stepby="step" v-bind:reversed="yrev"/>
         </v-col>
       </v-row>
-      <v-row>
+      <v-row no-gutters justify="center">
         <v-col/>
-        <v-col>
+        <v-col cols="6">
           <StepButton v-if="y!= undefined" style="grid-column: 2; grid-row: 3" v-bind:stageid="y" :direction="3"
                       v-bind:stepby="-step" v-bind:reversed="yrev" />
         </v-col>

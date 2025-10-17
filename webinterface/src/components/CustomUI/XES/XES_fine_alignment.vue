@@ -23,10 +23,10 @@ window.addEventListener("storage", (e) => {
 
 <template>
   <v-sheet width="100%">
-    <v-container>
-      <v-row>
+    <v-container class="d-flex flex-column">
+      <v-row class="flex-grow-1">
         <v-col>
-          <v-table density="compact">
+          <v-table density="compact" >
             <thead>
             <tr>
               <th>Axis</th>
@@ -59,13 +59,13 @@ window.addEventListener("storage", (e) => {
         </v-col>
 
       </v-row>
-      <v-row>
+      <v-row class="flex-grow-1">
         <v-col>
           <XYControl v-bind:x="axes.get('detectorx')?.identifier" v-bind:y="axes.get('detectory')?.identifier"
                  label="Detector"
                  v-bind:xrev="axes.get('detectorx')?.reversed" v-bind:yrev="axes.get('detectory')?.reversed"/>
         </v-col>
-        <v-col/>
+
         <v-col>
           <XYControl v-bind:x="axes.get('samplex')?.identifier" v-bind:y="axes.get('sampley')?.identifier" label="Sample"
                  v-bind:xrev="axes.get('samplex')?.reversed" v-bind:yrev="axes.get('sampley')?.reversed"/>
