@@ -42,6 +42,7 @@ class C884(PIController):
     4 Reference axis with FRF(), this thing will move so be careful
     5 Set soft limits??? working on that. You an also check if the type of axis has to be FRF'd by asking qRON()
     """
+    # TODO Set a timeout for referencing, or be able to detect some kind of errors when referencing
 
     def __init__(self):
         """
@@ -147,6 +148,8 @@ class C884(PIController):
             req[stage.channel] = stage.device
         try:
             self.device.CST(req)
+            # Save to non-volatile memory so we have it again on next startup
+            self.device.WPA()
             # if we're here then we successfully updated stages
             self._config.stages = stages
         except Exception as e:

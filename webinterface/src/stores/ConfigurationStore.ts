@@ -174,7 +174,7 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
         getIsUpdateQueueNotFinished: (state) => {
             let res = new Map<number, boolean>()
             state.configurationUpdates.forEach((value, key) => {
-                if (value[value.length - 1].finished) {
+                if (value.length == 0 || value[value.length - 1].finished) {
                     res.set(key, false)
                 } else {
                     res.set(key, true)

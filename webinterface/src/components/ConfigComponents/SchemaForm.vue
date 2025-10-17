@@ -4,12 +4,12 @@ import {JsonForms, type JsonFormsChangeEvent} from "@jsonforms/vue";
 import {extendedVuetifyRenderers} from "@jsonforms/vue-vuetify";
 import type {SchemaNode} from "json-schema-library";
 import {reactive, ref} from "vue";
-import {type responseinterface, useConfigurationStore} from "@/stores/ConfigurationStore.ts";
+import {type Configuration, type responseinterface, useConfigurationStore} from "@/stores/ConfigurationStore.ts";
 
 // Props and Emits
 const {schemanode, serverdata} = defineProps<{
   schemanode: SchemaNode,
-  serverdata?: object
+  serverdata?: Configuration
 }>();
 const emit = defineEmits(['success'])
 
@@ -24,7 +24,7 @@ const renderers = Object.freeze([
 
 // Form data handling
 // If formdata is not null, then it contains valid data, according to the schema
-let formdata: object = reactive({})
+let formdata: Configuration = reactive({SN:-1})
 
 // loading flag, informs if we are waiting for a request response
 const loading = ref<boolean>(false)
@@ -38,15 +38,15 @@ const onChange = (event: JsonFormsChangeEvent) => {
     return
   }
 
-  // The formdata variable also acts like a flag to show if the form inputs are valid
+  // The formdata variable also acts like a flag (SN:-1) to show if the form inputs are valid
   if (event.errors.length > 0) {
     // Form input is not schema-compliant, so clear out the form data
-    formdata = {}
+    formdata = {SN:-1}
   } else {
     // If there are no errors in validation, copy over the form data
     formdata = event.data;
   }
-  disabled.value = JSON.stringify(formdata) == JSON.stringify({})
+  disabled.value = formdata.SN == -1
 };
 
 
@@ -54,7 +54,7 @@ const onChange = (event: JsonFormsChangeEvent) => {
 const configstore = useConfigurationStore()
 
 function UpdateToServer() {
-  if (JSON.stringify(formdata) == JSON.stringify({})) {
+  if (formdata.SN == -1) {
     // No data to send, return.
     return;
   }
@@ -67,6 +67,9 @@ function UpdateToServer() {
 
   // lets change the button to loading
   loading.value = true
+  // lets clear the config update queue
+  configstore.configurationUpdates.set(formdata.SN, [])
+
   // Push the new data to the server, and read the response
   configstore.pushConfig(request).then((res) => {
     // we received a response, button is no longer loading
@@ -95,12 +98,17 @@ function UpdateToServer() {
   })
 }
 
+function removeController(){
+  if(serverdata != undefined){
+    configstore.removeConfig(schemanode.schema.title, serverdata.SN)
+  }
+}
 
 </script>
 
 <template>
   <v-container>
-    <v-card v-bind:loading="configstore.getIsUpdateQueueNotFinished.get(formdata.SN)?? false">
+    <v-card v-bind:loading="(configstore.getIsUpdateQueueNotFinished.get(formdata.SN)?? false)">
       <v-card-text>
         <v-timeline direction="horizontal"
                     v-if="formdata.SN != undefined && configstore.configurationUpdates.get(formdata.SN)" side="end">
@@ -114,15 +122,16 @@ function UpdateToServer() {
         <v-btn @click="UpdateToServer" v-model:disabled="disabled" :loading="loading">
           Submit Changes
         </v-btn>
+        <v-btn @click="removeController" v-if="serverdata != undefined">
+          Remove Controller
+        </v-btn>
       </v-card-actions>
     </v-card>
 
-    <v-container :class="{hidden:response.success}">
-      <h3>
-        {{ response.error }}
-      </h3>
-
-    </v-container>
+    <v-alert :class="{hidden:response.success}">
+      <v-alert-title>Error</v-alert-title>
+      {{ response.error }}
+    </v-alert>
   </v-container>
   <v-container class="myform">
 

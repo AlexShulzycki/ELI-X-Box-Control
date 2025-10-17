@@ -3,11 +3,12 @@
 import SchemaForm from "@/components/ConfigComponents/SchemaForm.vue";
 import type {SchemaNode} from "json-schema-library";
 import {ref} from "vue";
+import type {Configuration} from "@/stores/ConfigurationStore.ts";
 
 
 const {schema, data} = defineProps<{
   schema: SchemaNode,
-  data: object
+  data: Configuration[]
 }>();
 
 let hidden = ref(true)
