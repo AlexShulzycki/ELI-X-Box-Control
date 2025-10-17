@@ -11,29 +11,28 @@ const {schema, data} = defineProps<{
   data: Configuration[]
 }>();
 
-let hidden = ref(true)
 
-function toggleHidden() {
-  hidden.value = !hidden.value;
+function added_new(SN: number) {
+  tab.value = SN
+
 }
 
-const tab = ref(null)
+const tab = ref<null|number>(null)
 
 </script>
 
 <template>
 
-  <v-btn @click="toggleHidden()" v-if="hidden">Add another configuration</v-btn>
-  <div v-else>
-    <v-btn @click="toggleHidden()">Close new config edit</v-btn>
-    <SchemaForm v-bind:schemanode="schema" @success="toggleHidden"/>
-  </div>
   <v-tabs v-model="tab">
-    <v-tab v-for="state in data">{{ state.SN }}</v-tab>
+    <v-tab v-for="state in data" :value="state.SN">{{ state.SN }}</v-tab>
+    <v-tab value="new"><v-icon icon="mdi-plus"/></v-tab>
   </v-tabs>
   <v-tabs-window v-model="tab">
-    <v-tabs-window-item v-for="state in data">
+    <v-tabs-window-item v-for="state in data" :value="state.SN">
       <SchemaForm v-bind:schemanode="schema" v-bind:serverdata="state"/>
+    </v-tabs-window-item>
+    <v-tabs-window-item value="new">
+      <SchemaForm ref="newForm" v-bind:schemanode="schema" @success="added_new($event)"/>
     </v-tabs-window-item>
   </v-tabs-window>
 </template>

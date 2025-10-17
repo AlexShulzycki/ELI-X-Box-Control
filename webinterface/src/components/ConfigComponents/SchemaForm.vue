@@ -3,7 +3,7 @@
 import {JsonForms, type JsonFormsChangeEvent} from "@jsonforms/vue";
 import {extendedVuetifyRenderers} from "@jsonforms/vue-vuetify";
 import type {SchemaNode} from "json-schema-library";
-import {reactive, ref} from "vue";
+import {reactive, ref, useTemplateRef} from "vue";
 import {type Configuration, type responseinterface, useConfigurationStore} from "@/stores/ConfigurationStore.ts";
 
 // Props and Emits
@@ -82,7 +82,7 @@ function UpdateToServer() {
       // set the response id to -1 to hide the message, vary the timeouts if successful/unsuccessful
       if (response.value.success) {
         // emit a success
-        emit("success")
+        emit("success", formdata.SN)
         setTimeout(() => {
           response.value.identifier = -1
         }, 3000) // 3 seconds
