@@ -375,6 +375,12 @@ function clickTable(event: Event, order: number) {
       </tbody>
     </table>
     <v-btn @click="RunMotors($event)">Move to calculated position</v-btn>
+
+    <div style="margin-top:40px"></div>
+
+    <v-btn target="_blank" href="https://x-server.gmca.aps.anl.gov/cgi/www_form.exe?template=x0h_form.htm">
+      Double check with x0h
+    </v-btn>
   </div>
 </template>
 
