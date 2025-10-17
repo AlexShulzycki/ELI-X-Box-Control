@@ -7,11 +7,11 @@ import axios from "axios";
 export const useConfigurationStore = defineStore('ConfigurationState', {
     state: () => {
         return {
-            serverConfigs: new Map<string, Array<object>>(),
+            serverConfigs: new Map<string, Array<Configuration>>(),
             // Configuration on the server
             configSchemas: new Map<string, SchemaNode>(),
             // Configuration object schemas (from the server)
-            loadedConfigSet: new Map<string, Array<object>>(),
+            loadedConfigSet: new Map<string, Array<Configuration>>(),
             // Configuration set loaded from server settings
             configurationUpdates: new Map<number, Array<ConfigurationUpdate>>(),
             // history of configuration updates for each unique config identifier
@@ -35,8 +35,6 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
             // We sync the configs from the server
             const res = await axios.get("get/ConfigState")
             if (res.status == 200) {
-
-                // clear the current state TODO have it only edit it, so we dont mess up any front end stuff
                 this.serverConfigs = parseConfigs(res.data, this.configSchemas)
                 console.log("Updated current configuration state", res.data)
             }
@@ -93,7 +91,7 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
                 await this.syncServerConfigState()
             }
         },
-        updateConfigByID: function (config: object) {
+        updateConfigByID: function (config: Configuration) {
             try {
                 const id = (config as Configuration).SN
                 if (this.getConfigsByID.has(id)) {
@@ -195,7 +193,7 @@ export interface responseinterface {
 export interface ConfigurationUpdate {
     SN: number;
     message: string,
-    configuration?: object,
+    configuration?: Configuration,
     finished: boolean,
     error: boolean
 }
@@ -208,7 +206,7 @@ function parseConfigs(data: object, schemas: Map<string, any>) {
 // We sync the configs from the server
 
     // clear the current state
-    let finalres = new Map<string, Array<object>>()
+    let finalres = new Map<string, Array<Configuration>>()
 
     // iterate through each config type
     Object.entries(data).forEach(([key, value]) => {
@@ -216,12 +214,12 @@ function parseConfigs(data: object, schemas: Map<string, any>) {
         if (schema != undefined) {
 
             // result array
-            let res: Object[] = []
+            let res: Configuration[] = []
 
             // try to parse the list of configs according to the schema
             try {
-                (value as Array<object>).forEach((configState) => {
-                    const dat = schema.getData(configState, {extendDefaults: false})
+                (value as Array<Configuration>).forEach((configState) => {
+                    const dat = schema.getData(configState, {extendDefaults: false}) as Configuration
                     res.push(dat)
                 })
 

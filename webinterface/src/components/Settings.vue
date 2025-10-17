@@ -22,7 +22,6 @@ const tab = ref(null)
   <v-toolbar>
     <v-btn-group>
       <v-btn @click="refresh()">Server Refresh</v-btn>
-      <v-btn @click="StageInterface.fullRefresh()">Sync stage status from server</v-btn>
       <v-btn @click="config.loadConfigSet('default')">Load defaults</v-btn>
       <v-btn @click="config.saveCurrentConfigSet('default')">Save current config as default</v-btn>
     </v-btn-group>

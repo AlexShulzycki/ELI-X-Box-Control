@@ -12,6 +12,7 @@ const idselect = ref(id)
 const offset = ref(1)
 
 function moveBy(offset: number){
+  if(idselect.value == undefined){return}
   stageStore.stepStage(idselect.value, offset).then((value)=>{
     if(value != undefined){
       res.value = value
@@ -19,6 +20,7 @@ function moveBy(offset: number){
   })
 }
 function moveTo(target: number){
+  if(idselect.value == undefined){return}
   stageStore.moveStage(idselect.value, target).then((value)=>{
     if(value != undefined){
       res.value = value
@@ -35,7 +37,7 @@ function processResponse(res: moveStageResponse){
 const state = computed(()=>{
 
   if(idselect.value != undefined){
-    return stageStore.serverStages.get(parseInt(idselect.value))
+    return stageStore.serverStages.get(idselect.value)
   }
 })
 
@@ -59,9 +61,9 @@ const state = computed(()=>{
           <v-col></v-col>
         </v-row>
         <v-row>
-          <v-col><v-btn @click="moveBy(-offset)">Decrease</v-btn></v-col>
+          <v-col><v-btn @click="moveBy(-offset)" icon="mdi-minus"/></v-col>
           <v-col>{{state.position}}</v-col>
-          <v-col><v-btn @click="moveBy(offset)">Increase</v-btn></v-col>
+          <v-col><v-btn @click="moveBy(offset)" icon="mdi-plus"/></v-col>
         </v-row>
 
     </v-card-item>

@@ -82,9 +82,10 @@ class WSClient {
     init_ws_behavior(){
         // assign functions to the new websocket
         this.ws.onopen = () => {
-            console.log('Connected to server');
             // update the state
-            settingsStore.websocketConnected = true
+            settingsStore.websocket_got_connected().then(r => {
+                console.log('Connected to server');
+            })
         }
 
         this.ws.onmessage = (event) => {

@@ -9,8 +9,7 @@ const StageInterface = useStageStore();
 <template>
   <v-container>
   <v-toolbar>
-    <v-btn @click="StageInterface.syncServerStageInformation()">Sync stage status from server</v-btn>
-    <v-btn @click="StageInterface.updateStageInfo()">Tell the server to refresh</v-btn>
+    <v-btn @click="StageInterface.syncServerStageInformation(); StageInterface.updateStageInfo()">Refresh</v-btn>
   </v-toolbar>
 
   <Stage v-for="(stage, key) in StageInterface.serverStages" v-bind:id="stage[1].identifier" :key="key"/>
