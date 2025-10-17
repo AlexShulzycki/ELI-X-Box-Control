@@ -28,6 +28,12 @@ const tab = ref(null)
     <v-tabs v-model="tab">
       <v-tab v-for="key in config.configSchemas.keys()" :value="key">
         {{ key }}
+        <v-badge
+            v-if="config.serverConfigs.get(key)?.length??0 > 0"
+            color="primary"
+            v-bind:content="config.serverConfigs.get(key)?.length"
+            inline
+        />
       </v-tab>
     </v-tabs>
 
