@@ -24,7 +24,7 @@ window.addEventListener("storage", (e) => {
 <template>
   <v-sheet width="100%">
     <v-container class="d-flex flex-column">
-      <v-row class="flex-grow-1">
+      <v-row class="flex-grow-1" no-gutters>
         <v-col>
           <v-table density="compact" >
             <thead>
@@ -59,7 +59,7 @@ window.addEventListener("storage", (e) => {
         </v-col>
 
       </v-row>
-      <v-row class="flex-grow-1">
+      <v-row class="flex-grow-1" no-gutters>
         <v-col>
           <XYControl v-bind:x="axes.get('detectorx')?.identifier" v-bind:y="axes.get('detectory')?.identifier"
                  label="Detector"

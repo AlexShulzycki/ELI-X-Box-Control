@@ -26,7 +26,7 @@ function step() {
 </script>
 
 <template>
-  <v-container class="fill-height">
+  <v-container class="fill-height" style="padding:0">
     <v-btn v-if="stageStore.serverStages.get(stageid) != undefined" class="arrow" @click="step()"
     :class="{onTarget: stageStore.serverStages.get(stageid)?.ontarget}">
     <v-icon :icon="icons[direction]"></v-icon>
