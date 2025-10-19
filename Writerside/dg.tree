@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE instance-profile
+        SYSTEM "https://resources.jetbrains.com/writerside/1.0/product-profile.dtd">
+
+<instance-profile id="dg"
+                 name="Developer Guide"
+                 start-page="starter-topic.md">
+
+    <toc-element topic="Architecture-Overview.md">
+        <toc-element toc-title="Server">
+            <toc-element topic="EventAnnouncer.md"/>
+            <toc-element topic="Server.md"/>
+        </toc-element>
+        <toc-element topic="Hardware-Interface.md">
+            <toc-element topic="Standa-Interface.md"/>
+            <toc-element topic="PI-Interface.md"/>
+        </toc-element>
+        <toc-element topic="Web-Interface.md"/>
+    </toc-element>
+    <toc-element topic="Deployment.md"/>
+    <toc-element topic="starter-topic.md"/>
+</instance-profile>
