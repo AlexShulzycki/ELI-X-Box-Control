@@ -1,6 +1,6 @@
 from __future__ import annotations
 from pydantic import BaseModel, Field
-from server.StageControl.DataTypes import StageKind
+from server.Devices.DataTypes import StageKind
 
 
 class StandaStage(BaseModel):

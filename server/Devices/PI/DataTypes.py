@@ -8,7 +8,7 @@ from pydantic.json_schema import DEFAULT_REF_TEMPLATE, GenerateJsonSchema, JsonS
 from pydantic_core.core_schema import FieldValidationInfo
 
 from server.Settings import SettingsVault
-from server.StageControl.DataTypes import StageStatus, StageInfo, EventAnnouncer, StageKind, \
+from server.Devices.DataTypes import StageStatus, StageInfo, EventAnnouncer, StageKind, \
     StageRemoved, ConfigurationUpdate, Configuration, Notice
 
 

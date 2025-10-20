@@ -4,8 +4,8 @@ from typing import Coroutine, Awaitable, Any
 from pipython import GCSDevice
 
 from server.Settings import SettingsVault
-from server.StageControl.DataTypes import Notice, StageKind, ConfigurationUpdate
-from server.StageControl.PI.DataTypes import PIController, PIConfiguration, PIConnectionType, PIStageInfo, PIStage
+from server.Devices.DataTypes import Notice, StageKind, ConfigurationUpdate
+from server.Devices.PI.DataTypes import PIController, PIConfiguration, PIConnectionType, PIStageInfo, PIStage
 
 
 class ControllerNotReadyException(Exception):

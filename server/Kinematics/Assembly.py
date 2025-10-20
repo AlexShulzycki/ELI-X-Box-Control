@@ -8,7 +8,7 @@ from scipy.spatial.transform import Rotation as R
 
 from server.Interface import toplevelinterface
 from server.Kinematics.DataTypes import XYZvector, ComponentType
-from server.StageControl.DataTypes import EventAnnouncer, StageStatus
+from server.Devices.DataTypes import EventAnnouncer, StageStatus
 
 
 class CollisionBox(BaseModel):

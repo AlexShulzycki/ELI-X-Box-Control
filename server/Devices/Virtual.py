@@ -2,8 +2,9 @@ from typing import Any
 
 from pydantic import Field
 
-from .DataTypes import StageKind, StageStatus, ControllerInterface, updateResponse, \
+from .DataTypes import StageKind, StageStatus, updateResponse, \
     StageRemoved, EventAnnouncer, Configuration, StageInfo, ConfigurationUpdate, Notice
+from .Interface import ControllerInterface
 
 
 class VirtualStageInfo(Configuration):

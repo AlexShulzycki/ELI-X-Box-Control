@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel, Field, model_validator
 
 from server.Interface import toplevelinterface
-from server.StageControl.DataTypes import StageInfo, StageStatus, StageKind
+from server.Devices.DataTypes import StageInfo, StageStatus, StageKind
 
 router = APIRouter(tags=["control"])
 

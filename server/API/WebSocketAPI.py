@@ -7,7 +7,7 @@ from fastapi import WebSocket
 from pydantic import BaseModel, Field
 
 from server.Interface import toplevelinterface
-from server.StageControl.DataTypes import EventAnnouncer, StageStatus, StageInfo, StageRemoved, Notice, \
+from server.Devices.DataTypes import EventAnnouncer, StageStatus, StageInfo, StageRemoved, Notice, \
     ConfigurationUpdate, Configuration
 
 

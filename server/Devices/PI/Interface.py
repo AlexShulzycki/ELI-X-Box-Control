@@ -4,12 +4,13 @@ from typing import Any, Awaitable
 from pydantic import BaseModel
 
 from server.Settings import SettingsVault
-from server.StageControl.DataTypes import ControllerInterface, StageStatus, StageInfo, \
+from server.Devices.Interface import ControllerInterface
+from server.Devices.DataTypes import StageStatus, StageInfo, \
     updateResponse, StageRemoved, EventAnnouncer, Notice, getComPorts, ConfigurationUpdate
-from server.StageControl.PI.C884 import C884
-from server.StageControl.PI.DataTypes import PIConfiguration, PIController, PIStageInfo, PIControllerModel, \
+from server.Devices.PI.C884 import C884
+from server.Devices.PI.DataTypes import PIConfiguration, PIController, PIStageInfo, PIControllerModel, \
     PIConnectionType, PIStage, PIAPIConfig
-from server.StageControl.PI.Mock import MockPIController
+from server.Devices.PI.Mock import MockPIController
 
 
 class PISettings:

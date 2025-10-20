@@ -5,9 +5,10 @@ from typing import Awaitable
 import libximc.highlevel as ximc
 
 from server.Settings import SettingsVault
-from server.StageControl.DataTypes import ControllerInterface, StageStatus, StageInfo, \
+from server.Devices.Interface import ControllerInterface
+from server.Devices.DataTypes import StageStatus, StageInfo, \
     updateResponse, Notice
-from server.StageControl.Standa.DataTypes import StandaStage, StandaConfiguration
+from server.Devices.Standa.DataTypes import StandaStage, StandaConfiguration
 
 
 class StandaInterface(ControllerInterface):

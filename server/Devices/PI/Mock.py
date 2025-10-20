@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import time
 
-from server.StageControl.DataTypes import Notice, ConfigurationUpdate
-from server.StageControl.PI.DataTypes import PIController, PIStage, PIConfiguration, PIControllerModel, PIConnectionType
+from server.Devices.DataTypes import Notice, ConfigurationUpdate
+from server.Devices.PI.DataTypes import PIController, PIStage, PIConfiguration, PIControllerModel, PIConnectionType
 
 
 class MockPIController(PIController):

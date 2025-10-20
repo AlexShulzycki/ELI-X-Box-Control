@@ -1,22 +1,13 @@
 import asyncio
 from typing import Awaitable
 
-from pipython import GCSDevice
+from .Devices.Interface import ControllerInterface
 
-from .StageControl.PI.Interface import PIControllerInterface
-from .StageControl.Standa.Interface import StandaInterface
-from .StageControl.Virtual import VirtualControllerInterface
-from .StageControl.DataTypes import StageInfo, ControllerInterface, EventAnnouncer, StageStatus, StageRemoved, Notice, \
+from .Devices.PI.Interface import PIControllerInterface
+from .Devices.Standa.Interface import StandaInterface
+from .Devices.Virtual import VirtualControllerInterface
+from .Devices.DataTypes import StageInfo, EventAnnouncer, StageStatus, StageRemoved, Notice, \
     ConfigurationUpdate
-
-
-async def EnumPIUSB():
-    """
-    Returns a list of connected PI usb devices you can connect to
-    :return: ["C-884 SN 425003044", "nuclear-bomb SN 123456"]
-    """
-    return GCSDevice().EnumerateUSB()
-
 
 class MainInterface:
     """Interface that takes in identifier then communicates with relevant controller interface.
