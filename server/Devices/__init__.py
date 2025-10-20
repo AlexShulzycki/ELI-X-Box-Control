@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any
+from typing import Any, ClassVar
 
 from pydantic import BaseModel, Field
 
@@ -12,7 +12,7 @@ class DeviceType(Enum):
 class Device(BaseModel):
     identifier: int = Field(description="Unique identifier for this device")
     configuration_id: int = Field(description="Which configuration this device belongs to")
-    deviceType: DeviceType = Field(description="What kind of device this is")
+    deviceType: ClassVar[DeviceType] = Field(description="What kind of device this is")
     connected: bool = Field(description="Whether this device is connected", default=False)
     description: str = Field(description="Description of what this device is and/or does", default="")
 
