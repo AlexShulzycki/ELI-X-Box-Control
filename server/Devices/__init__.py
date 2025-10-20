@@ -21,6 +21,8 @@ class Device(BaseModel):
     connected: bool = Field(description="Whether this device is connected", default=False)
     description: str = Field(description="Description of what this device is and/or does", default="")
     actions: ClassVar[list[Action]] = Field(description="List of actions this device can perform", default=[])
+    finished: bool = Field(description="Whether this device is finished with whatever it is doing, for example "
+                                       "moving, or referencing", default=True)
 
 
 class MotionStageDevice(Device):
@@ -32,12 +34,12 @@ class MotionStageDevice(Device):
         Action(name="reference", description="Reference this stage")
     ]
 
-class LinearStageDevice(Device):
+class LinearStageDevice(MotionStageDevice):
     deviceType = DeviceType.stage_linear
     position: float = Field(description="Position of this stage in millimeters", default=0)
-    maximum: float = Field(description="The max range of this stage")
+    maximum: float = Field(description="The max range of this stage", ge=0)
 
-class RotationalStageDevice(Device):
+class RotationalStageDevice(MotionStageDevice):
     deviceType = DeviceType.stage_rotational
     angle: float = Field(description="Angle of this stage in degrees", default=0)
 

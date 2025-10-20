@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import glob
 import sys
+from typing import Any
 
 import serial
 
 from server.Devices import Device, Action
-from server.Devices.DataTypes import StageStatus, StageInfo, StageRemoved, Notice, ConfigurationUpdate, \
-    Configuration, updateResponse
+from server.Devices.DataTypes import Configuration
+from server.Devices.Events import ConfigurationUpdate, updateResponse, Notice, DeviceUpdate
 from server.utils.EventAnnouncer import EventAnnouncer
 
 
@@ -18,14 +19,14 @@ class ControllerInterface:
     """
 
     def __init__(self):
-        self.EventAnnouncer = EventAnnouncer(ControllerInterface, StageStatus, StageInfo, StageRemoved, Notice, ConfigurationUpdate)
+        self.EventAnnouncer = EventAnnouncer(ControllerInterface, DeviceUpdate, Notice, ConfigurationUpdate)
 
     @property
     def devices(self) -> list[Device]:
         """List of devices this controller controls"""
         raise NotImplementedError
 
-    def execute_action(self, identifier, action, value: None|bool|float|str) -> None:
+    async def execute_action(self, identifier, action, value: None|bool|float|str) -> None:
         """Executes an action on a given device.
         :param identifier: Device identifier
         :param action: Action to execute
@@ -33,12 +34,12 @@ class ControllerInterface:
         """
         raise NotImplementedError
 
-    def refresh_devices(self) -> None:
-        """Refreshes all values for each device"""
+    async def refresh_devices(self, ids:list[int]|None = None) -> None:
+        """Refreshes all values for given devices"""
         raise NotImplementedError
 
     @property
-    def device_schemas(self) -> dict:
+    def device_schemas(self) -> list[dict[str, Any]]:
         """Returns a JSON-ready dict of devices this controller can configure"""
         raise NotImplementedError
 

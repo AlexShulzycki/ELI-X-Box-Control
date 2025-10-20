@@ -9,7 +9,8 @@ from pydantic_core.core_schema import FieldValidationInfo
 
 from server.Settings import SettingsVault
 from server.Devices.DataTypes import StageStatus, StageInfo, StageKind, \
-    StageRemoved, ConfigurationUpdate, Configuration, Notice
+    StageRemoved, Configuration
+from server.Devices.Events import ConfigurationUpdate, Notice
 from server.utils.EventAnnouncer import EventAnnouncer
 
 

@@ -10,7 +10,7 @@ class Configuration(BaseModel):
     Configuration object to be passed to a controller object. Must contain a unique SN field for identification of each
     configuration object, everything else is up to you.
     """
-    SN: int = Field(description="Unique identifier for this configuration")
+    ID: int = Field(description="Unique identifier for this configuration")
 
 
 class StageKind(Enum):
@@ -58,27 +58,4 @@ class StageRemoved(BaseModel):
     """Indicates that the stage has been removed."""
     identifier: int = Field(description='Unique identifier for the stage')
 
-class Notice(BaseModel):
-    """This is a class that can send any miscellaneous string up the chain"""
-    identifier:int = None
-    message: str
 
-class ConfigurationUpdate(BaseModel):
-    """Update to the configuration state"""
-    SN: int
-    """Identifier of the configuration object"""
-    message: str
-    """Description that can be displayed to the user"""
-    configuration: Configuration|None = None
-    """New configuration state"""
-    finished: bool = False
-    """Whether something is still happening, and you should expect another
-    ConfigurationUpdate soon"""
-    error: bool = False
-    """If this ConfigurationUpdate heralds bad news"""
-
-
-class updateResponse(BaseModel):
-    identifier: int
-    success: bool
-    error: str|None = Field(default=None)

@@ -4,7 +4,8 @@ from typing import Coroutine, Awaitable, Any
 from pipython import GCSDevice
 
 from server.Settings import SettingsVault
-from server.Devices.DataTypes import Notice, StageKind, ConfigurationUpdate
+from server.Devices.DataTypes import StageKind
+from server.Devices.Events import ConfigurationUpdate, Notice
 from server.Devices.PI.DataTypes import PIController, PIConfiguration, PIConnectionType, PIStageInfo, PIStage
 
 

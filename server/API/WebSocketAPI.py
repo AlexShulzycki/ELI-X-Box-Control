@@ -8,8 +8,8 @@ from pydantic import BaseModel, Field
 
 import server.utils.EventAnnouncer
 from server.Interface import toplevelinterface
-from server.Devices.DataTypes import StageStatus, StageInfo, StageRemoved, Notice, \
-    ConfigurationUpdate, Configuration
+from server.Devices.DataTypes import StageStatus, StageInfo, StageRemoved, Configuration
+from server.Devices.Events import ConfigurationUpdate, Notice
 from server.utils.EventAnnouncer import EventAnnouncer
 
 

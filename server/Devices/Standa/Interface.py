@@ -6,8 +6,8 @@ import libximc.highlevel as ximc
 
 from server.Settings import SettingsVault
 from server.Devices.Interface import ControllerInterface
-from server.Devices.DataTypes import StageStatus, StageInfo, \
-    updateResponse, Notice
+from server.Devices.DataTypes import StageStatus, StageInfo
+from server.Devices.Events import updateResponse, Notice
 from server.Devices.Standa.DataTypes import StandaStage, StandaConfiguration
 
 

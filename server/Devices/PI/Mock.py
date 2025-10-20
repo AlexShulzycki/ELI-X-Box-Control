@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 
-from server.Devices.DataTypes import Notice, ConfigurationUpdate
+from server.Devices.Events import ConfigurationUpdate, Notice
 from server.Devices.PI.DataTypes import PIController, PIStage, PIConfiguration, PIControllerModel, PIConnectionType
 
 

@@ -12,7 +12,7 @@ from pydantic import BaseModel, ValidationError
 
 from server.Interface import toplevelinterface
 from server.Settings import SettingsVault
-from server.Devices.DataTypes import updateResponse
+from server.Devices.Events import updateResponse
 
 router = APIRouter(tags=["configuration"])
 
