@@ -11,14 +11,19 @@ import XES_calculator from "@/components/CustomUI/XES/XES_calculator.vue";
 import Settings from "@/components/Settings.vue";
 
 const routes = [
-    {path: '/', component: Main},
-    {path: '/stages', component: Stages},
-    {path: '/Assembly3D', component: Assembly3D},
-    {path: '/AssemblyEditor', component: AssemblyEditor},
-    {path: "/XES", component: XesFineAlignment},
-    {path: "/XES_setup", component: XES_setup},
-    {path: "/XES_calculator", component: XES_calculator},
-    {path: "/HardwareConfig", component: Settings}
+    {path: '/', name: "Home", component: Main},
+    {path: '/stages', name: "Stages", component: Stages},
+    //{path: '/Assembly3D', name: "Assembly3d", component: Assembly3D},
+    //{path: '/AssemblyEditor', name: "AssemblyEditor", component: AssemblyEditor},
+    {path: "/HardwareConfig", component: Settings},
+    {path: '/XES', children: [
+            {path: "/XES/fine-alignment", name:"Fine Alignment", component: XesFineAlignment},
+            {path: "/XES/setup", name:"Setup", component: XES_setup},
+            {path: "/XES/calculator", name:"Calculator", component: XES_calculator},
+
+        ]
+    }
+
 ]
 
 const router = createRouter({

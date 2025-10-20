@@ -72,7 +72,7 @@ const state = computed(() => {
     <v-card-actions>
       <br>
 
-      <v-number-input v-model="absoluteInput" precision="3" control-variant="stacked"/>
+      <v-number-input v-model="absoluteInput" :precision="3" control-variant="stacked"/>
       <v-btn @click="moveTo">Set</v-btn>
 
     </v-card-actions>
