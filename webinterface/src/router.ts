@@ -15,7 +15,7 @@ const routes = [
     {path: '/stages', name: "Stages", component: Stages},
     //{path: '/Assembly3D', name: "Assembly3d", component: Assembly3D},
     //{path: '/AssemblyEditor', name: "AssemblyEditor", component: AssemblyEditor},
-    {path: "/HardwareConfig", component: Settings},
+    {path: "/HardwareConfig", name: "Controllers", component: Settings},
     {path: '/XES', children: [
             {path: "/XES/fine-alignment", name:"Fine Alignment", component: XesFineAlignment},
             {path: "/XES/setup", name:"Setup", component: XES_setup},
