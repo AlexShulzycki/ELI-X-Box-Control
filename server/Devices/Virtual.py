@@ -3,7 +3,8 @@ from typing import Any
 from pydantic import Field
 
 from .DataTypes import StageKind, StageStatus, updateResponse, \
-    StageRemoved, EventAnnouncer, Configuration, StageInfo, ConfigurationUpdate, Notice
+    StageRemoved, Configuration, StageInfo, ConfigurationUpdate, Notice
+from ..utils.EventAnnouncer import EventAnnouncer
 from .Interface import ControllerInterface
 
 

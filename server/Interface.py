@@ -6,8 +6,10 @@ from .Devices.Interface import ControllerInterface
 from .Devices.PI.Interface import PIControllerInterface
 from .Devices.Standa.Interface import StandaInterface
 from .Devices.Virtual import VirtualControllerInterface
-from .Devices.DataTypes import StageInfo, EventAnnouncer, StageStatus, StageRemoved, Notice, \
+from .Devices.DataTypes import StageInfo, StageStatus, StageRemoved, Notice, \
     ConfigurationUpdate
+from .utils.EventAnnouncer import EventAnnouncer
+
 
 class MainInterface:
     """Interface that takes in identifier then communicates with relevant controller interface.

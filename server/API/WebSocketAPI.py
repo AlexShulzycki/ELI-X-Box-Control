@@ -6,9 +6,11 @@ from typing import Dict, Any
 from fastapi import WebSocket
 from pydantic import BaseModel, Field
 
+import server.utils.EventAnnouncer
 from server.Interface import toplevelinterface
-from server.Devices.DataTypes import EventAnnouncer, StageStatus, StageInfo, StageRemoved, Notice, \
+from server.Devices.DataTypes import StageStatus, StageInfo, StageRemoved, Notice, \
     ConfigurationUpdate, Configuration
+from server.utils.EventAnnouncer import EventAnnouncer
 
 
 class ReqTypes(Enum):
@@ -79,8 +81,9 @@ class WebSocketAPI:
         self.active_connections: list[WebSocket] = []
         self.EA: EventAnnouncer = EventAnnouncer(WebSocketAPI, StageStatus)
         # Subscribe to stage status changes
-        self.EA.patch_through_from([StageStatus, StageInfo, StageRemoved, Notice, ConfigurationUpdate], toplevelinterface.EventAnnouncer)
-        sub = toplevelinterface.EventAnnouncer.subscribe(StageStatus, StageInfo, StageRemoved, Notice, ConfigurationUpdate)
+        self.EA.patch_through_from([StageStatus, StageInfo, StageRemoved, Notice, ConfigurationUpdate],
+                                   server.Interface.toplevelinterface.EventAnnouncer)
+        sub = server.Interface.toplevelinterface.EventAnnouncer.subscribe(StageStatus, StageInfo, StageRemoved, Notice, ConfigurationUpdate)
         sub.deliverTo(StageStatus,self.broadcastStageStatus)
         sub.deliverTo(StageInfo,self.broadcastStageInfo)
         sub.deliverTo(StageRemoved, self.broadcastStageRemoved)
