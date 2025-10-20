@@ -2,16 +2,15 @@ from typing import Any
 
 from pydantic import Field
 
-from .DataTypes import StageKind, StageStatus, updateResponse, \
+from .DataTypes import StageStatus, updateResponse, \
     StageRemoved, Configuration, StageInfo, ConfigurationUpdate, Notice
 from ..utils.EventAnnouncer import EventAnnouncer
 from .Interface import ControllerInterface
 
 
-class VirtualStageInfo(Configuration):
-    # identifier is now SN, minimum is hardwired to zero
-    model: str = Field(description="Stage model, i.e. L-406.20DD10", examples=["L-406.20DD10", "Virtual Linear Stage"])
-    kind: StageKind = Field(default=StageKind.linear, description="What kind of stage this is")
+class VirtualStageConfig(Configuration):
+    # stage is hardwired as linear for now
+    #model: str = Field(description="Stage model, i.e. L-406.20DD10", examples=["L-406.20DD10", "Virtual Linear Stage"])
     maximum: float = Field(default=0, description="Maximum position, in mm.", ge=0)
 
     def toStageInfo(self) -> StageInfo:
@@ -23,7 +22,6 @@ class VirtualStageInfo(Configuration):
             maximum=self.maximum
         )
 
-
 class VirtualSettings:
 
     def __init__(self):
@@ -32,13 +30,13 @@ class VirtualSettings:
         self.virtualstages: dict[int, VirtualStage] = {}
 
     @property
-    def currentConfiguration(self) -> list[VirtualStageInfo]:
+    def currentConfiguration(self) -> list[VirtualStageConfig]:
         res = []
         for v in self.virtualstages.values():
             res.append(v.stageInfo)
         return res
 
-    async def configurationChangeRequest(self, requests: list[VirtualStageInfo]) -> list[updateResponse]:
+    async def configurationChangeRequest(self, requests: list[VirtualStageConfig]) -> list[updateResponse]:
         res = []
         for request in requests:
             try:
@@ -65,23 +63,20 @@ class VirtualSettings:
         else:
             return False
 
-    @property
-    def configurationFormat(self):
-        return VirtualStageInfo
-
-    def getDataTypes(self):
-        return [VirtualStageInfo, StageStatus]
-
 
 class VirtualStage:
-    def __init__(self, config: VirtualStageInfo):
+    def __init__(self, config: VirtualStageConfig):
+        self.position = 0
+        self.on_target = True
+
+
         self.stageInfo = config
         self.stageStatus = StageStatus(identifier= config.SN, connected=True, ready=True, position=0, ontarget=True)
 
 
 class VirtualControllerInterface(ControllerInterface):
 
-    async def configurationChangeRequest(self, request: list[VirtualStageInfo]) -> list[updateResponse]:
+    async def configurationChangeRequest(self, request: list[VirtualStageConfig]) -> list[updateResponse]:
         return await self.settings.configurationChangeRequest(request)
 
     async def removeConfiguration(self, id: int):
@@ -89,7 +84,7 @@ class VirtualControllerInterface(ControllerInterface):
 
     @property
     def configurationType(self):
-        return VirtualStageInfo
+        return VirtualStageConfig
 
     @property
     async def configurationSchema(self):

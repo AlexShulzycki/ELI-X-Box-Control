@@ -15,8 +15,7 @@ class MainInterface:
     """Interface that takes in identifier then communicates with relevant controller interface.
     Does not configure them. Also provides an EventAnnouncer for StageInfo and StageStatus"""
 
-    #TODO Finish up the controller interfaces, reformat this into a way that receives events and interfaces
-    # with controller interface functions.
+    #TODO Refactor to the new device format
 
     def __init__(self, *controller_interfaces: ControllerInterface):
         """Pass in all additional Controller Interfaces in the constructor"""
@@ -154,9 +153,9 @@ class MainInterface:
         return res
 
 # INIT ALL INTERFACES TOGETHER
-PIinterface = PIControllerInterface()
+#PIinterface = PIControllerInterface()
 Virtualinterface = VirtualControllerInterface()
-Standainterface = StandaInterface()
+#Standainterface = StandaInterface()
 
 # TODO Re-Add C884 interface once rewritten
-toplevelinterface = MainInterface(Virtualinterface, PIinterface, Standainterface)
+toplevelinterface = MainInterface(Virtualinterface)#, PIinterface, Standainterface)

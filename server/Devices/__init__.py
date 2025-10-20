@@ -4,6 +4,11 @@ from typing import Any, ClassVar
 from pydantic import BaseModel, Field
 
 
+class Action(BaseModel):
+    name: str = Field(description="Name of this action")
+    description: str = Field(description="Description of this action")
+    value: type[float|bool|None] = Field(description="Input parameter for this action", default=None)
+
 class DeviceType(Enum):
     stage_linear = "stage_linear"
     stage_rotational = "stage_rotational"
@@ -15,11 +20,17 @@ class Device(BaseModel):
     deviceType: ClassVar[DeviceType] = Field(description="What kind of device this is")
     connected: bool = Field(description="Whether this device is connected", default=False)
     description: str = Field(description="Description of what this device is and/or does", default="")
+    actions: ClassVar[list[Action]] = Field(description="List of actions this device can perform", default=[])
 
 
 class MotionStageDevice(Device):
     on_target: bool = Field(description="Whether this stage is on target", default=False)
     referenced: bool = Field(description="Whether this stage is referenced", default=False)
+    actions = [
+        Action(name="move_to", description="Move this stage to target", value=float),
+        Action(name="step_by", description="Move this stage by the given amount", value=float),
+        Action(name="reference", description="Reference this stage")
+    ]
 
 class LinearStageDevice(Device):
     deviceType = DeviceType.stage_linear
@@ -32,10 +43,10 @@ class RotationalStageDevice(Device):
 
 class SensorDevice(Device):
     deviceType = DeviceType.sensor
+    value: Any = Field(description="Value this sensor last measured")
     units: str = Field(description="The units of what this sensor measures")
 
 class Sensor(BaseModel):
-    value: Any = Field(description="Value this sensor last measured")
     units: str = Field(description="The units of what this sensor measures")
 
 class PowerSupplyDevice(Device):
@@ -44,9 +55,8 @@ class PowerSupplyDevice(Device):
     max_current: float = Field(description="Max current allowed")
     power: float = Field(description="Power")
     max_power: float = Field(description="Max power allowed")
+    actions = [
+        Action(name="enable_output", description="Enable or Disable power output", value=bool)
+    ]
 
-class Action(BaseModel):
-    name: str = Field(description="Name of this action")
-    description: str = Field(description="Description of this action")
-    value: type[float|bool|None] = Field(description="Input parameter for this action", default=None)
 

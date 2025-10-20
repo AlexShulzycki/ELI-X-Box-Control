@@ -5,6 +5,7 @@ import sys
 
 import serial
 
+from server.Devices import Device, Action
 from server.Devices.DataTypes import StageStatus, StageInfo, StageRemoved, Notice, ConfigurationUpdate, \
     Configuration, updateResponse
 from server.utils.EventAnnouncer import EventAnnouncer
@@ -20,34 +21,25 @@ class ControllerInterface:
         self.EventAnnouncer = EventAnnouncer(ControllerInterface, StageStatus, StageInfo, StageRemoved, Notice, ConfigurationUpdate)
 
     @property
-    def stages(self) -> list[int]:
-        """Returns unique integer identifiers for each stage"""
+    def devices(self) -> list[Device]:
+        """List of devices this controller controls"""
         raise NotImplementedError
 
-    async def moveTo(self, identifier: int, position: float):
-        """Move stage to position"""
+    def execute_action(self, identifier, action, value: None|bool|float|str) -> None:
+        """Executes an action on a given device.
+        :param identifier: Device identifier
+        :param action: Action to execute
+        :param value: Value of the action
+        """
         raise NotImplementedError
 
-    async def moveBy(self, identifier: int, step: float):
-        """Move stage by offset"""
-        raise NotImplementedError
-
-    @property
-    def stageInfo(self) -> dict[int, StageInfo]:
-        """Returns StageInfo of connected stages"""
-        raise NotImplementedError
-
-    async def updateStageInfo(self, identifiers: list[int] = None):
-        """Updates StageInfo for the given stages or all if identifier list is empty"""
+    def refresh_devices(self) -> None:
+        """Refreshes all values for each device"""
         raise NotImplementedError
 
     @property
-    def stageStatus(self) -> dict[int, StageStatus]:
-        """Return StageStatus objects for the given stages"""
-        raise NotImplementedError
-
-    async def updateStageStatus(self, identifiers: list[int] = None):
-        """Updates stageStatus for the given stages or all if identifier list is empty."""
+    def device_schemas(self) -> dict:
+        """Returns a JSON-ready dict of devices this controller can configure"""
         raise NotImplementedError
 
     @property
@@ -71,10 +63,6 @@ class ControllerInterface:
         raise NotImplementedError
 
     @property
-    def configurationType(self) -> type[Configuration]:
-        raise NotImplementedError
-
-    @property
     async def configurationSchema(self) -> dict:
         """
         Return the configuration object json schema
@@ -83,10 +71,12 @@ class ControllerInterface:
         raise NotImplementedError
 
     @property
-    def currentConfiguration(self) -> list[Configuration]:
+    def currentConfigurations(self) -> list[Configuration]:
+        """Returns the list of current configurations"""
         raise NotImplementedError
 
-    async def fullRefreshAllSettings(self):
+    async def refresh_configurations(self) -> None:
+        """Refreshes all configurations"""
         raise NotImplementedError
 
     async def is_configuration_configured(self, identifiers: list[int]) -> list[int]:
@@ -102,6 +92,8 @@ class ControllerInterface:
         # return [] by default, override this in the individual interface implementations.
         return []
 
+
+# Helper Functions
 
 def getComPorts() -> list[int]:
     """
