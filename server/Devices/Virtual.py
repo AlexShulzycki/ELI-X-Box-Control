@@ -2,14 +2,15 @@ from typing import Any
 
 from pydantic import Field
 
-from . import Device, LinearStageDevice
-from .DataTypes import StageStatus, StageRemoved, Configuration, StageInfo
+from . import Device, LinearStageDevice, Configuration
+from .DataTypes import StageStatus, StageRemoved, StageInfo
 from .Events import ConfigurationUpdate, updateResponse, Notice
 from ..utils.EventAnnouncer import EventAnnouncer
 from .Interface import ControllerInterface
 
 
 class VirtualStageConfig(Configuration):
+    ControllerType = "Virtual"
     # stage is hardwired as linear for now. model is so far unnecessary and extra work for testing
     #model: str = Field(description="Stage model, i.e. L-406.20DD10", examples=["L-406.20DD10", "Virtual Linear Stage"])
     maximum: float = Field(default=0, description="Maximum position, in mm.", ge=0)

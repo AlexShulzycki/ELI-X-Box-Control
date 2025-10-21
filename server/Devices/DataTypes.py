@@ -5,13 +5,6 @@ from enum import Enum
 from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic_core.core_schema import FieldValidationInfo
 
-class Configuration(BaseModel):
-    """
-    Configuration object to be passed to a controller object. Must contain a unique SN field for identification of each
-    configuration object, everything else is up to you.
-    """
-    ID: int = Field(description="Unique identifier for this configuration")
-
 
 class StageKind(Enum):
     rotational = "rotational"

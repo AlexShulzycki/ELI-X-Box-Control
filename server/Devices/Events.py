@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
-from server.Devices import Device
-from server.Devices.DataTypes import Configuration
+from server.Devices import Device, Configuration
 
+class ActionRequest(BaseModel):
+    device_id: int = Field(description="Device ID to execute this action on")
+    value: float|str|bool|None = Field(description="Input parameter for this action", default=None)
 
 class ConfigurationUpdate(BaseModel):
     """Update to the configuration state to be sent via websockets"""

@@ -6,8 +6,7 @@ from typing import Any
 
 import serial
 
-from server.Devices import Device, Action
-from server.Devices.DataTypes import Configuration
+from server.Devices import Device, Action, Configuration
 from server.Devices.Events import ConfigurationUpdate, updateResponse, Notice, DeviceUpdate
 from server.utils.EventAnnouncer import EventAnnouncer
 
@@ -26,6 +25,11 @@ class ControllerInterface:
         """List of devices this controller controls"""
         raise NotImplementedError
 
+    @property
+    def deviceIDs(self) -> list[int]:
+        """List of device IDs this controller has under its wing"""
+        raise NotImplementedError
+
     async def execute_action(self, identifier, action, value: None|bool|float|str) -> None:
         """Executes an action on a given device.
         :param identifier: Device identifier
@@ -34,17 +38,14 @@ class ControllerInterface:
         """
         raise NotImplementedError
 
-    async def refresh_devices(self, ids:list[int]|None = None) -> None:
-        """Refreshes all values for given devices"""
-        raise NotImplementedError
-
     @property
     def device_schemas(self) -> list[dict[str, Any]]:
         """Returns a JSON-ready dict of devices this controller can configure"""
         raise NotImplementedError
 
     @property
-    def name(self) -> str:
+    def configurationIDs(self) -> list[int]:
+        """Returns a list of configuration IDs this controller controls"""
         raise NotImplementedError
 
     async def configurationChangeRequest(self, request: list[Configuration]) -> list[updateResponse]:
@@ -76,7 +77,11 @@ class ControllerInterface:
         """Returns the list of current configurations"""
         raise NotImplementedError
 
-    async def refresh_configurations(self) -> None:
+    async def refresh_devices(self, ids:list[int]|None = None) -> None:
+        """Refreshes all values for given devices"""
+        raise NotImplementedError
+
+    async def refresh_configurations(self, ids: list[int]|None = None) -> None:
         """Refreshes all configurations"""
         raise NotImplementedError
 
@@ -93,6 +98,9 @@ class ControllerInterface:
         # return [] by default, override this in the individual interface implementations.
         return []
 
+    @property
+    def name(self) -> str:
+        raise NotImplementedError
 
 # Helper Functions
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from enum import Enum
 from typing import Any, ClassVar
 
@@ -62,3 +64,10 @@ class PowerSupplyDevice(Device):
     ]
 
 
+class Configuration(BaseModel):
+    """
+    Configuration object to be passed to a controller object. Must contain a unique SN field for identification of each
+    configuration object, everything else is up to you.
+    """
+    ID: int = Field(description="Unique identifier for this configuration")
+    ControllerType: ClassVar[str] = Field(description="What controller this configuration is for")
