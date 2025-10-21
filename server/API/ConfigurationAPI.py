@@ -20,8 +20,8 @@ def getCurrentConfig():
     :return: current configurations
     """
     res = []
-    for interface in toplevelinterface.interfaces:
-        res.append(interface.currentConfiguration)
+    for interface in toplevelinterface.device_interfaces.values():
+        res.extend(interface.currentConfigurations)
     return res
 
 @router.get("/get/ConfigSchema")
@@ -30,11 +30,11 @@ async def getConfigSchema():
     Returns the schema of congfiguration objects.
     key = controller name (eg pi, virtual, etc), value = its json schema.
     """
-    try:
-        return await toplevelinterface.configSchema
-    except Exception as e:
-        print(e)
-        raise HTTPException(status_code=500, detail=str(e))
+    awaiters = []
+    for intf in toplevelinterface.device_interfaces.values():
+        awaiters.append(intf.configurationSchema)
+
+    return await asyncio.gather(*awaiters)
 
 @router.post("/post/UpdateConfigurations", description='')
 async def updateConfiguration(background_tasks: BackgroundTasks, configurations: list[Any]) -> list[updateResponse]:
@@ -52,7 +52,7 @@ async def updateConfiguration(background_tasks: BackgroundTasks, configurations:
         try:
             valid_model = intf.configurationPydanticModel.model_validate(config)
             to_configure.append(valid_model)
-            config_finished_check.append(valid_model.SN)
+            config_finished_check.append(valid_model.ID)
             # fantastic, we have a valid model, added to queue.
         except ValidationError as e:
             print("Issue parsing configuration: ", e)
@@ -64,7 +64,10 @@ async def updateConfiguration(background_tasks: BackgroundTasks, configurations:
 
     # Add the configurations we just modified to the check config queue
     background_tasks.add_task(checkUntilConfigured, background_tasks, config_finished_check)
-    return await to_await
+    res = []
+    for awaiter in await to_await:
+        res.extend(await awaiter)
+    return res
 
 @router.get("/get/RemoveConfiguration")
 async def getRemoveConfiguration(configurationid:str,):
@@ -150,7 +153,7 @@ async def checkUntilConfigured(background_tasks: BackgroundTasks, ids_to_check: 
     await asyncio.sleep(0.2)
 
     awaiters = []
-    for intf in toplevelinterface.interfaces:
+    for intf in toplevelinterface.device_interfaces:
         awaiters.append(intf.is_configuration_configured(ids_to_check))
 
     awaited = await asyncio.gather(*awaiters)

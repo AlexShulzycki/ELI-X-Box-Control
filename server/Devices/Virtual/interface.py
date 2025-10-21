@@ -19,14 +19,13 @@ class VirtualStage:
     def __init__(self, config: VirtualStageConfig):
         self.identifier: int = config.ID
         self.maximum = None
-        self.position = None
+        self.position = 0
         self.on_target = None
         self.updateFromConfig(config)
 
     def updateFromConfig(self, config: VirtualStageConfig):
 
         self.maximum = config.maximum
-        self.position = 0
         self.on_target = True
         return updateResponse(
             identifier=self.identifier,
@@ -91,7 +90,9 @@ class VirtualInterface(ControllerInterface):
         for req in request:
             if self.stages.__contains__(req.ID):
                 res.append(self.stages[req.ID].updateFromConfig(req))
-
+            else:
+                self.stages[req.ID] = VirtualStage(req)
+                res.append(self.stages[req.ID].updateFromConfig(req))
         return res
 
     async def removeConfiguration(self, ident: int) -> updateResponse:

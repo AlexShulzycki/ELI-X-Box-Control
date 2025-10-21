@@ -9,12 +9,16 @@ from server.Devices import Device
 router = APIRouter(tags=["control"])
 
 @router.get("/get/devices")
-def getAllDevices() -> dict[int, Device]:
+def getAllDevices() -> list[Device]:
     """
     Gets the stage info of connected stages
     :return: dict identifier -> StageInfo
     """
-    return toplevelinterface.devices
+    res = []
+    for intf in toplevelinterface.device_interfaces.values():
+        res.extend(intf.devices)
+
+    return res
 
 @router.get("/get/refreshdevices")
 async def refreshdevices(background_tasks: BackgroundTasks, IDs:list[int] = None) -> None:

@@ -66,7 +66,7 @@ class DeviceInterface:
                 awaiters.append(await updateResponse(identifier=config.ID, success=False,
                                                      error=f"Controller interface for {config.ControllerType} not found"))
 
-        return await asyncio.gather(*awaiters)
+        return awaiters
 
     async def refreshConfigurations(self, configIDs: list[int] | None = None):
         """Tells each controller interface to refresh the given configurations"""
