@@ -55,6 +55,11 @@ class VirtualStage:
 
 class VirtualInterface(ControllerInterface):
 
+
+    @property
+    def configurationPydanticModel(self):
+        return VirtualStageConfig
+
     def __init__(self):
         super().__init__()
         self.stages: dict[int, VirtualStage] = {}

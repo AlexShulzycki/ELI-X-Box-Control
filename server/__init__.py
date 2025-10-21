@@ -112,4 +112,5 @@ for importer, modname, ispkg in pkgutil.iter_modules(Devices.__path__):
             deviceInterfaces.append(module.controller_interface)
             print(f"Device Controller {module} imported")
 
+# create the top level interface
 toplevelinterface = DeviceInterface(*deviceInterfaces)

@@ -28,7 +28,10 @@ class ControllerInterface:
     @property
     def deviceIDs(self) -> list[int]:
         """List of device IDs this controller has under its wing"""
-        raise NotImplementedError
+        res = []
+        for device in self.devices:
+            res.append(device.id)
+        return res
 
     async def execute_action(self, identifier, action, value: None|bool|float|str) -> None:
         """Executes an action on a given device.
@@ -46,7 +49,10 @@ class ControllerInterface:
     @property
     def configurationIDs(self) -> list[int]:
         """Returns a list of configuration IDs this controller controls"""
-        raise NotImplementedError
+        res = []
+        for config in self.currentConfigurations:
+            res.append(config.ID)
+        return res
 
     async def configurationChangeRequest(self, request: list[Configuration]) -> list[updateResponse]:
         """
@@ -70,6 +76,11 @@ class ControllerInterface:
         Return the configuration object json schema
         :return:
         """
+        raise NotImplementedError
+
+    @property
+    def configurationPydanticModel(self):
+        """Returns the pydantic model of a valid configuration"""
         raise NotImplementedError
 
     @property

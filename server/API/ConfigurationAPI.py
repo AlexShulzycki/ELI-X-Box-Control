@@ -1,16 +1,13 @@
-# This file will take care of communicating via api to select and configure the controllers
+# This API will take care of communicating via api to select and configure the controllers
 import asyncio
-import glob
-import sys
-from typing import Any, Callable
 
-import serial
+from typing import Any, Callable
 
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 
 from pydantic import BaseModel, ValidationError
 
-from server.Interface import toplevelinterface
+from server import toplevelinterface
 from server.Settings import SettingsVault
 from server.Devices.Events import updateResponse
 
@@ -20,12 +17,11 @@ router = APIRouter(tags=["configuration"])
 def getCurrentConfig():
     """
     Returns current configuration for every interface
-    :return:
+    :return: current configurations
     """
-
-    res = {}
+    res = []
     for interface in toplevelinterface.interfaces:
-        res[interface.name] = interface.currentConfiguration
+        res.append(interface.currentConfiguration)
     return res
 
 @router.get("/get/ConfigSchema")
@@ -40,64 +36,48 @@ async def getConfigSchema():
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/post/UpdateConfiguration", description='{"Virtual": [{"model": "Virtual 1","identifier": 1234,"kind": "linear","minimum": 0,"maximum": 200}]}')
-async def updateConfiguration(background_tasks: BackgroundTasks, configuration: dict[str, list[Any]]) -> list[updateResponse]:
+@router.post("/post/UpdateConfigurations", description='')
+async def updateConfiguration(background_tasks: BackgroundTasks, configurations: list[Any]) -> list[updateResponse]:
     config_finished_check = []
     res: list[updateResponse] = []
-    for name, array in configuration.items():
-        for interface in toplevelinterface.interfaces:
-            if name == interface.name:
-                toConfig = []
-                # convert each entry to appropriate configuration object
-                for item in array:
-                    try:
-                        # try to validate the input into the relevant configuration format
-                        try:
-                            valid_model = interface.configurationType.model_validate(item)
-                            toConfig.append(valid_model)
-                            config_finished_check.append(valid_model.SN)
-                        except ValidationError as e:
-                            print("Issue parsing config: ", e)
-                            print(item)
-                            raise e
-                    except Exception as e:
-                        # Bad validation format, add as error
+    to_configure = []
 
-                        res.append(updateResponse(
-                            identifier=-5, # some random identifier to pass the pydantic check
-                            success=False,
-                            error=str(e),
-                        ))
-                        # move on, this will skip adding the current (malformed) configuration and add the error response to the response list
-                        continue
-                try:
-                    # Try configuring the objects, and collect their update responses to the response list
-                    awaiters = await asyncio.gather(interface.configurationChangeRequest(toConfig))
-                    for a in awaiters:
-                        res.extend(a)
+    for config in configurations:
+        try:
+            intf = toplevelinterface.device_interfaces[config["ControllerType"]]
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(f"Cannot find controller interface, {e}"))
 
-                except Exception as e:
-                    # something catastrophic has happened if that failed
-                    print("Catastrophic failure updating configuration", e)
-                    raise HTTPException(status_code=500, detail=str(e))
+        # try to validate the input into the relevant configuration format
+        try:
+            valid_model = intf.configurationPydanticModel.model_validate(config)
+            to_configure.append(valid_model)
+            config_finished_check.append(valid_model.SN)
+            # fantastic, we have a valid model, added to queue.
+        except ValidationError as e:
+            print("Issue parsing configuration: ", e)
+            print(f"Configuration in question: {config}")
+            raise e
+
+    # all parsed, lets send the requests to their respective interfaces
+    to_await = toplevelinterface.updateConfigurations(to_configure)
 
     # Add the configurations we just modified to the check config queue
     background_tasks.add_task(checkUntilConfigured, background_tasks, config_finished_check)
-    return res
+    return await to_await
 
 @router.get("/get/RemoveConfiguration")
-async def getRemoveConfiguration(controllername:str, identifier:int):
+async def getRemoveConfiguration(configurationid:str,):
     """
     Removes a single configuration from the server
     :return: Success (or not)
     """
-    for cntr in toplevelinterface.interfaces:
-        if cntr.name == controllername:
-            # we found the correct controller, run the command
-            return await cntr.removeConfiguration(identifier)
+    for intf in toplevelinterface.device_interfaces.values():
+        if configurationid in intf.configurationIDs:
+            return await intf.removeConfiguration(configurationid)
 
-    # if we are here, we haven't found anything
-    raise HTTPException(status_code=404, detail=f"Controller interface {controllername} cannot be found")
+    # if we are here, we did not find anything, hmm
+    raise HTTPException(status_code=404, detail=f"Configuration {configurationid} not found")
 
 
 class SettingsResponse(BaseModel):

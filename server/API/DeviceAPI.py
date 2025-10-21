@@ -4,12 +4,12 @@ from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel, Field, model_validator
 
 from server import toplevelinterface
-from server.Devices.DataTypes import StageInfo, StageStatus, StageKind
+from server.Devices import Device
 
 router = APIRouter(tags=["control"])
 
 @router.get("/get/devices")
-def getAllDevices() -> dict[int, StageInfo]:
+def getAllDevices() -> dict[int, Device]:
     """
     Gets the stage info of connected stages
     :return: dict identifier -> StageInfo
