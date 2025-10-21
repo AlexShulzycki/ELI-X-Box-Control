@@ -31,9 +31,9 @@ class MotionStageDevice(Device):
     on_target: bool = Field(description="Whether this stage is on target", default=False)
     referenced: bool = Field(description="Whether this stage is referenced", default=False)
     actions = [
-        Action(name="move_to", description="Move this stage to target", value=float),
-        Action(name="step_by", description="Move this stage by the given amount", value=float),
-        Action(name="reference", description="Reference this stage")
+        Action(name="Move To", description="Move this stage to target", value=float),
+        Action(name="Step By", description="Move this stage by the given amount", value=float),
+        Action(name="Reference", description="Reference this stage")
     ]
 
 class LinearStageDevice(MotionStageDevice):

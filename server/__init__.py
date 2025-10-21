@@ -1,25 +1,32 @@
+from __future__ import annotations
+
+import importlib
+import pkgutil
+
 import asyncio
 from typing import Any
 
-from Interface import MainInterface
+import Devices
+
 from server.Devices import Configuration, Action
 from server.Devices.Events import DeviceUpdate, ConfigurationUpdate, Notice, updateResponse, ActionRequest
 from server.Devices.Interface import ControllerInterface
+from server.Devices.PI.C884 import ControllerNotReadyException
 from server.utils.EventAnnouncer import EventAnnouncer
-
 
 class DeviceInterface:
     """This interface communicates with device interfaces and holds information on
     configurations and specific devices"""
-    def __init__(self, *device_interfaces: ControllerInterface):
+
+    def __init__(self, *dev_intfs: ControllerInterface):
 
         self._device_interfaces: dict[str, ControllerInterface] = {}
         self.EventAnnouncer: EventAnnouncer = EventAnnouncer(DeviceInterface, DeviceUpdate, ConfigurationUpdate, Notice)
-        for intf in device_interfaces:
+        for intf in dev_intfs:
             self.addInterface(intf)
 
     @property
-    def device_interfaces(self) ->dict[str, ControllerInterface]:
+    def device_interfaces(self) -> dict[str, ControllerInterface]:
         return self._device_interfaces
 
     def addInterface(self, intf: ControllerInterface):
@@ -31,13 +38,15 @@ class DeviceInterface:
         """
         if self._device_interfaces.__contains__(intf.name):
             # Already exists here
-            print(f"Couldn't add interface {intf} to main device interface, as its already been added")
-            return
+            raise Exception(f"Couldn't add interface {intf} to main device interface, as its already been added")
+
         # New interface, lets sub to their event announcer and feed it directly into ours
         self.EventAnnouncer.patch_through_from(self.EventAnnouncer.availableDataTypes, intf.EventAnnouncer)
 
         # All done, finally append to the list
-        self._device_interfaces[intf.name] =intf
+        self._device_interfaces[intf.name] = intf
+
+        print(f"{intf.name} device interface is online")
 
     @property
     async def configuration_schema(self) -> dict[str, Any]:
@@ -59,7 +68,7 @@ class DeviceInterface:
 
         return await asyncio.gather(*awaiters)
 
-    async def refreshConfigurations(self, configIDs: list[int]|None = None):
+    async def refreshConfigurations(self, configIDs: list[int] | None = None):
         """Tells each controller interface to refresh the given configurations"""
         awaiters = []
         for intf in self.device_interfaces.values():
@@ -67,7 +76,7 @@ class DeviceInterface:
 
         await asyncio.gather(*awaiters)
 
-    async def refreshDevices(self, deviceIDs: list[int]|None = None):
+    async def refreshDevices(self, deviceIDs: list[int] | None = None):
         """Tells each controller interface to refresh the given devices"""
         awaiters = []
         for device_id in deviceIDs:
@@ -91,3 +100,16 @@ class DeviceInterface:
             awaiters.append(self.getDeviceController(action.device_id).execute_action(action))
 
         await asyncio.gather(*awaiters)
+
+
+
+# automatically import interfaces from each subpackage
+deviceInterfaces: list[ControllerInterface] = []
+for importer, modname, ispkg in pkgutil.iter_modules(Devices.__path__):
+    if ispkg:
+        module = importlib.import_module(f"Devices.{modname}")
+        if hasattr(module, "controller_interface"):
+            deviceInterfaces.append(module.controller_interface)
+            print(f"Device Controller {module} imported")
+
+toplevelinterface = DeviceInterface(*deviceInterfaces)

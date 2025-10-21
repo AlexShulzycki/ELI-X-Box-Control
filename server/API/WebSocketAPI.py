@@ -82,14 +82,15 @@ class WebSocketAPI:
         self.active_connections: list[WebSocket] = []
         self.EA: EventAnnouncer = EventAnnouncer(WebSocketAPI, StageStatus)
         # Subscribe to stage status changes
-        self.EA.patch_through_from([StageStatus, StageInfo, StageRemoved, Notice, ConfigurationUpdate],
+        self.EA.patch_through_from(server.Interface.toplevelinterface.EventAnnouncer.availableDataTypes,
                                    server.Interface.toplevelinterface.EventAnnouncer)
-        sub = server.Interface.toplevelinterface.EventAnnouncer.subscribe(StageStatus, StageInfo, StageRemoved, Notice, ConfigurationUpdate)
-        sub.deliverTo(StageStatus,self.broadcastStageStatus)
-        sub.deliverTo(StageInfo,self.broadcastStageInfo)
-        sub.deliverTo(StageRemoved, self.broadcastStageRemoved)
-        sub.deliverTo(Notice, self.broadcastNotice)
-        sub.deliverTo(ConfigurationUpdate, self.broadcastConfigurationUpdate)
+        # TODO reintegrate WSAPI
+        #sub = server.Interface.toplevelinterface.EventAnnouncer.subscribe(self.EA.availableDataTypes)
+        #sub.deliverTo(StageStatus,self.broadcastStageStatus)
+        #sub.deliverTo(StageInfo,self.broadcastStageInfo)
+        #sub.deliverTo(StageRemoved, self.broadcastStageRemoved)
+        #sub.deliverTo(Notice, self.broadcastNotice)
+        #sub.deliverTo(ConfigurationUpdate, self.broadcastConfigurationUpdate)
 
     async def receive(self, msg: Req, websocket: WebSocket) -> None:
         """

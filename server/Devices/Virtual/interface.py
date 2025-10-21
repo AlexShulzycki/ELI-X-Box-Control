@@ -2,11 +2,11 @@ from typing import Any
 
 from pydantic import Field
 
-from . import Device, LinearStageDevice, Configuration
-from .DataTypes import StageStatus, StageRemoved, StageInfo
-from .Events import ConfigurationUpdate, updateResponse, Notice
-from ..utils.EventAnnouncer import EventAnnouncer
-from .Interface import ControllerInterface
+from server.Devices import Device, LinearStageDevice, Configuration
+#from server.Devices.DataTypes import StageStatus, StageRemoved, StageInfo
+from server.Devices.Events import ConfigurationUpdate, updateResponse, Notice
+from server.utils.EventAnnouncer import EventAnnouncer
+from server.Interface import ControllerInterface
 
 
 class VirtualStageConfig(Configuration):

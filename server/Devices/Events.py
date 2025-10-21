@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from server.Devices import Device, Configuration
 
 class ActionRequest(BaseModel):
+    """Request for an action to be executed"""
     device_id: int = Field(description="Device ID to execute this action on")
     value: float|str|bool|None = Field(description="Input parameter for this action", default=None)
 

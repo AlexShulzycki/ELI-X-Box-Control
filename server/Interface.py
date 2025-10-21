@@ -1,14 +1,14 @@
 import asyncio
 from typing import Awaitable
 
-from .Devices.Interface import ControllerInterface
+from Devices.Interface import ControllerInterface
 
-from .Devices.PI.Interface import PIControllerInterface
-from .Devices.Standa.Interface import StandaInterface
-from .Devices.Virtual import VirtualInterface
-from .Devices.DataTypes import StageInfo, StageStatus, StageRemoved
-from .Devices.Events import ConfigurationUpdate, Notice
-from .utils.EventAnnouncer import EventAnnouncer
+from Devices.PI.Interface import PIControllerInterface
+from Devices.Standa.Interface import StandaInterface
+#from Devices.Virtual.interface import VirtualInterface
+from Devices.DataTypes import StageInfo, StageStatus, StageRemoved
+from Devices.Events import ConfigurationUpdate, Notice
+from utils.EventAnnouncer import EventAnnouncer
 
 
 class MainInterface:
@@ -154,8 +154,8 @@ class MainInterface:
 
 # INIT ALL INTERFACES TOGETHER
 #PIinterface = PIControllerInterface()
-Virtualinterface = VirtualInterface()
+#Virtualinterface = VirtualInterface()
 #Standainterface = StandaInterface()
 
 # TODO Re-Add C884 interface once rewritten
-toplevelinterface = MainInterface(Virtualinterface)#, PIinterface, Standainterface)
+toplevelinterface = MainInterface()#, PIinterface, Standainterface)

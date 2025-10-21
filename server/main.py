@@ -3,7 +3,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.openapi.utils import get_openapi
 from starlette.staticfiles import StaticFiles
 
-from .API import StageControlAPI, WebSocketAPI, GeometryAPI, KinematicsAPI, ConfigurationAPI
+from .API import DeviceAPI, WebSocketAPI, GeometryAPI, KinematicsAPI, ConfigurationAPI
 
 tags_metadata = [
     {
@@ -30,7 +30,7 @@ app.include_router(ConfigurationAPI.router)
 
 # Geometry and stage control routers
 app.include_router(GeometryAPI.router)
-app.include_router(StageControlAPI.router)
+app.include_router(DeviceAPI.router)
 app.include_router(KinematicsAPI.router)
 
 wsmanager = WebSocketAPI.websocketapi
