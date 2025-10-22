@@ -24,7 +24,7 @@ const step = ref(1)
 
       <v-col cols="6">
         <StepButton v-if="y!= undefined" style="grid-column: 1; grid-row: 2" v-bind:stageid="y" :direction="2"
-                    v-bind:stepby="-step" v-bind:reversed="xrev"/>
+                    v-bind:stepby="-step" v-bind:reversed="yrev"/>
       </v-col>
 
     </v-row>
@@ -32,7 +32,7 @@ const step = ref(1)
     <v-row no-gutters justify="space-between" >
       <v-col cols="2">
         <StepButton v-if="x!= undefined" style="grid-column: 3; grid-row: 2" v-bind:stageid="x" :direction="0"
-                    v-bind:stepby="step" v-bind:reversed="xrev"/>
+                    v-bind:stepby="step" v-bind:reversed="!xrev"/>
       </v-col>
       <v-col cols="8">
         <v-container class="fill-height" style="aspect-ratio:1.3">
@@ -44,7 +44,7 @@ const step = ref(1)
       </v-col>
       <v-col cols="2">
         <StepButton v-if="x!= undefined" style="grid-column: 2; grid-row: 1" v-bind:stageid="x" :direction="1"
-                    v-bind:stepby="step" v-bind:reversed="yrev"/>
+                    v-bind:stepby="step" v-bind:reversed="xrev"/>
       </v-col>
     </v-row>
 
@@ -52,7 +52,7 @@ const step = ref(1)
 
       <v-col cols="6">
         <StepButton v-if="y!= undefined" style="grid-column: 2; grid-row: 3" v-bind:stageid="y" :direction="3"
-                    v-bind:stepby="-step" v-bind:reversed="yrev"/>
+                    v-bind:stepby="-step" v-bind:reversed="!yrev"/>
       </v-col>
 
     </v-row>
