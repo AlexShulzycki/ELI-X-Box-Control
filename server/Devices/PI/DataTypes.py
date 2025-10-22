@@ -10,8 +10,8 @@ from pydantic_core.core_schema import FieldValidationInfo
 from server.Settings import SettingsVault
 from server.Devices.DataTypes import StageStatus, StageInfo, StageKind, \
     StageRemoved
-from server.Devices import Configuration
-from server.Devices.Events import ConfigurationUpdate, Notice
+from server.Devices import Configuration, Device, LinearStageDevice, RotationalStageDevice, MotionStageDevice
+from server.Devices.Events import ConfigurationUpdate, Notice, ActionRequest
 from server.utils.EventAnnouncer import EventAnnouncer
 
 
@@ -52,30 +52,11 @@ class PIStage(BaseModel):
     )
 
 
-class PIStageInfo(StageInfo):
-    controllerSN: int = Field(description="SN of controller controlling this stage")
-    channel: int = Field(description="Which controller channel this stage is connected to")
-
-    # the identifier is supposed to be (controller SN)(channel number) so we check this is true
-    # I cant be bothered to do the math thing so we check using strings, sorry.
-    @field_validator("controllerSN", mode="after")
-    def validate_controllerSN(cls, value, info: FieldValidationInfo):
-        if str(info.data["identifier"])[:-1] != str(value):
-            raise ValueError(f"SN {value} doesnt match identifier")
-        return value
-
-    @field_validator("channel")
-    def validate_channelSN(cls, value, info: FieldValidationInfo):
-        if str(info.data["identifier"])[-1] != str(value):
-            raise ValueError(f"SN {value} doesnt match identifier")
-        return value
-
-
 class PIConfiguration(Configuration):
     """
     State of a single PI controller. Required: SN, model, connection_type (with additional rs232 fields if required)
     """
-    SN: int = Field(description="Serial number of the controller", title="Serial number of the controller")
+    ID: int = Field(description="Serial number of the controller", title="Serial number of the controller")
     model: PIControllerModel = Field(description="Model of the PI controller", title="Model",
                                      examples=[PIControllerModel.C884])
     connection_type: PIConnectionType = Field(description="How the controller is connected",
@@ -146,9 +127,9 @@ class PIController:
         """
         raise NotImplementedError
 
-    async def refreshPosOnTarget(self):
+    async def refreshDevices(self):
         """
-        Just like refreshFullStatus, but only refreshes position and ontarget status.
+        Just like refreshFullStatus, but only refreshes relevant device information, i.e., ontarget, position, referenced.
         """
         raise NotImplementedError
 
@@ -166,44 +147,37 @@ class PIController:
         raise NotImplementedError
 
     @property
-    def stageInfos(self) -> dict[int, PIStageInfo]:
-
-        res = {}
+    def stages(self) -> list[PIStage]:
+        res = []
         for stage in self.config.stages.values():
-            # Check if ready to use, i.e. referenced and no a NOSTAGE.
-            if (stage == "NOSTAGE") or (not stage.referenced):
-                continue
-
-            resstage = PIStageInfo(
-                controllerSN=self.config.SN,
-                channel=stage.channel,
-                model=stage.device,
-                identifier=self.config.SN * 10 + (int(stage.channel)),  # controller SN plus channel
-                kind=StageKind.linear,  # TODO UNHARDCODE
-                minimum=stage.min_max[0],
-                maximum=stage.min_max[1]
-            )
-            # if we are here, the stage exists
-            res[resstage.identifier] = resstage
-
+            res.append(stage)
         return res
 
     @property
-    def stageStatuses(self) -> dict[int, StageStatus]:
+    def devices(self) -> dict[int, Device]:
         res = {}
         for stage in self.config.stages.values():
-            # Check if valid stage
-            if (stage == "NOSTAGE") or (not stage.referenced):
+            # Skip if NOSTAGE TODO check if necessary
+            if stage.device == "NOSTAGE":
                 continue
-
-            stat = (StageStatus(
-                identifier=self.config.SN * 10 + (int(stage.channel)),
-                connected=self.config.connected,
-                ready=self.config.ready,
-                position=stage.position,
-                ontarget=stage.on_target
-            ))
-            res[stat.identifier] = stat
+            identifier = self.config.ID*10 + stage.channel
+            if stage.kind == StageKind.linear:
+                res[stage.channel] = LinearStageDevice(
+                    identifier=identifier,
+                    configuration_id=self.config.ID,
+                    maximum=stage.min_max[1],
+                    position=stage.position,
+                    on_target=stage.on_target,
+                    referenced=stage.referenced
+                )
+            elif stage.kind == StageKind.rotational:
+                res[stage.channel] = RotationalStageDevice(
+                    identifier=identifier,
+                    configuration_id=self.config.ID,
+                    angle= stage.position,
+                    on_target=stage.on_target,
+                    referenced=stage.referenced
+                )
         return res
 
     @staticmethod
@@ -222,6 +196,27 @@ class PIController:
     async def is_configuration_configured(self) -> tuple[int, bool]:
         raise NotImplementedError
 
+    def execute_action(self, action: ActionRequest):
+        # find the stage
+        cntrl_id, channel = self.deconstruct_SN_Channel(action.device_id)
+        # do the action
+        if action.action_name == "Move To":
+            self.moveTo(channel, action.value)
+        elif action.action_name == "Step By":
+            self.moveBy(channel, action.value)
+        else:
+            raise Exception(f"Action {action.action_name} not recognized")
+
+    @staticmethod
+    def deconstruct_SN_Channel(sn_channel):
+        """
+        Extracts the channel and serial number from a unique serial-number-channel identifier
+        :param sn_channel: serial number with the channel glued to the end
+        :return: serial number and channel, separately!
+        """
+        channel: int = sn_channel % 10  # modulo 10 gives last digit
+        sn: int = int((sn_channel - channel) / 10)  # minus channel, divide by 10 to get rid of 0
+        return sn, channel
 
 class PIAPIConfig(PIConfiguration):
     """This is a version of PIConfiguration that works nicely with JSON schemas. The
@@ -239,3 +234,4 @@ class PIAPIConfig(PIConfiguration):
         dump = self.model_dump()
         dump["stages"] = stages_dict
         return PIConfiguration(**dump)
+

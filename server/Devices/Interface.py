@@ -7,7 +7,7 @@ from typing import Any
 import serial
 
 from server.Devices import Device, Action, Configuration
-from server.Devices.Events import ConfigurationUpdate, updateResponse, Notice, DeviceUpdate
+from server.Devices.Events import ConfigurationUpdate, updateResponse, Notice, DeviceUpdate, ActionRequest
 from server.utils.EventAnnouncer import EventAnnouncer
 
 
@@ -33,11 +33,9 @@ class ControllerInterface:
             res.append(device.id)
         return res
 
-    async def execute_action(self, identifier, action, value: None|bool|float|str) -> None:
+    async def execute_action(self, action: ActionRequest) -> None:
         """Executes an action on a given device.
-        :param identifier: Device identifier
-        :param action: Action to execute
-        :param value: Value of the action
+        :param action: Action request
         """
         raise NotImplementedError
 

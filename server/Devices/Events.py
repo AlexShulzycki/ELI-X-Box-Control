@@ -7,11 +7,12 @@ from server.Devices import Device, Configuration
 class ActionRequest(BaseModel):
     """Request for an action to be executed"""
     device_id: int = Field(description="Device ID to execute this action on")
+    action_name: str = Field(description="Name of the action")
     value: float|str|bool|None = Field(description="Input parameter for this action", default=None)
 
 class ConfigurationUpdate(BaseModel):
     """Update to the configuration state to be sent via websockets"""
-    SN: int
+    ID: int
     """Identifier of the configuration object"""
     message: str
     """Description that can be displayed to the user"""

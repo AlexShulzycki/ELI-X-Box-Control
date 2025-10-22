@@ -6,7 +6,7 @@ from pipython import GCSDevice
 from server.Settings import SettingsVault
 from server.Devices.DataTypes import StageKind
 from server.Devices.Events import ConfigurationUpdate, Notice
-from server.Devices.PI.DataTypes import PIController, PIConfiguration, PIConnectionType, PIStageInfo, PIStage
+from server.Devices.PI.DataTypes import PIController, PIConfiguration, PIConnectionType, PIStage
 
 
 class ControllerNotReadyException(Exception):
@@ -70,7 +70,7 @@ class C884(PIController):
         # if we are a fresh object without a config, lets make one
         if self.config is None:
             self._config = PIConfiguration(
-                SN=config.SN,
+                ID=config.ID,
                 model=config.model,
                 connection_type=config.connection_type,
                 comport=config.comport,
@@ -82,11 +82,11 @@ class C884(PIController):
         if not (self.config.connected and config.connected):
             # open connection handles channel_amount as well
             print("opening connection")
-            self.EA.event(ConfigurationUpdate(SN=config.SN, message="Connecting"))
+            self.EA.event(ConfigurationUpdate(ID=config.ID, message="Connecting"))
             await self.openConnection(config)
 
         # send an update for the user
-        update = ConfigurationUpdate(SN=config.SN, message="New configuration received")
+        update = ConfigurationUpdate(ID=config.ID, message="New configuration received")
         self.EA.event(update)
 
         # if no stages are given, we read the stages from the controller and not overwrite anything
@@ -271,7 +271,7 @@ class C884(PIController):
         print("refresh full status")
 
         status = PIConfiguration(
-            SN=self.config.SN,
+            ID=self.config.SN,
             model=self.config.model,
             connection_type=self.config.connection_type,
             connected=self.isconnected,
@@ -317,11 +317,12 @@ class C884(PIController):
         self._config = status
 
         # update parameters which directly save to the self.config
-        await asyncio.gather(self.refreshPosOnTarget(), self.update_ranges())
+        await asyncio.gather(self.refreshDevices(), self.update_ranges())
 
         # Send an info update, status is handled in pos on target
-        for info in self.stageInfos.values():
-            self.EA.event(info)
+        # TODO Websockets device updates
+        #for info in self.stageInfos.values():
+            #self.EA.event(info)
 
     @property
     def config(self) -> PIConfiguration:
@@ -337,12 +338,12 @@ class C884(PIController):
         # return the status, but as a copy, we don't want anyone to access this.
         return self._config.__copy__()
 
-    async def refreshPosOnTarget(self):
-        await asyncio.gather(self.update_onTarget(), self.update_position())
+    async def refreshDevices(self):
+        await asyncio.gather(self.update_onTarget(), self.update_position(), self.update_referenced())
 
         # Send a status update
-        for status in self.stageStatuses.values():
-            self.EA.event(status)
+        #for status in self.stageStatuses.values():
+        #    self.EA.event(status)
 
     async def update_position(self):
         """
@@ -382,6 +383,12 @@ class C884(PIController):
         for key, ont in self.device.qONT().items():
             if self.config.stages.__contains__(key):
                 self._config.stages[key].on_target = ont
+
+    async def update_referenced(self):
+        self.checkReady()
+        for key, ref in self.device.qREF().items():
+            if self.config.stages.__contains__(key):
+                self._config.stages[key].referenced = ref
 
     async def openConnection(self, config: PIConfiguration) -> bool:
         """

@@ -6,8 +6,6 @@ import pkgutil
 import asyncio
 from typing import Any
 
-import Devices
-
 from server.Devices import Configuration, Action
 from server.Devices.Events import DeviceUpdate, ConfigurationUpdate, Notice, updateResponse, ActionRequest
 from server.Devices.Interface import ControllerInterface
@@ -101,13 +99,19 @@ class DeviceInterface:
 
         await asyncio.gather(*awaiters)
 
-
+import os
+abspath = os.path.abspath(__file__)
+dname = os.path.dirname(abspath)
+os.chdir(dname)
+print("cwd: ", os.getcwd())
+print(Devices.__path__)
+print(os.getcwd()+"\\Devices")
 
 # automatically import interfaces from each subpackage
 deviceInterfaces: list[ControllerInterface] = []
-for importer, modname, ispkg in pkgutil.iter_modules(Devices.__path__):
+for importer, modname, ispkg in pkgutil.iter_modules([os.getcwd()+"\\Devices"]):
     if ispkg:
-        module = importlib.import_module(f"Devices.{modname}")
+        module = importlib.util.spec_from_file_location(modname, f"{os.getcwd()}\\Devices\\{modname}")
         if hasattr(module, "controller_interface"):
             deviceInterfaces.append(module.controller_interface)
             print(f"Device Controller {module} imported")

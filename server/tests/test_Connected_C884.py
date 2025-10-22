@@ -1,24 +1,24 @@
-import time
-import unittest
-
 import os
 os.chdir("../") # move to main server directory instead of /tests
 
+import time
+import unittest
+
 from unittest import IsolatedAsyncioTestCase
 
-from server.Interface import PIinterface
-from server.StageControl.PI.C884 import C884
-from server.StageControl.PI.DataTypes import PIConfiguration, PIControllerModel, PIConnectionType, PIStage
-from server.StageControl.PI.Interface import PIControllerInterface
+from server.Devices.PI.DataTypes import PIConfiguration, PIControllerModel, PIConnectionType, PIStage
+from server.Devices.PI.Interface import PIControllerInterface
+from server.Devices.PI.C884 import C884
 
 
 class TestC884(IsolatedAsyncioTestCase):
 
     async def test_connected(self):
+
         t = time.time()
         self.c1 = C884()
         await self.c1.updateFromConfig(PIConfiguration(
-            SN=118071328,
+            ID=118071328,
             connected=True,
             model=PIControllerModel.C884,
             connection_type=PIConnectionType.rs232,
@@ -28,7 +28,6 @@ class TestC884(IsolatedAsyncioTestCase):
                 "3": PIStage(
                     channel=3,
                     device= "L-406.40DD10",
-
                 )
             }))
 
@@ -53,8 +52,8 @@ class TestC884(IsolatedAsyncioTestCase):
         t = time.time()
         await self.c1.moveTo(3, 30)
         time.sleep(5)
-        await self.c1.refreshPosOnTarget()
-        print(self.c1.stageStatuses)
+        await self.c1.refreshDevices()
+        print(self.c1.devices)
         print(f"moved and refreshed, took {time.time() - t}")
 
         self.c1.shutdown_and_cleanup()
