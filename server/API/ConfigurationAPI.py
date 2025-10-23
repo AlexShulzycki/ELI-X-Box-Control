@@ -82,17 +82,17 @@ async def updateConfiguration(background_tasks: BackgroundTasks, configurations:
     return res
 
 @router.get("/get/RemoveConfiguration")
-async def getRemoveConfiguration(configurationid:str,):
+async def getRemoveConfiguration(ID:int):
     """
     Removes a single configuration from the server
     :return: Success (or not)
     """
     for intf in toplevelinterface.device_interfaces.values():
-        if configurationid in intf.configurationIDs:
-            return await intf.removeConfiguration(configurationid)
+        if ID in intf.configurationIDs:
+            return await intf.removeConfiguration(ID)
 
     # if we are here, we did not find anything, hmm
-    raise HTTPException(status_code=404, detail=f"Configuration {configurationid} not found")
+    raise HTTPException(status_code=404, detail=f"Configuration {ID} not found")
 
 
 class SettingsResponse(BaseModel):

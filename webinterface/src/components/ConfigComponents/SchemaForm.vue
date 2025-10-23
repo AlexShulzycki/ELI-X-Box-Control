@@ -107,7 +107,7 @@ function UpdateToServer() {
 
 function removeController(){
   if(serverdata?.ID != undefined){
-    configstore.removeConfig(schemanode.schema.title, serverdata.ID)
+    configstore.removeConfig(serverdata.ID)
   }
 }
 

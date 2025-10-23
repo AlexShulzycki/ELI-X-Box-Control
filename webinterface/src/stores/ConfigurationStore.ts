@@ -92,11 +92,10 @@ export const useConfigurationStore = defineStore('ConfigurationState', {
                 return responseArray
             }
         },
-        async removeConfig(controllerKey: string, identifier: number) {
+        async removeConfig(identifier: number) {
             const res = await axios.get("/get/RemoveConfiguration", {
                 params: {
-                    controllername: controllerKey,
-                    identifier: identifier
+                    ID: identifier
                 }
             })
             if (res.status != 200) {
