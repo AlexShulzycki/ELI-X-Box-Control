@@ -37,30 +37,5 @@ class ActionResponse(BaseModel):
 async def getDoAction(action: ActionRequest) -> None:
     toplevelinterface.execute_actions(action)
 
-# TODO Find an efficient way to only have one task rechecking
-async def checkUntilFinished(background_tasks: BackgroundTasks, checkIDs: list[int] = None):
-    print("Checking until finished ", checkIDs)
-
-
-
-    if checkIDs is None:
-        checkIDs = toplevelinterface.allIdentifiers
-    elif len(checkIDs) == 0:
-        # If there's nothing to check, then don't check :)
-        return
-
-    # Refresh relevant statuses
-    await toplevelinterface.updateStageStatus(checkIDs)
-
-    # Construct a list of IDs that aren't on target
-    toUpdate: list[int] = []
-    # Check if we are on target
-    print(toplevelinterface.StageStatus)
-    for id in checkIDs:
-        if not toplevelinterface.StageStatus[id].ontarget:
-            toUpdate.append(id)
-
-    # reschedule the task - since we are passing IDs we know are not on target, the list will naturally dwindle
-    background_tasks.add_task(checkUntilFinished, background_tasks, toUpdate)
 
 
