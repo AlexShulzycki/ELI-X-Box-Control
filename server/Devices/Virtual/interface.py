@@ -2,11 +2,12 @@ from typing import Any
 
 from pydantic import Field
 
+from server.Devices.Events import ActionRequest
 from server.Devices import Device, LinearStageDevice, Configuration
 #from server.Devices.DataTypes import StageStatus, StageRemoved, StageInfo
 from server.Devices.Events import ConfigurationUpdate, updateResponse, Notice
 from server.utils.EventAnnouncer import EventAnnouncer
-from server.Interface import ControllerInterface
+from server.Devices.Interface import ControllerInterface
 
 
 class VirtualStageConfig(Configuration):
@@ -54,15 +55,22 @@ class VirtualStage:
 
 class VirtualInterface(ControllerInterface):
 
-
-    @property
-    def configurationPydanticModel(self):
-        return VirtualStageConfig
-
     def __init__(self):
         super().__init__()
         self.stages: dict[int, VirtualStage] = {}
 
+    async def refresh_configurations(self, ids: list[int] | None = None) -> None:
+        pass
+
+    async def execute_action(self, action: ActionRequest) -> None:
+        if action.action_name == "Move To":
+            self.stages[action.device_id].position = action.value
+        elif action.action_name == "Step By":
+            self.stages[action.device_id].position += action.value
+
+    @property
+    def configurationPydanticModel(self):
+        return VirtualStageConfig
 
     @property
     def devices(self) -> list[Device]:
@@ -71,8 +79,6 @@ class VirtualInterface(ControllerInterface):
             res.append(stage.device)
         return res
 
-    async def execute_action(self, identifier, action, value: None | bool | float | str) -> None:
-        pass
 
     async def refresh_devices(self, ids:list[int]|None = None) -> None:
         pass
@@ -122,6 +128,3 @@ class VirtualInterface(ControllerInterface):
         for stage in self.stages.values():
             res.append(stage.config)
         return res
-
-    async def refresh_configurations(self) -> None:
-        pass

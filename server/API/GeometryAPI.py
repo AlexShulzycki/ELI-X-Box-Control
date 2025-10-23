@@ -1,8 +1,6 @@
 from enum import Enum
 
 from fastapi import APIRouter, HTTPException
-from server import Interface
-from pydantic import BaseModel, Field
 
 from server.Calculations.DataTypes import Element, elements, Crystal, crystals
 from server.Calculations.VonHamos import Alignment

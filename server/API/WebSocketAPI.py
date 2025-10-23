@@ -7,8 +7,7 @@ from fastapi import WebSocket
 from pydantic import BaseModel, Field
 
 import server.utils.EventAnnouncer
-from server.Interface import toplevelinterface
-from server.Devices.DataTypes import StageStatus, StageInfo, StageRemoved
+from server import toplevelinterface
 from server.Devices import Configuration
 from server.Devices.Events import ConfigurationUpdate, Notice
 from server.utils.EventAnnouncer import EventAnnouncer
@@ -80,10 +79,10 @@ class WebSocketAPI:
 
     def __init__(self):
         self.active_connections: list[WebSocket] = []
-        self.EA: EventAnnouncer = EventAnnouncer(WebSocketAPI, StageStatus)
+        self.EA: EventAnnouncer = EventAnnouncer(WebSocketAPI, )
         # Subscribe to stage status changes
-        self.EA.patch_through_from(server.Interface.toplevelinterface.EventAnnouncer.availableDataTypes,
-                                   server.Interface.toplevelinterface.EventAnnouncer)
+        self.EA.patch_through_from(server.toplevelinterface.EventAnnouncer.availableDataTypes,
+                                   server.toplevelinterface.EventAnnouncer)
         # TODO reintegrate WSAPI
         #sub = server.Interface.toplevelinterface.EventAnnouncer.subscribe(self.EA.availableDataTypes)
         #sub.deliverTo(StageStatus,self.broadcastStageStatus)
@@ -121,21 +120,21 @@ class WebSocketAPI:
     def disconnect(self, websocket: WebSocket):
         self.active_connections.remove(websocket)
 
-    def broadcastStageRemoved(self, message: StageRemoved):
+    def broadcastStageRemoved(self, message):
         asyncio.create_task(
             self.broadcast({
                 "event": "StageRemoved",
                 "data": message.model_dump_json()
             })
         )
-    def broadcastStageStatus(self, message: StageStatus):
+    def broadcastStageStatus(self, message):
         asyncio.create_task(
             self.broadcast({
             "event": "StageStatus",
             "data": message.model_dump_json()
         }))
 
-    def broadcastStageInfo(self, message: StageInfo):
+    def broadcastStageInfo(self, message):
         asyncio.create_task(self.broadcast({
             "event": "StageInfo",
             "data": message.model_dump_json()

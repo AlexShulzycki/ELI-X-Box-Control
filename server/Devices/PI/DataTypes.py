@@ -1,19 +1,19 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Coroutine, Awaitable
 
 from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
-from pydantic.json_schema import DEFAULT_REF_TEMPLATE, GenerateJsonSchema, JsonSchemaMode
 from pydantic_core.core_schema import FieldValidationInfo
 
 from server.Settings import SettingsVault
-from server.Devices.DataTypes import StageStatus, StageInfo, StageKind, \
-    StageRemoved
 from server.Devices import Configuration, Device, LinearStageDevice, RotationalStageDevice, MotionStageDevice
 from server.Devices.Events import ConfigurationUpdate, Notice, ActionRequest
 from server.utils.EventAnnouncer import EventAnnouncer
 
+
+class StageKind(Enum):
+    linear = "linear"
+    rotational = "rotational"
 
 class C884Settings(BaseModel):
     pass
@@ -112,7 +112,7 @@ class PIConfiguration(Configuration):
 
 class PIController:
     def __init__(self):
-        self.EA = EventAnnouncer(PIController, StageStatus, StageInfo, StageRemoved, Notice, ConfigurationUpdate)
+        self.EA = EventAnnouncer(PIController, Notice, ConfigurationUpdate)
         self._config = None
         self.SV = SettingsVault()
 
@@ -161,7 +161,7 @@ class PIController:
             # Skip if NOSTAGE TODO check if necessary
             if stage.device == "NOSTAGE":
                 continue
-            identifier = self.config.ID*10 + stage.channel
+            identifier = self.config.ID * 10 + stage.channel
             if stage.kind == StageKind.linear:
                 res[stage.channel] = LinearStageDevice(
                     identifier=identifier,
@@ -175,7 +175,7 @@ class PIController:
                 res[stage.channel] = RotationalStageDevice(
                     identifier=identifier,
                     configuration_id=self.config.ID,
-                    angle= stage.position,
+                    angle=stage.position,
                     on_target=stage.on_target,
                     referenced=stage.referenced
                 )
@@ -219,6 +219,7 @@ class PIController:
         sn: int = int((sn_channel - channel) / 10)  # minus channel, divide by 10 to get rid of 0
         return sn, channel
 
+
 class PIAPIConfig(PIConfiguration):
     """This is a version of PIConfiguration that works nicely with JSON schemas. The
     difference is that it uses a list instead of a dict for storing PIStage objects."""
@@ -235,4 +236,3 @@ class PIAPIConfig(PIConfiguration):
         dump = self.model_dump()
         dump["stages"] = stages_dict
         return PIConfiguration(**dump)
-

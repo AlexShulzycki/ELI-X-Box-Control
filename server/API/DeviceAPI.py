@@ -3,10 +3,10 @@ import asyncio
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel, Field, model_validator
 
-from server import toplevelinterface
+from server import toplevelinterface, ActionRequest
 from server.Devices import Device
 
-router = APIRouter(tags=["control"])
+router = APIRouter(tags=["devices"])
 
 @router.get("/get/devices")
 def getAllDevices() -> list[Device]:
@@ -22,8 +22,11 @@ def getAllDevices() -> list[Device]:
 
 @router.get("/get/refreshdevices")
 async def refreshdevices(background_tasks: BackgroundTasks, IDs:list[int] = None) -> None:
-    await toplevelinterface.refresh_devices(IDs)
-    background_tasks.add_task(checkUntilFinished, background_tasks, IDs)
+    # Run the refresh
+    notdone = await toplevelinterface.refreshDevices(IDs)
+    # go to sleep :)
+    await asyncio.sleep(0.2)
+    background_tasks.add_task(refreshdevices, background_tasks, notdone)
 
 
 class ActionResponse(BaseModel):
@@ -31,15 +34,14 @@ class ActionResponse(BaseModel):
     message: str|None = None
 
 @router.get("/get/action")
-async def getDoAction(identifier: int, action: str, value: str|float|bool|None) -> None:
-    toplevelinterface.doAction(identifier, action, value)
+async def getDoAction(action: ActionRequest) -> None:
+    toplevelinterface.execute_actions(action)
 
 # TODO Find an efficient way to only have one task rechecking
 async def checkUntilFinished(background_tasks: BackgroundTasks, checkIDs: list[int] = None):
     print("Checking until finished ", checkIDs)
 
-    # go to sleep :)
-    await asyncio.sleep(0.2)
+
 
     if checkIDs is None:
         checkIDs = toplevelinterface.allIdentifiers

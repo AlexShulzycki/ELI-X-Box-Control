@@ -1,6 +1,6 @@
 from __future__ import annotations
 import asyncio
-from typing import Any
+from typing import Any, Awaitable
 
 from server.Devices import Configuration, Action, Virtual, PI
 from server.Devices.Events import DeviceUpdate, ConfigurationUpdate, Notice, updateResponse, ActionRequest
@@ -78,13 +78,23 @@ class DeviceInterfaceInterface:
 
         await asyncio.gather(*awaiters)
 
-    async def refreshDevices(self, deviceIDs: list[int] | None = None):
+    async def refreshDevices(self, deviceIDs: list[int] | None = None) -> list[int]:
         """Tells each controller interface to refresh the given devices"""
-        awaiters = []
+
+        if deviceIDs is None:
+            deviceIDs = []
+            for intf in self.device_interfaces.values():
+                deviceIDs.extend(intf.deviceIDs)
+
+        awaiters: list[Awaitable[list[int]]] = []
         for device_id in deviceIDs:
             awaiters.append(self.getDeviceController(device_id).refresh_devices(deviceIDs))
 
-        await asyncio.gather(*awaiters)
+        res: list[int] = []
+        # await and flatten the responses, since we are getting a list of (awaited) lists
+        for awaiter in awaiters:
+            res.extend(await awaiter)
+        return res
 
     def getDeviceController(self, deviceID: int) -> ControllerInterface:
         """Returns the controller for the given device ID"""

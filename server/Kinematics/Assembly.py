@@ -6,9 +6,8 @@ from pydantic import BaseModel, Field
 
 from scipy.spatial.transform import Rotation as R
 
-from server.Interface import toplevelinterface
+from server import toplevelinterface
 from server.Kinematics.DataTypes import XYZvector, ComponentType
-from server.Devices.DataTypes import StageStatus
 from server.utils.EventAnnouncer import EventAnnouncer
 
 
@@ -213,7 +212,7 @@ class AxisComponent(Structure):
 # Set up the main interface
 class AssemblyInterface:
     def __init__(self):
-        self.EA = EventAnnouncer(AssemblyInterface, StageStatus)
+        self.EA = EventAnnouncer(AssemblyInterface, )
         self._root: Component = Component(name="root") # For now we create a root, rethink this
 
     @property

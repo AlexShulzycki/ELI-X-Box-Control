@@ -86,8 +86,12 @@ class ControllerInterface:
         """Returns the list of current configurations"""
         raise NotImplementedError
 
-    async def refresh_devices(self, ids:list[int]|None = None) -> None:
-        """Refreshes all values for given devices"""
+    async def refresh_devices(self, ids:list[int]|None = None) -> list[int]:
+        """
+        Refreshes all values for given devices
+        :param ids: list of device IDs to refresh, if all, set to none
+        :return: list of devices that need to be refreshed again, i.e. because they are not on target
+        """
         raise NotImplementedError
 
     async def refresh_configurations(self, ids: list[int]|None = None) -> None:
