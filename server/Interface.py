@@ -1,14 +1,11 @@
 import asyncio
 from typing import Awaitable
 
-from Devices.Interface import ControllerInterface
+from server.Devices.Interface import ControllerInterface
 
-from Devices.PI.Interface import PIControllerInterface
-from Devices.Standa.Interface import StandaInterface
-#from Devices.Virtual.interface import VirtualInterface
-from Devices.DataTypes import StageInfo, StageStatus, StageRemoved
-from Devices.Events import ConfigurationUpdate, Notice
-from utils.EventAnnouncer import EventAnnouncer
+from server.Devices.DataTypes import StageInfo, StageStatus, StageRemoved
+from server.Devices.Events import ConfigurationUpdate, Notice
+from server.utils.EventAnnouncer import EventAnnouncer
 
 
 class MainInterface:

@@ -1,25 +1,29 @@
 from __future__ import annotations
-
-import importlib
-import pkgutil
-
 import asyncio
 from typing import Any
 
-from server.Devices import Configuration, Action
+from server.Devices import Configuration, Action, Virtual, PI
 from server.Devices.Events import DeviceUpdate, ConfigurationUpdate, Notice, updateResponse, ActionRequest
 from server.Devices.Interface import ControllerInterface
 from server.Devices.PI.C884 import ControllerNotReadyException
 from server.utils.EventAnnouncer import EventAnnouncer
 
-class DeviceInterface:
+
+# Device controller packages we want to use with the server.
+# I tried to make this automatic, but amount of things that can be broken and the debugging needed
+# for it far outweighs the benefit of saving the 2.4 milliseconds to type it in manually in the array below.
+device_packages = [Virtual, PI]
+
+
+class DeviceInterfaceInterface:
     """This interface communicates with device interfaces and holds information on
-    configurations and specific devices"""
+    configurations and specific devices.
+    Thus, it is an interface for device interfaces, i.e. a device interface interface."""
 
     def __init__(self, *dev_intfs: ControllerInterface):
 
         self._device_interfaces: dict[str, ControllerInterface] = {}
-        self.EventAnnouncer: EventAnnouncer = EventAnnouncer(DeviceInterface, DeviceUpdate, ConfigurationUpdate, Notice)
+        self.EventAnnouncer: EventAnnouncer = EventAnnouncer(DeviceInterfaceInterface, DeviceUpdate, ConfigurationUpdate, Notice)
         for intf in dev_intfs:
             self.addInterface(intf)
 
@@ -99,22 +103,16 @@ class DeviceInterface:
 
         await asyncio.gather(*awaiters)
 
-import os
-abspath = os.path.abspath(__file__)
-dname = os.path.dirname(abspath)
-os.chdir(dname)
-print("cwd: ", os.getcwd())
-print(Devices.__path__)
-print(os.getcwd()+"\\Devices")
 
-# automatically import interfaces from each subpackage
-deviceInterfaces: list[ControllerInterface] = []
-for importer, modname, ispkg in pkgutil.iter_modules([os.getcwd()+"\\Devices"]):
-    if ispkg:
-        module = importlib.util.spec_from_file_location(modname, f"{os.getcwd()}\\Devices\\{modname}")
-        if hasattr(module, "controller_interface"):
-            deviceInterfaces.append(module.controller_interface)
-            print(f"Device Controller {module} imported")
+
+
+# Verify the device packages have an interface in their __init__.py and add them to the main device interface
+device_interfaces: list[ControllerInterface] = []
+for devpkg in device_packages:
+    if hasattr(devpkg, "controller_interface"):
+        device_interfaces.append(devpkg.controller_interface)
+        print(f"Device Controller {devpkg} imported")
 
 # create the top level interface
-toplevelinterface = DeviceInterface(*deviceInterfaces)
+toplevelinterface = DeviceInterfaceInterface(*device_interfaces)
+

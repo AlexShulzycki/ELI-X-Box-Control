@@ -3,6 +3,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.openapi.utils import get_openapi
 from starlette.staticfiles import StaticFiles
 
+import server
 from .API import DeviceAPI, WebSocketAPI, GeometryAPI, KinematicsAPI, ConfigurationAPI
 
 tags_metadata = [
@@ -23,6 +24,8 @@ tags_metadata = [
         "description": "Calculate geometry, angles, offsets, etc..",
     }
 ]
+
+# Create the FastAPI server
 app = FastAPI(openapi_tags = tags_metadata)
 
 # settings routers

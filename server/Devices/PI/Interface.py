@@ -3,7 +3,7 @@ from typing import Any, Awaitable
 
 from pydantic import BaseModel
 
-from server import Configuration
+from server.Devices import Configuration
 from server.Devices import Device, LinearStageDevice
 from server.Settings import SettingsVault
 from server.Devices.Interface import ControllerInterface, getComPorts
