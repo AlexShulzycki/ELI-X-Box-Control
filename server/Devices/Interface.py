@@ -77,7 +77,7 @@ class ControllerInterface:
         raise NotImplementedError
 
     @property
-    def configurationPydanticModel(self):
+    def configurationPydanticModel(self) -> Configuration:
         """Returns the pydantic model of a valid configuration"""
         raise NotImplementedError
 

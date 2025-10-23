@@ -3,7 +3,7 @@ from typing import Any, Awaitable
 
 from pydantic import BaseModel
 
-from server.Devices import Configuration
+from server.Devices import Configuration, RotationalStageDevice
 from server.Devices import Device, LinearStageDevice
 from server.Settings import SettingsVault
 from server.Devices.Interface import ControllerInterface, getComPorts
@@ -22,7 +22,6 @@ class PIControllerInterface(ControllerInterface):
     def __init__(self):
         super().__init__()
         self.controllers: dict[int, PIController] = {}
-        self.EventAnnouncer.patch_through_from(self.EventAnnouncer.availableDataTypes, self.settings.EventAnnouncer)
         self.SV = SettingsVault()
 
     @property
@@ -40,7 +39,10 @@ class PIControllerInterface(ControllerInterface):
 
     @property
     def device_schemas(self) -> list[dict[str, Any]]:
-        return []
+        res = []
+        for dv in [LinearStageDevice, RotationalStageDevice]:
+            res.append(dv.model_json_schema())
+        return res
 
     @property
     def configurationPydanticModel(self):

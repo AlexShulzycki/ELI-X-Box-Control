@@ -3,18 +3,23 @@
 import {JsonForms, type JsonFormsChangeEvent} from "@jsonforms/vue";
 import {extendedVuetifyRenderers} from "@jsonforms/vue-vuetify";
 import type {SchemaNode} from "json-schema-library";
-import {reactive, ref, useTemplateRef} from "vue";
-import {type Configuration, type responseinterface, useConfigurationStore} from "@/stores/ConfigurationStore.ts";
+import {reactive, ref} from "vue";
+import {type Configuration, type serverResponse, useConfigurationStore} from "@/stores/ConfigurationStore.ts";
+
+export interface nullableConfiguration{
+  ID?: number,
+  ControllerType?: string,
+}
 
 // Props and Emits
 const {schemanode, serverdata} = defineProps<{
   schemanode: SchemaNode,
-  serverdata?: Configuration
+  serverdata: nullableConfiguration
 }>();
 const emit = defineEmits(['success'])
 
 // response data from server
-const response = ref({identifier: -1, success: true, error: ""} as responseinterface);
+const response = ref({identifier: -1, success: true, error: ""} as serverResponse);
 
 // JSON forms renderer
 const renderers = Object.freeze([
@@ -24,7 +29,7 @@ const renderers = Object.freeze([
 
 // Form data handling
 // If formdata is not null, then it contains valid data, according to the schema
-let formdata: Configuration = reactive({SN:-1})
+let formdata: nullableConfiguration = reactive({})
 
 // loading flag, informs if we are waiting for a request response
 const loading = ref<boolean>(false)
@@ -41,12 +46,12 @@ const onChange = (event: JsonFormsChangeEvent) => {
   // The formdata variable also acts like a flag (SN:-1) to show if the form inputs are valid
   if (event.errors.length > 0) {
     // Form input is not schema-compliant, so clear out the form data
-    formdata = {SN:-1}
+    formdata = {}
   } else {
     // If there are no errors in validation, copy over the form data
     formdata = event.data;
   }
-  disabled.value = formdata.SN == -1
+  disabled.value = formdata.ID == undefined
 };
 
 
@@ -54,35 +59,37 @@ const onChange = (event: JsonFormsChangeEvent) => {
 const configstore = useConfigurationStore()
 
 function UpdateToServer() {
-  if (formdata.SN == -1) {
+  if (formdata.ID == undefined) {
     // No data to send, return.
     return;
   }
 
   // Format the data, {key: list[config objects, more configs, ...]},
   // in our case only one config (from the form) is in the list
-  let request = {
-    [schemanode.schema.title as string]: Array(formdata)
-  }
 
   // lets change the button to loading
   loading.value = true
   // lets clear the config update queue
-  configstore.configurationUpdates.set(formdata.SN, [])
+  configstore.configurationUpdates.set(formdata.ID, [])
 
-  // Push the new data to the server, and read the response
-  configstore.pushConfig(request).then((res) => {
+  // Create the request
+  let request = formdata
+  // We need to remember to pass the ControllerType in as well
+  request.ControllerType = schemanode.schema.title
+
+  // Push the request to the server, and read the response
+  configstore.pushConfig(request as Configuration).then((res) => {
     // we received a response, button is no longer loading
     loading.value = false
 
     if (res != undefined) {
       // Load in the response into the response var
-      response.value = res[0] as responseinterface;
+      response.value = res[0] as serverResponse;
 
       // set the response id to -1 to hide the message, vary the timeouts if successful/unsuccessful
       if (response.value.success) {
         // emit a success
-        emit("success", formdata.SN)
+        emit("success", formdata.ID)
         setTimeout(() => {
           response.value.identifier = -1
         }, 3000) // 3 seconds
@@ -99,8 +106,8 @@ function UpdateToServer() {
 }
 
 function removeController(){
-  if(serverdata != undefined){
-    configstore.removeConfig(schemanode.schema.title, serverdata.SN)
+  if(serverdata?.ID != undefined){
+    configstore.removeConfig(schemanode.schema.title, serverdata.ID)
   }
 }
 
@@ -108,11 +115,11 @@ function removeController(){
 
 <template>
   <v-container>
-    <v-card v-bind:loading="(configstore.getIsUpdateQueueNotFinished.get(formdata.SN)?? false)">
+    <v-card v-bind:loading="(configstore.getIsUpdateQueueNotFinished.get(<number>formdata.ID)?? false)">
       <v-card-text>
         <v-timeline direction="horizontal"
-                    v-if="formdata.SN != undefined && configstore.configurationUpdates.get(formdata.SN)" side="end">
-          <v-timeline-item v-for="event in configstore.configurationUpdates.get(formdata.SN)"
+                    v-if="formdata.ID != undefined && configstore.configurationUpdates.get(formdata.ID)" side="end">
+          <v-timeline-item v-for="event in configstore.configurationUpdates.get(formdata.ID)"
                            v-bind:dot-color="event.error?'red':event.finished?'green':'orange'">
             {{ event.message }}
           </v-timeline-item>
@@ -122,7 +129,7 @@ function removeController(){
         <v-btn @click="UpdateToServer" v-model:disabled="disabled" :loading="loading">
           Submit Changes
         </v-btn>
-        <v-btn @click="removeController" v-if="serverdata.SN != null">
+        <v-btn @click="removeController" v-if="serverdata.ID != undefined">
           Remove Controller
         </v-btn>
       </v-card-actions>

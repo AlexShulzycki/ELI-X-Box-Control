@@ -3,7 +3,8 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any, ClassVar
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_serializer
+from pydantic_core.core_schema import SerializerFunctionWrapHandler
 
 
 class Action(BaseModel):
@@ -71,3 +72,11 @@ class Configuration(BaseModel):
     """
     ID: int = Field(description="Unique identifier for this configuration")
     ControllerType: ClassVar[str] = Field(description="What controller this configuration is for")
+
+
+    # Force the inclusion of ControlleType in the serialization, otherwise it will not be included as it's a class var.
+    @model_serializer(mode='wrap')
+    def serialize_model(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
+        serialized = handler(self)
+        serialized['ControllerType'] = self.ControllerType
+        return serialized

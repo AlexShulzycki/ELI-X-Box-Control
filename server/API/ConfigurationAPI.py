@@ -7,22 +7,22 @@ from fastapi import APIRouter, HTTPException, BackgroundTasks
 
 from pydantic import BaseModel, ValidationError
 
-from server import toplevelinterface
+from server import toplevelinterface, Configuration
 from server.Settings import SettingsVault
 from server.Devices.Events import updateResponse
 
 router = APIRouter(tags=["configuration"])
 
 @router.get("/get/ConfigState")
-def getCurrentConfig():
+def getCurrentConfig() -> list[Configuration]:
     """
     Returns current configuration for every interface
     :return: current configurations
     """
-    res = []
+    configs: list[Configuration] = []
     for interface in toplevelinterface.device_interfaces.values():
-        res.extend(interface.currentConfigurations)
-    return res
+        configs.extend(interface.currentConfigurations)
+    return configs
 
 @router.get("/get/ConfigSchema")
 async def getConfigSchema():
@@ -31,10 +31,23 @@ async def getConfigSchema():
     key = controller name (eg pi, virtual, etc), value = its json schema.
     """
     awaiters = []
+    titles = []
+
+    # grab the schemas
     for intf in toplevelinterface.device_interfaces.values():
         awaiters.append(intf.configurationSchema)
+        titles.append(intf.configurationPydanticModel.ControllerType)
+    schemas = await asyncio.gather(*awaiters)
 
-    return await asyncio.gather(*awaiters)
+    # ensure the title of the schema is the same as the ControllerType class var of the configuration
+    for i, schema in enumerate(schemas):
+        try:
+            schema["title"] = titles[i]
+        except Exception as e:
+            print("unable to process a schema's title, ensure that the base configuration pydantic model has the classvar"
+                  "for ControllerType set.")
+
+    return schemas
 
 @router.post("/post/UpdateConfigurations", description='')
 async def updateConfiguration(background_tasks: BackgroundTasks, configurations: list[Any]) -> list[updateResponse]:
@@ -64,7 +77,6 @@ async def updateConfiguration(background_tasks: BackgroundTasks, configurations:
 
     # Add the configurations we just modified to the check config queue
     background_tasks.add_task(checkUntilConfigured, background_tasks, config_finished_check)
-    res = []
     for awaiter in await to_await:
         res.extend(await awaiter)
     return res
@@ -153,7 +165,7 @@ async def checkUntilConfigured(background_tasks: BackgroundTasks, ids_to_check: 
     await asyncio.sleep(0.2)
 
     awaiters = []
-    for intf in toplevelinterface.device_interfaces:
+    for intf in toplevelinterface.device_interfaces.values():
         awaiters.append(intf.is_configuration_configured(ids_to_check))
 
     awaited = await asyncio.gather(*awaiters)

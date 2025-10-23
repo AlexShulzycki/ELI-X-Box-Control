@@ -29,9 +29,9 @@ const tab = ref(null)
       <v-tab v-for="key in config.configSchemas.keys()" :value="key">
         {{ key }}
         <v-badge
-            v-if="config.serverConfigs.get(key)?.length??0 > 0"
+            v-if="config.getConfigsBySchema.get(key)?.length??0 > 0"
             color="primary"
-            v-bind:content="config.serverConfigs.get(key)?.length"
+            v-bind:content="config.getConfigsBySchema.get(key)?.length"
             inline
         />
       </v-tab>
@@ -39,8 +39,9 @@ const tab = ref(null)
 
 
     <v-tabs-window v-model="tab">
-      <v-tabs-window-item v-for="[key, [schema, data]] in config.getConfigWithSchema" :value="key">
-        <SchemaFormBrowser v-bind:schema="schema" v-bind:data="data"/>
+      <v-tabs-window-item v-for="[key, schema] in config.configSchemas" :value="key">
+        <!-- display the schemaform browser for each schema, give it data from existing configs if available, or an empty array-->
+        <SchemaFormBrowser v-bind:schema="schema" v-bind:data="config.getConfigsBySchema.get(key)??[]"/>
       </v-tabs-window-item>
     </v-tabs-window>
   </v-sheet>

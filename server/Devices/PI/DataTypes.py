@@ -57,6 +57,7 @@ class PIConfiguration(Configuration):
     State of a single PI controller. Required: SN, model, connection_type (with additional rs232 fields if required)
     """
     ID: int = Field(description="Serial number of the controller", title="Serial number of the controller")
+    ControllerType = "PI"
     model: PIControllerModel = Field(description="Model of the PI controller", title="Model",
                                      examples=[PIControllerModel.C884])
     connection_type: PIConnectionType = Field(description="How the controller is connected",

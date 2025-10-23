@@ -14,23 +14,23 @@ const {schema, data} = defineProps<{
 
 function added_new(SN: number) {
   tab.value = SN
-  newData.value = {SN: null}
+  newData.value = {ID: null}
 }
 
 const tab = ref<null|number>(null)
 
-const newData = ref({SN: null})
+const newData = ref({})
 
 </script>
 
 <template>
 
   <v-tabs v-model="tab">
-    <v-tab v-for="state in data" :value="state.SN">{{ state.SN }}</v-tab>
+    <v-tab v-for="state in data" :value="state.ID">{{ state.ID }}</v-tab>
     <v-tab value="new"><v-icon icon="mdi-plus"/></v-tab>
   </v-tabs>
   <v-tabs-window v-model="tab">
-    <v-tabs-window-item v-for="state in data" :value="state.SN">
+    <v-tabs-window-item v-for="state in data" :value="state.ID">
       <SchemaForm v-bind:schemanode="schema" v-bind:serverdata="state"/>
     </v-tabs-window-item>
     <v-tabs-window-item value="new">
