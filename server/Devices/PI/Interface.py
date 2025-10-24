@@ -9,7 +9,6 @@ from server.Devices import Device, LinearStageDevice
 from server.Settings import SettingsVault
 from server.Devices.Interface import ControllerInterface, getComPorts
 from server.Devices.Events import ConfigurationUpdate, updateResponse, Notice, ActionRequest
-from server.utils.EventAnnouncer import EventAnnouncer
 from server.Devices.PI.C884 import C884
 from server.Devices.PI.DataTypes import PIConfiguration, PIController, PIControllerModel, \
     PIConnectionType, PIStage, PIAPIConfig

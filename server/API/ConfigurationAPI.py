@@ -159,8 +159,7 @@ async def getloadConfiguration(background_tasks: BackgroundTasks, name: str):
     return await updateConfigurations(background_tasks, saved[name])
 
 async def checkUntilConfigured(background_tasks: BackgroundTasks, ids_to_check: list[int]):
-
-    print("checking configs", ids_to_check)
+    """Checks given configurations until they indicate they are ready"""
     # go to sleep :)
     await asyncio.sleep(0.2)
 

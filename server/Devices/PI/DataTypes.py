@@ -7,13 +7,14 @@ from pydantic_core.core_schema import FieldValidationInfo
 
 from server.Settings import SettingsVault
 from server.Devices import Configuration, Device, LinearStageDevice, RotationalStageDevice, MotionStageDevice
-from server.Devices.Events import ConfigurationUpdate, Notice, ActionRequest
+from server.Devices.Events import ConfigurationUpdate, Notice, ActionRequest, DeviceUpdate
 from server.utils.EventAnnouncer import EventAnnouncer
 
 
 class StageKind(Enum):
     linear = "linear"
     rotational = "rotational"
+
 
 class C884Settings(BaseModel):
     pass
@@ -99,19 +100,20 @@ class PIConfiguration(Configuration):
     def toPIAPI(self) -> PIAPIConfig:
         """Converts this configuration to a PIAPIConfig. What it does is convert the dict of stages
         into a list of stages, so that it plays well with json schemas. We also """
+        # Create stages list
         stages_list = []
         for stage in self.stages.values():
             stages_list.append(stage)
 
         dump = self.model_dump()
+        # overwrite the dict with the list version
         dump["stages"] = stages_list
-        print(dump)
         return PIAPIConfig(**dump)
 
 
 class PIController:
     def __init__(self):
-        self.EA = EventAnnouncer(PIController, Notice, ConfigurationUpdate)
+        self.EA = EventAnnouncer(PIController, Notice, DeviceUpdate, ConfigurationUpdate)
         self._config = None
         self.SV = SettingsVault()
 
@@ -169,7 +171,7 @@ class PIController:
                 connected=True,  # we would not know any of this if not connected
                 on_target=stage.on_target,
                 referenced=stage.referenced,
-                description= description
+                description=description
             )
             if stage.kind == StageKind.linear:
                 res[stage.channel] = LinearStageDevice(

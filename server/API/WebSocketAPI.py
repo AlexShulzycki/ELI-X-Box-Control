@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 import server.utils.EventAnnouncer
 from server import toplevelinterface
 from server.Devices import Configuration
-from server.Devices.Events import ConfigurationUpdate, Notice
+from server.Devices.Events import ConfigurationUpdate, Notice, DeviceUpdate
 from server.utils.EventAnnouncer import EventAnnouncer
 
 
@@ -79,17 +79,17 @@ class WebSocketAPI:
 
     def __init__(self):
         self.active_connections: list[WebSocket] = []
-        self.EA: EventAnnouncer = EventAnnouncer(WebSocketAPI, )
+        self.EA: EventAnnouncer = EventAnnouncer(WebSocketAPI, ConfigurationUpdate, DeviceUpdate)
         # Subscribe to stage status changes
-        self.EA.patch_through_from(server.toplevelinterface.EventAnnouncer.availableDataTypes,
+        self.EA.patch_through_from(self.EA.availableDataTypes,
                                    server.toplevelinterface.EventAnnouncer)
-        # TODO reintegrate WSAPI
-        #sub = server.Interface.toplevelinterface.EventAnnouncer.subscribe(self.EA.availableDataTypes)
-        #sub.deliverTo(StageStatus,self.broadcastStageStatus)
-        #sub.deliverTo(StageInfo,self.broadcastStageInfo)
-        #sub.deliverTo(StageRemoved, self.broadcastStageRemoved)
+
+        # handle deliveries
+        sub = self.EA.subscribe(*self.EA.availableDataTypes)
         #sub.deliverTo(Notice, self.broadcastNotice)
-        #sub.deliverTo(ConfigurationUpdate, self.broadcastConfigurationUpdate)
+        sub.deliverTo(ConfigurationUpdate, self.broadcastConfigurationUpdate)
+        sub.deliverTo(DeviceUpdate, self.broadcastDeviceUpdate)
+        #sub.deliverTo()
 
     async def receive(self, msg: Req, websocket: WebSocket) -> None:
         """
@@ -120,26 +120,6 @@ class WebSocketAPI:
     def disconnect(self, websocket: WebSocket):
         self.active_connections.remove(websocket)
 
-    def broadcastStageRemoved(self, message):
-        asyncio.create_task(
-            self.broadcast({
-                "event": "StageRemoved",
-                "data": message.model_dump_json()
-            })
-        )
-    def broadcastStageStatus(self, message):
-        asyncio.create_task(
-            self.broadcast({
-            "event": "StageStatus",
-            "data": message.model_dump_json()
-        }))
-
-    def broadcastStageInfo(self, message):
-        asyncio.create_task(self.broadcast({
-            "event": "StageInfo",
-            "data": message.model_dump_json()
-        }))
-
     def broadcastNotice(self, message: Notice):
         asyncio.create_task(self.broadcast({
             "event": "Notice",
@@ -147,7 +127,7 @@ class WebSocketAPI:
         }))
 
     def broadcastConfigurationUpdate(self, message: ConfigurationUpdate):
-        print("configurationupdate broadcast")
+
         # Because pydantic will only dump to the base class in nested objects, we need to do it manually
         if message.configuration is not None: # because we don't need to pass in a configuration
             config = message.configuration.model_dump_json() # this will dump subclasses properly
@@ -166,6 +146,12 @@ class WebSocketAPI:
         asyncio.create_task(self.broadcast({
             "event": "ConfigurationUpdate",
             "data": message
+        }))
+
+    def broadcastDeviceUpdate(self, message: DeviceUpdate):
+        asyncio.create_task(self.broadcast({
+            "event": "DeviceUpdate",
+            "data": message.model_dump()
         }))
 
     async def broadcast(self, json: dict[str, str]):

@@ -3,6 +3,7 @@ from typing import Coroutine, Awaitable, Any
 
 from pipython import GCSDevice
 
+from server.Devices.Events import DeviceUpdate
 from server.Settings import SettingsVault
 from server.Devices.Events import ConfigurationUpdate, Notice
 from server.Devices.PI.DataTypes import PIController, PIConfiguration, PIConnectionType, PIStage, StageKind
@@ -80,7 +81,6 @@ class C884(PIController):
 
         if not (self.config.connected and config.connected):
             # open connection handles channel_amount as well
-            print("opening connection")
             self.EA.event(ConfigurationUpdate(ID=config.ID, message="Connecting"))
             await self.openConnection(config)
 
@@ -95,20 +95,12 @@ class C884(PIController):
             return
 
         # Otherwise, we now need to update the stages
-        print("loading new stages")
         await self.loadStagesToC884(config.stages)
-
-
-        print("setting CLO")
         await self.setServoCLO(config.stages)
-
-
-        print("Referencing")
         await self.reference(config.stages)
 
         # Do a full status refresh
         await self.refreshFullStatus()
-
 
     def dict2list(self, fromController: dict) -> list[Any | None]:
         """
@@ -271,8 +263,6 @@ class C884(PIController):
         Refreshes everything, i.e., synchronizes to reality
         :return:
         """
-        print("refresh full status")
-
         status = PIConfiguration(
             ID=self.config.ID,
             model=self.config.model,
@@ -322,10 +312,6 @@ class C884(PIController):
         # update parameters which directly save to the self.config
         await asyncio.gather(self.refreshDevices(), self.update_ranges())
 
-        # Send an info update, status is handled in pos on target
-        # TODO Websockets device updates
-        #for info in self.stageInfos.values():
-            #self.EA.event(info)
 
     @property
     def config(self) -> PIConfiguration:
@@ -354,11 +340,12 @@ class C884(PIController):
         for device in self.devices.values():
             if not device.on_target:
                 not_ready.append(device.identifier)
-        return not_ready
 
-        # Send a status update TODO
-        #for status in self.stageStatuses.values():
-        #    self.EA.event(status)
+        # Send a status update
+        for device in self.devices.values():
+            self.EA.event(DeviceUpdate(device=device))
+
+        return not_ready
 
     async def update_position(self):
         """
@@ -414,7 +401,6 @@ class C884(PIController):
             # try to connect
             try:
                 if config.connection_type is PIConnectionType.rs232:
-                    print("Connecting with rs232")
                     # connect with rs232
                     self.device.ConnectRS232(config.comport, config.baud_rate)
 
@@ -477,7 +463,6 @@ class C884(PIController):
 
         # The only PI configuration we need to query periodically for is if everything is referenced
         refstate = self.device.qFRF()
-        print("refstate, being_referenced", refstate, self.being_referenced)
         message = "Referencing"
 
         for reffing in self.being_referenced:
