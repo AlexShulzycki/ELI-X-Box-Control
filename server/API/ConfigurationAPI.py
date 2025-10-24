@@ -50,7 +50,7 @@ async def getConfigSchema():
     return schemas
 
 @router.post("/post/UpdateConfigurations", description='')
-async def updateConfiguration(background_tasks: BackgroundTasks, configurations: list[Any]) -> list[updateResponse]:
+async def updateConfigurations(background_tasks: BackgroundTasks, configurations: list[Any]) -> list[updateResponse]:
     config_finished_check = []
     res: list[updateResponse] = []
     to_configure = []
@@ -156,7 +156,7 @@ async def getRemoveSavedConfiguration(name: str):
 async def getloadConfiguration(background_tasks: BackgroundTasks, name: str):
     """load a configuration from disk"""
     saved = (await getSavedConfigurations()).configuration
-    return await updateConfiguration(background_tasks, saved[name])
+    return await updateConfigurations(background_tasks, saved[name])
 
 async def checkUntilConfigured(background_tasks: BackgroundTasks, ids_to_check: list[int]):
 

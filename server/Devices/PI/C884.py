@@ -5,7 +5,7 @@ from pipython import GCSDevice
 
 from server.Settings import SettingsVault
 from server.Devices.Events import ConfigurationUpdate, Notice
-from server.Devices.PI.DataTypes import PIController, PIConfiguration, PIConnectionType, PIStage
+from server.Devices.PI.DataTypes import PIController, PIConfiguration, PIConnectionType, PIStage, StageKind
 
 
 class ControllerNotReadyException(Exception):
@@ -267,10 +267,14 @@ class C884(PIController):
                 await self.refreshFullStatus()  # do this because sometimes it shows as not ref'd.
 
     async def refreshFullStatus(self):
+        """
+        Refreshes everything, i.e., synchronizes to reality
+        :return:
+        """
         print("refresh full status")
 
         status = PIConfiguration(
-            ID=self.config.SN,
+            ID=self.config.ID,
             model=self.config.model,
             connection_type=self.config.connection_type,
             connected=self.isconnected,
@@ -384,8 +388,9 @@ class C884(PIController):
                 self._config.stages[key].on_target = ont
 
     async def update_referenced(self):
+        """Check if each axis is referenced, and update in the self.config"""
         self.checkReady()
-        for key, ref in self.device.qREF().items():
+        for key, ref in (await self.isReferenced).items():
             if self.config.stages.__contains__(key):
                 self._config.stages[key].referenced = ref
 
@@ -407,20 +412,20 @@ class C884(PIController):
                     # update comport
                     self._config.comport = config.comport
                     # Check if serial number matches config status
-                    if config.SN != SN:
+                    if config.ID != SN:
                         self.device.close()
                         raise Exception(f"Serial number of RS232 controller does not match configuration: {SN}")
 
                 else:
                     # connect with usb
                     # Check if we have this serial number connected via usb
-                    exists = sn_in_device_list(config.SN, self.device.EnumerateUSB())
+                    exists = sn_in_device_list(config.ID, self.device.EnumerateUSB())
 
                     if exists:
-                        self.device.ConnectUSB(config.SN)
+                        self.device.ConnectUSB(config.ID)
                     else:
                         self.device.close()
-                        raise Exception(f"USB Controller with given serial number not connected: {config.SN}")
+                        raise Exception(f"USB Controller with given serial number not connected: {config.ID}")
 
 
             except Exception as e:
@@ -473,7 +478,7 @@ class C884(PIController):
                     self.being_referenced.remove(reffing)
             else:
                 # something has gone wrong! tell the user and remove from list
-                self.EA.event(ConfigurationUpdate(SN=self.config.SN,message=f"could not find channel {reffing}", error=True))
+                self.EA.event(ConfigurationUpdate(ID=self.config.ID ,message=f"could not find channel {reffing}", error=True))
                 self.being_referenced.remove(reffing)
 
 
@@ -484,7 +489,7 @@ class C884(PIController):
         await self.refreshFullStatus()
 
         update = ConfigurationUpdate(
-            SN=self.config.SN,
+            ID=self.config.ID,
             message = message,
             configuration = self.config.toPIAPI(),
             finished = len(self.being_referenced)==0,
