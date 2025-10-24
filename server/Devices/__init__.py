@@ -12,6 +12,17 @@ class Action(BaseModel):
     description: str = Field(description="Description of this action")
     value: type[float|bool|None] = Field(description="Input parameter for this action", default=None)
 
+    # serialize the value field as a string
+    @model_serializer(mode='wrap')
+    def serialize_model(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
+        serialized = handler(self)
+        serialized['value'] = str(self.value)[8:-2] # hacky substring magic to extract the type name like "<class 'float'>"
+        if serialized['value'] == "":
+            # if None, then string is empty, let's set it to something descriptive, like null.
+            serialized['value'] = "null"
+        return serialized
+
+
 class DeviceType(str, Enum):
     stage_linear = "stage_linear"
     stage_rotational = "stage_rotational"
@@ -32,7 +43,10 @@ class Device(BaseModel):
     def serialize_model(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
         serialized = handler(self)
         serialized['deviceType'] = self.deviceType
-        #serialized['actions'] = self.actions
+        serialized['actions'] = []
+        for action in self.actions:
+            serialized['actions'].append(action.model_dump())
+        print("device serialized", serialized)
         return serialized
 
 
