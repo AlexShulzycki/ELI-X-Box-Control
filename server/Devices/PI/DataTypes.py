@@ -174,13 +174,13 @@ class PIController:
                 description=description
             )
             if stage.kind == StageKind.linear:
-                res[stage.channel] = LinearStageDevice(
+                res[identifier] = LinearStageDevice(
                     maximum=stage.min_max[1],
                     position=stage.position,
                     **motionstage.model_dump()
                 )
             elif stage.kind == StageKind.rotational:
-                res[stage.channel] = RotationalStageDevice(
+                res[identifier] = RotationalStageDevice(
                     angle=stage.position,
                     **motionstage.model_dump()
                 )
@@ -202,14 +202,14 @@ class PIController:
     async def is_configuration_configured(self) -> tuple[int, bool]:
         raise NotImplementedError
 
-    def execute_action(self, action: ActionRequest):
+    async def execute_action(self, action: ActionRequest):
         # find the stage
         cntrl_id, channel = self.deconstruct_SN_Channel(action.device_id)
         # do the action
         if action.action_name == "Move To":
-            self.moveTo(channel, action.value)
+           await self.moveTo(channel, action.value)
         elif action.action_name == "Step By":
-            self.moveBy(channel, action.value)
+            await self.moveBy(channel, action.value)
         else:
             raise Exception(f"Action {action.action_name} not recognized")
 

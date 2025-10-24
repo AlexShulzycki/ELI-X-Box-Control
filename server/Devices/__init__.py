@@ -46,7 +46,6 @@ class Device(BaseModel):
         serialized['actions'] = []
         for action in self.actions:
             serialized['actions'].append(action.model_dump())
-        print("device serialized", serialized)
         return serialized
 
 

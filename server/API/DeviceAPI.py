@@ -37,9 +37,9 @@ class ActionResponse(BaseModel):
     success: bool = True
     message: str|None = None
 
-@router.get("/get/action")
-async def getDoAction(action: ActionRequest) -> None:
-    toplevelinterface.execute_actions(action)
+@router.post("/post/action")
+async def postDoAction(action: ActionRequest) -> None:
+    await toplevelinterface.execute_actions([action])
 
 
 

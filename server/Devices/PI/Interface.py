@@ -33,7 +33,8 @@ class PIControllerInterface(ControllerInterface):
         # find the correct controller
         for cntrl in self.controllers.values():
             if action.device_id in cntrl.devices.keys():
-                cntrl.execute_action(action)
+                await cntrl.execute_action(action)
+                return
 
     @property
     def device_schemas(self) -> list[dict[str, Any]]:
