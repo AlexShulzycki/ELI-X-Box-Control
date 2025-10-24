@@ -14,7 +14,7 @@ from server.Devices.Events import updateResponse
 router = APIRouter(tags=["configuration"])
 
 @router.get("/get/ConfigState")
-def getCurrentConfig() -> list[Configuration]:
+def getCurrentConfig() -> list[object]:
     """
     Returns current configuration for every interface
     :return: current configurations

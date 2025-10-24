@@ -341,10 +341,22 @@ class C884(PIController):
         # return the status, but as a copy, we don't want anyone to access this.
         return self._config.__copy__()
 
-    async def refreshDevices(self):
+    async def refreshDevices(self) -> list[int]:
+        """
+        Refreshes ontarget, position, and referenced status of this controller.
+        :return: List of device IDs which are not on target.
+        """
+        # sync the relevant data from the controller
         await asyncio.gather(self.update_onTarget(), self.update_position(), self.update_referenced())
 
-        # Send a status update
+        not_ready = []
+        # Check who is or is not on target
+        for device in self.devices.values():
+            if not device.on_target:
+                not_ready.append(device.identifier)
+        return not_ready
+
+        # Send a status update TODO
         #for status in self.stageStatuses.values():
         #    self.EA.event(status)
 
@@ -379,8 +391,7 @@ class C884(PIController):
 
     async def update_onTarget(self):
         """
-        Returns boolean of whether the axis/axes are on target.
-        @return: Boolean or array of booleans of whether the axes are on target.
+        Updates ontarget status in the self.config
         """
         self.checkReady()
         for key, ont in self.device.qONT().items():
@@ -498,7 +509,7 @@ class C884(PIController):
 
 
         # Check if controller is ready, if True we don't need to run this function again
-        return self.config.SN, len(self.being_referenced)==0
+        return self.config.ID, len(self.being_referenced)==0
 
     def shutdown_and_cleanup(self):
         self.__exit__()

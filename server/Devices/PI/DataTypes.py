@@ -99,9 +99,8 @@ class PIConfiguration(Configuration):
     def toPIAPI(self) -> PIAPIConfig:
         """Converts this configuration to a PIAPIConfig. What it does is convert the dict of stages
         into a list of stages, so that it plays well with json schemas. We also """
-        stages_dict = self.stages
         stages_list = []
-        for stage in stages_dict.values():
+        for stage in self.stages.values():
             stages_list.append(stage)
 
         dump = self.model_dump()
@@ -155,29 +154,33 @@ class PIController:
         return res
 
     @property
-    def devices(self) -> dict[int, Device]:
+    def devices(self) -> dict[int, MotionStageDevice]:
         res = {}
         for stage in self.config.stages.values():
             # Skip if NOSTAGE TODO check if necessary
             if stage.device == "NOSTAGE":
                 continue
+            description = f"PI {stage.kind.value} Stage, model {stage.device}."
+            """Description string"""
             identifier = self.config.ID * 10 + stage.channel
+            motionstage = MotionStageDevice(
+                identifier=identifier,
+                configuration_id=self.config.ID,
+                connected=True,  # we would not know any of this if not connected
+                on_target=stage.on_target,
+                referenced=stage.referenced,
+                description= description
+            )
             if stage.kind == StageKind.linear:
                 res[stage.channel] = LinearStageDevice(
-                    identifier=identifier,
-                    configuration_id=self.config.ID,
                     maximum=stage.min_max[1],
                     position=stage.position,
-                    on_target=stage.on_target,
-                    referenced=stage.referenced
+                    **motionstage.model_dump()
                 )
             elif stage.kind == StageKind.rotational:
                 res[stage.channel] = RotationalStageDevice(
-                    identifier=identifier,
-                    configuration_id=self.config.ID,
                     angle=stage.position,
-                    on_target=stage.on_target,
-                    referenced=stage.referenced
+                    **motionstage.model_dump()
                 )
         return res
 

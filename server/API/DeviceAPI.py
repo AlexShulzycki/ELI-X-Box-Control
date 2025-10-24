@@ -9,15 +9,19 @@ from server.Devices import Device
 router = APIRouter(tags=["devices"])
 
 @router.get("/get/devices")
-def getAllDevices() -> list[Device]:
+def getAllDevices() -> list[object]:
     """
     Gets the stage info of connected stages
     :return: dict identifier -> StageInfo
     """
-    res = []
+    devices: list[Device] = []
     for intf in toplevelinterface.device_interfaces.values():
-        res.extend(intf.devices)
+        devices.extend(intf.devices)
 
+    # serialize
+    res = []
+    for device in devices:
+        res.append(device.model_dump())
     return res
 
 @router.get("/get/refreshdevices")
