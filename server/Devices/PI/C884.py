@@ -3,9 +3,10 @@ from typing import Coroutine, Awaitable, Any
 
 from pipython import GCSDevice
 
+from server.Devices.Events import DeviceUpdate
 from server.Settings import SettingsVault
 from server.Devices.Events import ConfigurationUpdate, Notice
-from server.Devices.PI.DataTypes import PIController, PIConfiguration, PIConnectionType, PIStage
+from server.Devices.PI.DataTypes import PIController, PIConfiguration, PIConnectionType, PIStage, StageKind
 
 
 class ControllerNotReadyException(Exception):
@@ -80,7 +81,6 @@ class C884(PIController):
 
         if not (self.config.connected and config.connected):
             # open connection handles channel_amount as well
-            print("opening connection")
             self.EA.event(ConfigurationUpdate(ID=config.ID, message="Connecting"))
             await self.openConnection(config)
 
@@ -95,20 +95,12 @@ class C884(PIController):
             return
 
         # Otherwise, we now need to update the stages
-        print("loading new stages")
         await self.loadStagesToC884(config.stages)
-
-
-        print("setting CLO")
         await self.setServoCLO(config.stages)
-
-
-        print("Referencing")
         await self.reference(config.stages)
 
         # Do a full status refresh
         await self.refreshFullStatus()
-
 
     def dict2list(self, fromController: dict) -> list[Any | None]:
         """
@@ -267,10 +259,12 @@ class C884(PIController):
                 await self.refreshFullStatus()  # do this because sometimes it shows as not ref'd.
 
     async def refreshFullStatus(self):
-        print("refresh full status")
-
+        """
+        Refreshes everything, i.e., synchronizes to reality
+        :return:
+        """
         status = PIConfiguration(
-            ID=self.config.SN,
+            ID=self.config.ID,
             model=self.config.model,
             connection_type=self.config.connection_type,
             connected=self.isconnected,
@@ -318,10 +312,6 @@ class C884(PIController):
         # update parameters which directly save to the self.config
         await asyncio.gather(self.refreshDevices(), self.update_ranges())
 
-        # Send an info update, status is handled in pos on target
-        # TODO Websockets device updates
-        #for info in self.stageInfos.values():
-            #self.EA.event(info)
 
     @property
     def config(self) -> PIConfiguration:
@@ -337,12 +327,25 @@ class C884(PIController):
         # return the status, but as a copy, we don't want anyone to access this.
         return self._config.__copy__()
 
-    async def refreshDevices(self):
+    async def refreshDevices(self) -> list[int]:
+        """
+        Refreshes ontarget, position, and referenced status of this controller.
+        :return: List of device IDs which are not on target.
+        """
+        # sync the relevant data from the controller
         await asyncio.gather(self.update_onTarget(), self.update_position(), self.update_referenced())
 
+        not_ready = []
+        # Check who is or is not on target
+        for device in self.devices.values():
+            if not device.on_target:
+                not_ready.append(device.identifier)
+
         # Send a status update
-        #for status in self.stageStatuses.values():
-        #    self.EA.event(status)
+        for device in self.devices.values():
+            self.EA.event(DeviceUpdate(device=device))
+
+        return not_ready
 
     async def update_position(self):
         """
@@ -375,8 +378,7 @@ class C884(PIController):
 
     async def update_onTarget(self):
         """
-        Returns boolean of whether the axis/axes are on target.
-        @return: Boolean or array of booleans of whether the axes are on target.
+        Updates ontarget status in the self.config
         """
         self.checkReady()
         for key, ont in self.device.qONT().items():
@@ -384,8 +386,9 @@ class C884(PIController):
                 self._config.stages[key].on_target = ont
 
     async def update_referenced(self):
+        """Check if each axis is referenced, and update in the self.config"""
         self.checkReady()
-        for key, ref in self.device.qREF().items():
+        for key, ref in (await self.isReferenced).items():
             if self.config.stages.__contains__(key):
                 self._config.stages[key].referenced = ref
 
@@ -398,7 +401,6 @@ class C884(PIController):
             # try to connect
             try:
                 if config.connection_type is PIConnectionType.rs232:
-                    print("Connecting with rs232")
                     # connect with rs232
                     self.device.ConnectRS232(config.comport, config.baud_rate)
 
@@ -407,20 +409,20 @@ class C884(PIController):
                     # update comport
                     self._config.comport = config.comport
                     # Check if serial number matches config status
-                    if config.SN != SN:
+                    if config.ID != SN:
                         self.device.close()
                         raise Exception(f"Serial number of RS232 controller does not match configuration: {SN}")
 
                 else:
                     # connect with usb
                     # Check if we have this serial number connected via usb
-                    exists = sn_in_device_list(config.SN, self.device.EnumerateUSB())
+                    exists = sn_in_device_list(config.ID, self.device.EnumerateUSB())
 
                     if exists:
-                        self.device.ConnectUSB(config.SN)
+                        self.device.ConnectUSB(config.ID)
                     else:
                         self.device.close()
-                        raise Exception(f"USB Controller with given serial number not connected: {config.SN}")
+                        raise Exception(f"USB Controller with given serial number not connected: {config.ID}")
 
 
             except Exception as e:
@@ -461,7 +463,6 @@ class C884(PIController):
 
         # The only PI configuration we need to query periodically for is if everything is referenced
         refstate = self.device.qFRF()
-        print("refstate, being_referenced", refstate, self.being_referenced)
         message = "Referencing"
 
         for reffing in self.being_referenced:
@@ -473,7 +474,7 @@ class C884(PIController):
                     self.being_referenced.remove(reffing)
             else:
                 # something has gone wrong! tell the user and remove from list
-                self.EA.event(ConfigurationUpdate(SN=self.config.SN,message=f"could not find channel {reffing}", error=True))
+                self.EA.event(ConfigurationUpdate(ID=self.config.ID ,message=f"could not find channel {reffing}", error=True))
                 self.being_referenced.remove(reffing)
 
 
@@ -484,7 +485,7 @@ class C884(PIController):
         await self.refreshFullStatus()
 
         update = ConfigurationUpdate(
-            SN=self.config.SN,
+            ID=self.config.ID,
             message = message,
             configuration = self.config.toPIAPI(),
             finished = len(self.being_referenced)==0,
@@ -493,7 +494,7 @@ class C884(PIController):
 
 
         # Check if controller is ready, if True we don't need to run this function again
-        return self.config.SN, len(self.being_referenced)==0
+        return self.config.ID, len(self.being_referenced)==0
 
     def shutdown_and_cleanup(self):
         self.__exit__()

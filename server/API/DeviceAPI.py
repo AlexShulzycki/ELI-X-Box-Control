@@ -9,15 +9,19 @@ from server.Devices import Device
 router = APIRouter(tags=["devices"])
 
 @router.get("/get/devices")
-def getAllDevices() -> list[Device]:
+def getAllDevices() -> list[object]:
     """
     Gets the stage info of connected stages
     :return: dict identifier -> StageInfo
     """
-    res = []
+    devices: list[Device] = []
     for intf in toplevelinterface.device_interfaces.values():
-        res.extend(intf.devices)
+        devices.extend(intf.devices)
 
+    # serialize
+    res = []
+    for device in devices:
+        res.append(device)
     return res
 
 @router.get("/get/refreshdevices")
@@ -33,9 +37,9 @@ class ActionResponse(BaseModel):
     success: bool = True
     message: str|None = None
 
-@router.get("/get/action")
-async def getDoAction(action: ActionRequest) -> None:
-    toplevelinterface.execute_actions(action)
+@router.post("/post/action")
+async def postDoAction(action: ActionRequest) -> None:
+    await toplevelinterface.execute_actions([action])
 
 
 

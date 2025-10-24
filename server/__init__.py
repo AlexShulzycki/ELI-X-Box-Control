@@ -2,6 +2,7 @@ from __future__ import annotations
 import asyncio
 from typing import Any, Awaitable
 
+import server.utils
 from server.Devices import Configuration, Action, Virtual, PI
 from server.Devices.Events import DeviceUpdate, ConfigurationUpdate, Notice, updateResponse, ActionRequest
 from server.Devices.Interface import ControllerInterface
@@ -90,11 +91,7 @@ class DeviceInterfaceInterface:
         for device_id in deviceIDs:
             awaiters.append(self.getDeviceController(device_id).refresh_devices(deviceIDs))
 
-        res: list[int] = []
-        # await and flatten the responses, since we are getting a list of (awaited) lists
-        for awaiter in awaiters:
-            res.extend(await awaiter)
-        return res
+        return await server.utils.gather_and_flatten(awaiters)
 
     def getDeviceController(self, deviceID: int) -> ControllerInterface:
         """Returns the controller for the given device ID"""

@@ -7,13 +7,14 @@ from pydantic_core.core_schema import FieldValidationInfo
 
 from server.Settings import SettingsVault
 from server.Devices import Configuration, Device, LinearStageDevice, RotationalStageDevice, MotionStageDevice
-from server.Devices.Events import ConfigurationUpdate, Notice, ActionRequest
+from server.Devices.Events import ConfigurationUpdate, Notice, ActionRequest, DeviceUpdate
 from server.utils.EventAnnouncer import EventAnnouncer
 
 
 class StageKind(Enum):
     linear = "linear"
     rotational = "rotational"
+
 
 class C884Settings(BaseModel):
     pass
@@ -99,20 +100,20 @@ class PIConfiguration(Configuration):
     def toPIAPI(self) -> PIAPIConfig:
         """Converts this configuration to a PIAPIConfig. What it does is convert the dict of stages
         into a list of stages, so that it plays well with json schemas. We also """
-        stages_dict = self.stages
+        # Create stages list
         stages_list = []
-        for stage in stages_dict.values():
+        for stage in self.stages.values():
             stages_list.append(stage)
 
         dump = self.model_dump()
+        # overwrite the dict with the list version
         dump["stages"] = stages_list
-        print(dump)
         return PIAPIConfig(**dump)
 
 
 class PIController:
     def __init__(self):
-        self.EA = EventAnnouncer(PIController, Notice, ConfigurationUpdate)
+        self.EA = EventAnnouncer(PIController, Notice, DeviceUpdate, ConfigurationUpdate)
         self._config = None
         self.SV = SettingsVault()
 
@@ -155,29 +156,33 @@ class PIController:
         return res
 
     @property
-    def devices(self) -> dict[int, Device]:
+    def devices(self) -> dict[int, MotionStageDevice]:
         res = {}
         for stage in self.config.stages.values():
             # Skip if NOSTAGE TODO check if necessary
             if stage.device == "NOSTAGE":
                 continue
+            description = f"PI {stage.kind.value} Stage, model {stage.device}."
+            """Description string"""
             identifier = self.config.ID * 10 + stage.channel
+            motionstage = MotionStageDevice(
+                identifier=identifier,
+                configuration_id=self.config.ID,
+                connected=True,  # we would not know any of this if not connected
+                on_target=stage.on_target,
+                referenced=stage.referenced,
+                description=description
+            )
             if stage.kind == StageKind.linear:
-                res[stage.channel] = LinearStageDevice(
-                    identifier=identifier,
-                    configuration_id=self.config.ID,
+                res[identifier] = LinearStageDevice(
                     maximum=stage.min_max[1],
                     position=stage.position,
-                    on_target=stage.on_target,
-                    referenced=stage.referenced
+                    **motionstage.model_dump()
                 )
             elif stage.kind == StageKind.rotational:
-                res[stage.channel] = RotationalStageDevice(
-                    identifier=identifier,
-                    configuration_id=self.config.ID,
+                res[identifier] = RotationalStageDevice(
                     angle=stage.position,
-                    on_target=stage.on_target,
-                    referenced=stage.referenced
+                    **motionstage.model_dump()
                 )
         return res
 
@@ -197,14 +202,14 @@ class PIController:
     async def is_configuration_configured(self) -> tuple[int, bool]:
         raise NotImplementedError
 
-    def execute_action(self, action: ActionRequest):
+    async def execute_action(self, action: ActionRequest):
         # find the stage
         cntrl_id, channel = self.deconstruct_SN_Channel(action.device_id)
         # do the action
         if action.action_name == "Move To":
-            self.moveTo(channel, action.value)
+           await self.moveTo(channel, action.value)
         elif action.action_name == "Step By":
-            self.moveBy(channel, action.value)
+            await self.moveBy(channel, action.value)
         else:
             raise Exception(f"Action {action.action_name} not recognized")
 

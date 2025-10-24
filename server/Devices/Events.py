@@ -26,8 +26,15 @@ class ConfigurationUpdate(BaseModel):
 
 class DeviceUpdate(BaseModel):
     """Update to the device state to be sent via websockets"""
-    identifier: int = Field(description="Identifier of the device")
-    state: Device
+    device: Device
+
+class ConfigurationRemovedUpdate(BaseModel):
+    ID: int
+    """Identifier of the configuration"""
+
+class DeviceRemovedUpdate(BaseModel):
+    ID: int
+    """Identifier of the device"""
 
 
 class updateResponse(BaseModel):

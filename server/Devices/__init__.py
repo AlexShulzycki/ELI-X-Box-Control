@@ -12,7 +12,18 @@ class Action(BaseModel):
     description: str = Field(description="Description of this action")
     value: type[float|bool|None] = Field(description="Input parameter for this action", default=None)
 
-class DeviceType(Enum):
+    # serialize the value field as a string
+    @model_serializer(mode='wrap')
+    def serialize_model(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
+        serialized = handler(self)
+        serialized['value'] = str(self.value)[8:-2] # hacky substring magic to extract the type name like "<class 'float'>"
+        if serialized['value'] == "":
+            # if None, then string is empty, let's set it to something descriptive, like null.
+            serialized['value'] = "null"
+        return serialized
+
+
+class DeviceType(str, Enum):
     stage_linear = "stage_linear"
     stage_rotational = "stage_rotational"
     sensor = "sensor"
@@ -26,6 +37,16 @@ class Device(BaseModel):
     actions: ClassVar[list[Action]] = Field(description="List of actions this device can perform", default=[])
     finished: bool = Field(description="Whether this device is finished with whatever it is doing, for example "
                                        "moving, or referencing", default=True)
+
+    # Force the inclusion of DeviceType in the serialization, otherwise it will not be included as it's a class var.
+    @model_serializer(mode='wrap')
+    def serialize_model(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
+        serialized = handler(self)
+        serialized['deviceType'] = self.deviceType
+        serialized['actions'] = []
+        for action in self.actions:
+            serialized['actions'].append(action.model_dump())
+        return serialized
 
 
 class MotionStageDevice(Device):
@@ -74,7 +95,7 @@ class Configuration(BaseModel):
     ControllerType: ClassVar[str] = Field(description="What controller this configuration is for")
 
 
-    # Force the inclusion of ControlleType in the serialization, otherwise it will not be included as it's a class var.
+    # Force the inclusion of ControllerType in the serialization, otherwise it will not be included as it's a class var.
     @model_serializer(mode='wrap')
     def serialize_model(self, handler: SerializerFunctionWrapHandler) -> dict[str, object]:
         serialized = handler(self)

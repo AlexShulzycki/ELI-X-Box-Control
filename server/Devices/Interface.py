@@ -30,7 +30,7 @@ class ControllerInterface:
         """List of device IDs this controller has under its wing"""
         res = []
         for device in self.devices:
-            res.append(device.id)
+            res.append(device.identifier)
         return res
 
     async def execute_action(self, action: ActionRequest) -> None:

@@ -74,7 +74,9 @@ class EventAnnouncer:
 
     def event(self, event: Any):
         """Receive an event, send it to relevant subscribers"""
-        #print(f"event at {self.host}", event) useful for debug
+        # The following line is useful for debug,
+        # it shows the path of each event up the chain
+        #print(f"event at {self.host}", event)
         for sub in self.subs:
             if sub.datatypes.__contains__(type(event)):
                 sub.event(event)
@@ -84,7 +86,7 @@ class EventAnnouncer:
 
     def patch_through_from(self, datatypes: list[type], target: EventAnnouncer):
         """
-        Patch through events of this type to the target EventAnnouncer
+        Patch through events of this type from the target EventAnnouncer
         :param datatypes: Datatypes to forward
         :param target: target EventAnnouncer
         :return:

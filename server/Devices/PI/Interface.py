@@ -3,12 +3,12 @@ from typing import Any, Awaitable
 
 from pydantic import BaseModel
 
+import server.utils
 from server.Devices import Configuration, RotationalStageDevice
 from server.Devices import Device, LinearStageDevice
 from server.Settings import SettingsVault
 from server.Devices.Interface import ControllerInterface, getComPorts
 from server.Devices.Events import ConfigurationUpdate, updateResponse, Notice, ActionRequest
-from server.utils.EventAnnouncer import EventAnnouncer
 from server.Devices.PI.C884 import C884
 from server.Devices.PI.DataTypes import PIConfiguration, PIController, PIControllerModel, \
     PIConnectionType, PIStage, PIAPIConfig
@@ -26,14 +26,15 @@ class PIControllerInterface(ControllerInterface):
     def devices(self) -> list[Device]:
         res = []
         for cntrl in self.controllers.values():
-            res.extend(cntrl.devices)
+            res.extend(list(cntrl.devices.values()))
         return res
 
     async def execute_action(self, action: ActionRequest) -> None:
         # find the correct controller
         for cntrl in self.controllers.values():
             if action.device_id in cntrl.devices.keys():
-                cntrl.execute_action(action)
+                await cntrl.execute_action(action)
+                return
 
     @property
     def device_schemas(self) -> list[dict[str, Any]]:
@@ -47,16 +48,31 @@ class PIControllerInterface(ControllerInterface):
         return PIAPIConfig
 
     @property
-    def currentConfigurations(self) -> list[Configuration]:
+    def currentConfigurations(self) -> list[PIConfiguration]:
         """Returns current configurations in API-ready form"""
         res = []
         for controller in self.controllers.values():
             res.append(controller.config.toPIAPI())
         return res
 
-    async def refresh_devices(self, ids: list[int] | None = None) -> None:
-        #TODO
-        pass
+    async def refresh_devices(self, ids: list[int] | None = None) -> list[int]:
+        """
+        Refreshes data relevant to stages, like position, ontarget, referenced status.
+        """
+        # First we need to make a list of PIController objects we need refreshed.
+        to_refresh: list[int] = []
+        for ID in ids:
+            sn, channel = PIController.deconstruct_SN_Channel(ID)
+            # double check that we have this controller, append to the list if not already there
+            if sn in self.configurationIDs and sn not in to_refresh:
+                to_refresh.append(sn)
+
+        # ask each controller to kindly refresh
+        awaitables = []
+        for ID in to_refresh:
+            awaitables.append(self.controllers[ID].refreshDevices())
+        # flatten results
+        return await server.utils.gather_and_flatten(awaitables)
 
     async def refresh_configurations(self, ids: list[int] | None = None) -> None:
         # TODO do this selectively based on ID
@@ -66,31 +82,31 @@ class PIControllerInterface(ControllerInterface):
 
         await asyncio.gather(*awaiters)
 
-    async def configurationChangeRequest(self, request: list[PIAPIConfig]) -> list[updateResponse]:
+    async def configurationChangeRequest(self, requests: list[PIAPIConfig]) -> list[updateResponse]:
         """
         Tries to turn the desired state into reality.
-        :param request: A valid PIController status.
+        :param requests: Valid PIController statuses.
         :return:
         """
 
         res = []
-        for request in request:
-            req = request.toPIAPI()
+        for request in requests:
+            req = request.toPIConfig()
             try:
                 # If we don't have a controller with the SN we need to create a blank new one
-                if not self.controllers.keys().__contains__(req.SN):
+                if not self.controllers.keys().__contains__(req.ID):
                     await self.newController(req)
                 else:
                     # Update the relevant controller
 
                     await self.updateController(req)
                 res.append(updateResponse(
-                    identifier=req.SN,
+                    identifier=req.ID,
                     success=True,
                 ))
             except Exception as e:
                 res.append(updateResponse(
-                    identifier=req.SN,
+                    identifier=req.ID,
                     success=False,
                     error=str(e),
                 ))
@@ -101,7 +117,7 @@ class PIControllerInterface(ControllerInterface):
         if config.model == PIControllerModel.C884:
             c884 = C884()
             await c884.updateFromConfig(config)
-            self.controllers[config.SN] = c884
+            self.controllers[config.ID] = c884
             self.EventAnnouncer.patch_through_from(self.EventAnnouncer.availableDataTypes, c884.EA)
             # Do a full status refresh, which sends any new valid axis events
             await c884.refreshFullStatus()
@@ -109,23 +125,23 @@ class PIControllerInterface(ControllerInterface):
         elif config.model == PIControllerModel.mock:
             mock = MockPIController()
             await mock.updateFromConfig(config)
-            self.controllers[config.SN] = mock
+            self.controllers[config.ID] = mock
             self.EventAnnouncer.patch_through_from(self.EventAnnouncer.availableDataTypes, mock.EA)
             await mock.refreshFullStatus()
         else:
             raise Exception("Unknown PI controller model")
 
     def updateController(self, config: PIConfiguration) -> Awaitable:
-        return self.controllers[config.SN].updateFromConfig(config)
+        return self.controllers[config.ID].updateFromConfig(config)
 
-    async def removeConfiguration(self, SN: int):
+    async def removeConfiguration(self, ID: int):
         """
         Removes a controller.
-        :param SN: Serial number of the controller.
+        :param ID: Serial number of the controller.
         :return:
         """
-        self.controllers[SN].shutdown_and_cleanup()
-        self.controllers.pop(SN)
+        self.controllers[ID].shutdown_and_cleanup()
+        self.controllers.pop(ID)
 
     @property
     async def configurationSchema(self):
@@ -170,11 +186,11 @@ class PIControllerInterface(ControllerInterface):
         return schema
 
     async def moveBy(self, identifier: int, step: float):
-        sn, channel = deconstruct_SN_Channel(identifier)
+        sn, channel = PIController.deconstruct_SN_Channel(identifier)
         await self.controllers[sn].moveBy(channel, step)
 
     async def moveTo(self, identifier: int, position: float):
-        sn, channel = deconstruct_SN_Channel(identifier)
+        sn, channel = PIController.deconstruct_SN_Channel(identifier)
         await self.controllers[sn].moveTo(channel, position)
 
     @property

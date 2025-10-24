@@ -1,12 +1,13 @@
 import os
-os.chdir("../") # move to main server directory instead of /tests
+
+os.chdir("../")  # move to main server directory instead of /tests
 
 import time
 import unittest
 
 from unittest import IsolatedAsyncioTestCase
 
-from server.Devices.PI.DataTypes import PIConfiguration, PIControllerModel, PIConnectionType, PIStage
+from server.Devices.PI.DataTypes import PIConfiguration, PIControllerModel, PIConnectionType, PIStage, PIAPIConfig
 from server.Devices.PI.Interface import PIControllerInterface
 from server.Devices.PI.C884 import C884
 
@@ -14,7 +15,6 @@ from server.Devices.PI.C884 import C884
 class TestC884(IsolatedAsyncioTestCase):
 
     async def test_connected(self):
-
         t = time.time()
         self.c1 = C884()
         await self.c1.updateFromConfig(PIConfiguration(
@@ -24,10 +24,10 @@ class TestC884(IsolatedAsyncioTestCase):
             connection_type=PIConnectionType.rs232,
             comport=17,
             channel_amount=4,
-            stages = {
+            stages={
                 "3": PIStage(
                     channel=3,
-                    device= "L-406.40DD10",
+                    device="L-406.40DD10",
                 )
             }))
 
@@ -63,24 +63,25 @@ class TestPIinterface(IsolatedAsyncioTestCase):
 
     async def test_basic(self):
         t = time.time()
-        self.interface:PIControllerInterface = PIinterface
-        await self.interface.settings.configurationChangeRequest([PIConfiguration(
-            SN=425003044,
-            connected=True,
+        self.interface: PIControllerInterface = PIControllerInterface()
+        await self.interface.configurationChangeRequest([PIAPIConfig(
+            ID=118071328,
             model=PIControllerModel.C884,
             connection_type=PIConnectionType.rs232,
-            comport=5,
-            channel_amount=6,
-            stages=["NOSTAGE", "NOSTAGE", "L-406.40DD10", "NOSTAGE", "NOSTAGE", "NOSTAGE"])])
+            baud_rate=115200,
+            comport=17,
+            stages=[
+                PIStage(
+                    channel=3,
+                    device="L-406.40DD10",
+                )
+            ]
+        )])
         print(f"Configured, took {time.time() - t}")
         t = time.time()
-        await self.interface.settings.fullRefreshAllSettings()
+        await self.interface.refresh_configurations()
         print(f"Refreshed, took {time.time() - t}")
-        config = self.interface.settings.currentConfiguration[0]
-        print(config)
-        assert config.connected
-        config.referenced = [None, None, True, None, None, None]
-        config.clo = [None, None, True, None, None, None]
+        await self.interface.refresh_devices()
         t = time.time()
         await self.interface.settings.configurationChangeRequest([config])
         print(f"Updated, took {time.time() - t}")
@@ -97,6 +98,7 @@ class TestPIinterface(IsolatedAsyncioTestCase):
         print(f"moved and refreshed, took {time.time() - t}")
 
         await self.interface.settings.removeConfiguration(config.SN)
+
 
 if __name__ == '__main__':
     unittest.main()
