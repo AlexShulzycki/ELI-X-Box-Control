@@ -42,30 +42,6 @@ class WsErrResponse(WsResponse):
     errortype: ErrTypes
     errormsg: str
 
-class DeviceTypes(Enum):
-    c884 = "pi_c884"
-    smc5 = "standa_smc5"
-
-class UpdateTypes(Enum):
-    error_update = "error_update"
-    motion_update = "motion_update"
-
-class Update(BaseModel):
-    event: UpdateTypes
-
-class StageMotionStatus(BaseModel):
-    device_type: DeviceTypes = Field(description="Device type", examples=[DeviceTypes.c884, DeviceTypes.smc5])
-    position: list[float| None] = Field(description="Position of each stage in mm", examples=[[9.32], [1.4, None, 53.44]])
-    on_target: list[bool| None] = Field(description="On target status for the stages", examples=[True, False, None, False])
-
-class MotionUpdate(Update):
-    event: UpdateTypes = UpdateTypes.motion_update
-    stages: list[StageMotionStatus] = Field(default = [], description="List of StageMotionStatus objects")
-
-class ErrorUpdate(Update):
-    event: UpdateTypes = UpdateTypes.error_update
-    errortype: ErrTypes = Field(description="Error type", examples=[ErrTypes.malformed_request], default=ErrTypes.other_error)
-    errormsg: str = Field(default="Unknown error", description="Error message")
 
 
 
@@ -155,7 +131,7 @@ class WebSocketAPI:
         }))
 
     async def broadcast(self, json: dict[str, str]):
-        print(f"Broadcasting event {json} to {len(self.active_connections)} active clients")
+        #print(f"Broadcasting event {json} to {len(self.active_connections)} active clients")
         awaiters = []
         for connection in self.active_connections:
             awaiters.append(connection.send_json(json))

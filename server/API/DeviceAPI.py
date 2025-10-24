@@ -21,7 +21,7 @@ def getAllDevices() -> list[object]:
     # serialize
     res = []
     for device in devices:
-        res.append(device.model_dump())
+        res.append(device)
     return res
 
 @router.get("/get/refreshdevices")
